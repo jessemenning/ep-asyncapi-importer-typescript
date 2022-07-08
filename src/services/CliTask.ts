@@ -12,6 +12,7 @@ export interface ICliTaskConfig {
   cliAsyncApiDocument: CliAsyncApiDocument;
   cliTaskState: ECliTaskState;
 }
+export interface ICliTaskKeys {}
 export interface ICliGetFuncReturn {
   documentExists: boolean;
 }
@@ -25,9 +26,14 @@ export abstract class CliTask {
 
   protected get_CliAsyncApiDocument(): CliAsyncApiDocument { return this.cliTaskConfig.cliAsyncApiDocument; }
 
-  protected async getFunc(): Promise<ICliGetFuncReturn> {
+  protected get_CliTaskConfig(): ICliTaskConfig { return this.cliTaskConfig; }
+
+  protected abstract getTaskKeys(): ICliTaskKeys;
+
+  protected async getFunc(cliTaskKeys: ICliTaskKeys): Promise<ICliGetFuncReturn> {
     const funcName = 'getFunc';
     const logName = `${this.constructor.name}.${funcName}()`;
+    cliTaskKeys;
     throw new AbstractMethodError(logName, CliTask.name, funcName);
   };
 
@@ -51,7 +57,7 @@ export abstract class CliTask {
       asyncApiDocument: this.cliTaskConfig.cliAsyncApiDocument.getLogInfo()
     }}));
 
-    const cliGetFuncReturn: ICliGetFuncReturn = await this.getFunc();
+    const cliGetFuncReturn: ICliGetFuncReturn = await this.getFunc(this.getTaskKeys());
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_GET, details: {
       cliGetFuncReturn: cliGetFuncReturn
     }}));

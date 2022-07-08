@@ -1,4 +1,4 @@
-import { AsyncAPIDocument } from '@asyncapi/parser';
+import { AsyncAPIDocument, Message } from '@asyncapi/parser';
 import { TCliAppConfig } from '../CliConfig';
 import { AsyncApiSpecError, AsyncApiSpecXtensionError } from '../CliError';
 
@@ -52,6 +52,21 @@ export class CliAsyncApiDocument {
   public getVersion(): string { return this.asyncApiDocument.info().version(); }
 
   public getApplicationDomainName(): string { return this.applicationDomainName; }
+
+  public getMessages(): Map<string, Message> {
+
+    // define own message, add stuff like version & state to it
+
+// or should we get the channels which have messages in them - maybe more efficient.
+
+    for(let [key, message] of messageMap) {
+      CliLogger.warn(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
+        key: key,
+        message: message
+      }}));
+
+    return this.asyncApiDocument.allMessages();
+  }
 
   public getLogInfo(): any {
     return {

@@ -204,6 +204,10 @@ export class CliConfig {
     return this.config;
   };
 
+  public getAppDisplayName = (): string => {
+    return this.config.appId;
+  }
+
   public getCliLoggerConfig = (): TCliLoggerConfig => {
     if(this.config && this.config.cliLoggerConfig) return this.config.cliLoggerConfig;
     else return CliConfig.DefaultCliLoggerConfig;

@@ -1,33 +1,49 @@
+import CliConfig from "../CliConfig";
 import { CliLogger, ECliStatusCodes } from "../CliLogger";
-import { CliTask, ICliGetFuncReturn, ICliTaskConfig } from "../services/CliTask";
+import { CliTask, ICliTaskKeys, ICliGetFuncReturn, ICliTaskConfig } from "../services/CliTask";
 import { ApplicationDomain, ApplicationDomainResponse, ApplicationDomainsResponse, ApplicationDomainsService } from "../_generated/@solace-iot-team/ep-openapi-node";
 
 export interface ICliApplicationDomainConfig extends ICliTaskConfig {
+}
+export interface ICliApplicationDomainTask_Keys extends ICliTaskKeys {
+  applicationDomainName: string;
 }
 export interface ICliApplicationDomainsResponse extends ICliGetFuncReturn {
   applicationDomain: ApplicationDomain | undefined;
 }
 
-export class CliApplicationDomainsTask extends CliTask {
+export class CliApplicationDomainTask extends CliTask {
 
   private readonly EmptyResponse: ICliApplicationDomainsResponse = {
     applicationDomain: undefined,
     documentExists: false  
   };
   private readonly DefaultApplicationDomainParams: Partial<ApplicationDomain> = {
-    topicDomainEnforcementEnabled: true,
+    topicDomainEnforcementEnabled: false,
     uniqueTopicAddressEnforcementEnabled: true,
+  }
+  private getApplicationDomainParams(): Partial<ApplicationDomain> {
+    return {
+      ...this.DefaultApplicationDomainParams,
+      description: `Created by ${CliConfig.getAppDisplayName()}.`
+    }
   }
 
   constructor(taskConfig: ICliApplicationDomainConfig) {
     super(taskConfig);
   }
 
-  protected async getFunc(): Promise<ICliApplicationDomainsResponse> {
+  protected getTaskKeys(): ICliApplicationDomainTask_Keys {
+    return {
+      applicationDomainName: this.get_CliAsyncApiDocument().getApplicationDomainName()
+    }
+  }
+
+  protected async getFunc(cliTaskKeys: ICliApplicationDomainTask_Keys): Promise<ICliApplicationDomainsResponse> {
     const funcName = 'getFunc';
     const logName = `${this.constructor.name}.${funcName}()`;
 
-    const applicationDomainName = this.get_CliAsyncApiDocument().getApplicationDomainName();
+    const applicationDomainName = cliTaskKeys.applicationDomainName;
 
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_GET, details: {
       params: {
@@ -59,7 +75,7 @@ export class CliApplicationDomainsTask extends CliTask {
     const applicationDomainName = this.get_CliAsyncApiDocument().getApplicationDomainName();
 
     const create: ApplicationDomain = {
-      ...this.DefaultApplicationDomainParams,
+      ...this.getApplicationDomainParams(),
       name: applicationDomainName
     }
 

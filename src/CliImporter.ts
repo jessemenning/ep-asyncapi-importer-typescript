@@ -2,8 +2,9 @@ import { CliLogger, ECliStatusCodes } from './CliLogger';
 import { TCliAppConfig } from './CliConfig';
 import CliApiSpecsService from './services/CliApiSpecsService';
 import { CliAsyncApiDocument } from './services/CliAsyncApiDocument';
-import { CliTask, ECliTaskState } from './services/CliTask';
-import { CliApplicationDomainsTask } from './tasks/CliApplicationDomainsTask';
+import { ECliTaskState } from './services/CliTask';
+import { CliApplicationDomainTask } from './tasks/CliApplicationDomainTask';
+import { Message } from '@asyncapi/parser';
 
 
 export class CliImporter {
@@ -35,11 +36,20 @@ export class CliImporter {
     let x: void;
     
     // ensure application domain name exists
-    const applicationDomainsTask = new CliApplicationDomainsTask({
+    const applicationDomainsTask = new CliApplicationDomainTask({
       cliAsyncApiDocument: asyncApiDocument,
       cliTaskState: ECliTaskState.PRESENT
     });
     x = await applicationDomainsTask.execute();
+
+    // get all the messages
+    const messageMap: Map<string, Message> = asyncApiDocument.getMessages();
+    for(let [key, message] of messageMap) {
+      CliLogger.warn(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
+        key: key,
+        message: message
+      }}));
+    }
 
 
 
