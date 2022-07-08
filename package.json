@@ -1,7 +1,12 @@
 {
-  "name": "sep-async-api-importer",
+  "name": "@solace-iot-team/sep-async-api-importer",
   "version": "0.0.1",
   "description": "Solace Event Portal Async API Importer ",
+  "main": "./src/index.js",
+  "type": "commonjs",
+  "bin": {
+    "a2sep": "./src/index.js"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/solace-iot-team/sep-async-api-importer.git"
@@ -25,16 +30,33 @@
   },
   "scripts": {
     "dev:build": "ts-node dev-build-open-apis.ts",
-    "compile": "tsc",
-    "start": "ts-node src/index.ts"
+    "build": "tsc",
+    "dev:start": "ts-node src/index.ts",
+    "start": "npm run build && node dist/src/index.js",
+    "bin:start": "sudo npm i -g && a2sep"
   },
   "devDependencies": {
+    "@types/clear": "^0.1.2",
+    "@types/figlet": "^1.5.4",
+    "@types/node": "^15.6.1",
+    "@types/node-fetch": "^2.5.12",
     "@types/shelljs": "^0.8.9",
+    "openapi-typescript-codegen": "^0.19.0",
+    "pino-pretty": "^8.1.0",
     "shelljs": "^0.8.4",
     "ts-node": "^10.8.1",
-    "typescript": "^4.3.5",
-    "@types/node": "^15.6.1",
-    "@types/node-fetch": "^2.5.8",
-    "openapi-typescript-codegen": "^0.19.0"
+    "typescript": "^4.3.5"
+  },
+  "dependencies": {
+    "@asyncapi/parser": "^1.15.1",
+    "abort-controller": "^3.0.0",
+    "chalk": "^4.1.2",
+    "clear": "^0.1.0",
+    "commander": "^9.3.0",
+    "dotenv": "^16.0.1",
+    "figlet": "^1.5.2",
+    "form-data": "^4.0.0",
+    "node-fetch": "^2.6.7",
+    "pino": "^8.1.0"
   }
 }

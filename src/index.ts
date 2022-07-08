@@ -1,29 +1,51 @@
+#!/usr/bin/env node
+
+import chalk from 'chalk';
+import clear from 'clear';
+import figlet from 'figlet';
 import path from 'path';
+import CliConfig from './CliConfig';
+import { CliLogger, ECliStatusCodes } from './CliLogger';
+import dotenv from 'dotenv';
+import { CliImporter } from './CliImporter';
+import { EPClient } from './EPClient';
+
+dotenv.config();
+const packageJson = require('../package.json');
 
 const ComponentName: string = path.basename(__filename);
 
-function main() {
+async function main() {
   const funcName = 'main';
   const logName = `${ComponentName}.${funcName}()`;
 
-  // use pino logger
-  console.log(`${logName}: starting ...`);
+  CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.INFO, details: "starting ..." }));
 
-  // // Parse command line args
-  // commander
-  // .name(`npx ${packagejson.name}`)
-  // .description(`${packagejson.description}`)
-  // .version(`${packagejson.version}`, '-v, --version')
-  // .usage('[OPTIONS]...')
-  // .requiredOption('-f, --file <value>', 'Required: Path to AsyncAPI spec file')
-  // .option('-d, --domain  <value>', 'Application Domain Name. If not passed, name extracted from x-domain-name in spec file')
-  // .option('-dID, --domainID <value>', 'Application Domain ID. If not passed, ID extracted from x-domain-id in spec file')
-  // .parse(process.argv);
+  const importer = new CliImporter(CliConfig.getCliAppConfig());
+  
+  await importer.run();
 
-  // const options = commander.opts()
+  CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.INFO, details: "done." }));
+  // check mode, standard or apim
+
+  // var asyncAPIFile = fs.readFileSync(options.file).toString()
+  // const ap = new AsyncAPI(asyncAPIFile)
+  // const ep = new EventPortal()
+
+  // // Validate and Dereference the AsyncAPI spec file
+  // let doc = await parse(asyncAPIFile)
 
 
 }
 
+function initialize() {
+  CliConfig.initialize(packageJson);
+  CliLogger.initialize(CliConfig.getCliLoggerConfig());
+  CliConfig.logConfig();
+  EPClient.initialize(CliConfig.getSolaceCloudToken());
+}
 
+clear();
+console.log(chalk.red(figlet.textSync(packageJson.description, { horizontalLayout: 'full'})));
+initialize();
 main();
