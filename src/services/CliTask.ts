@@ -1,7 +1,8 @@
 
-import { AbstractMethodError } from '../CliError';
+import { AbstractMethodError, EPApiResponseApiError } from '../CliError';
 import { CliLogger, ECliStatusCodes } from '../CliLogger';
 import { CliUtils } from '../CliUtils';
+import { ApiError } from '../_generated/@solace-iot-team/sep-openapi-node';
 import { CliAsyncApiDocument } from './CliAsyncApiDocument';
 
 export enum ECliTaskState {
@@ -15,10 +16,16 @@ export interface ICliTaskConfig {
 export interface ICliTaskKeys {}
 export interface ICliGetFuncReturn {
   documentExists: boolean;
+  apiObject: any;
+}
+export interface ICliCreateFuncReturn {}
+export interface ICliTaskExecuteReturn {
+  cliTaskState: ECliTaskState;
+  apiObject: any;
 }
 
 export abstract class CliTask {
-  private cliTaskConfig: ICliTaskConfig;
+  protected cliTaskConfig: ICliTaskConfig;
 
   constructor(taskConfig: ICliTaskConfig) {
     this.cliTaskConfig = taskConfig;
@@ -32,48 +39,70 @@ export abstract class CliTask {
 
   protected async getFunc(cliTaskKeys: ICliTaskKeys): Promise<ICliGetFuncReturn> {
     const funcName = 'getFunc';
-    const logName = `${this.constructor.name}.${funcName}()`;
+    const logName = `${CliTask.name}.${funcName}()`;
     cliTaskKeys;
     throw new AbstractMethodError(logName, CliTask.name, funcName);
   };
 
-  protected async createFunc(): Promise<void> {
+  protected async createFunc(): Promise<ICliCreateFuncReturn> {
     const funcName = 'createFunc';
-    const logName = `${this.constructor.name}.${funcName}()`;
+    const logName = `${CliTask.name}.${funcName}()`;
     throw new AbstractMethodError(logName, CliTask.name, funcName);
   }
 
-  private async executePresent(cliGetFuncReturn: ICliGetFuncReturn): Promise<void> {
-    if(!cliGetFuncReturn.documentExists) await this.createFunc();
+  private async executePresent(cliGetFuncReturn: ICliGetFuncReturn): Promise<ICliTaskExecuteReturn> {
+    if(!cliGetFuncReturn.documentExists) {
+      const createFuncReturn: ICliCreateFuncReturn = await this.createFunc();
+      return {
+        cliTaskState: ECliTaskState.PRESENT,
+        apiObject: createFuncReturn,
+      };
+    } 
+    return {
+      cliTaskState: ECliTaskState.PRESENT,
+      apiObject: cliGetFuncReturn.apiObject,
+    };
   }
 
-  public async execute(): Promise<void> { 
+  protected async execute(): Promise<ICliTaskExecuteReturn> { 
     const funcName = 'execute';
-    const logName = `${this.constructor.name}.${funcName}()`;
+    const logName = `${CliTask.name}.${funcName}()`;
 
-    CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK, details: "starting ..." }));
+    try {
+      CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK, details: "starting ..." }));
 
-    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK, details: {
-      asyncApiDocument: this.cliTaskConfig.cliAsyncApiDocument.getLogInfo()
-    }}));
+      CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK, details: {
+        asyncApiDocument: this.cliTaskConfig.cliAsyncApiDocument.getLogInfo()
+      }}));
 
-    const cliGetFuncReturn: ICliGetFuncReturn = await this.getFunc(this.getTaskKeys());
-    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_GET, details: {
-      cliGetFuncReturn: cliGetFuncReturn
-    }}));
+      const cliGetFuncReturn: ICliGetFuncReturn = await this.getFunc(this.getTaskKeys());
+      CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_GET, details: {
+        cliGetFuncReturn: cliGetFuncReturn
+      }}));
 
-    switch(this.cliTaskConfig.cliTaskState) {
-      case ECliTaskState.PRESENT:
-        await this.executePresent(cliGetFuncReturn);
-        break;
-      case ECliTaskState.ABSENT:
-        throw new Error(`${logName}: implement absent`)
-        break;
-      default:
-        CliUtils.assertNever(logName, this.cliTaskConfig.cliTaskState);
+      let taskExecuteReturn: ICliTaskExecuteReturn = {
+        cliTaskState: this.cliTaskConfig.cliTaskState,
+        apiObject: cliGetFuncReturn.apiObject,
+      }
+      switch(this.cliTaskConfig.cliTaskState) {
+        case ECliTaskState.PRESENT:
+          taskExecuteReturn = await this.executePresent(cliGetFuncReturn);
+          break;
+        case ECliTaskState.ABSENT:
+          throw new Error(`${logName}: implement absent`)
+          break;
+        default:
+          CliUtils.assertNever(logName, this.cliTaskConfig.cliTaskState);
+      }
+
+      CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTED_TASK, details: "done." }));
+      return taskExecuteReturn;
+    } catch(e: any) {
+      if(e instanceof ApiError) {
+        throw new EPApiResponseApiError(e, logName, e.message);
+      }
+      throw e;
     }
-
-    CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTED_TASK, details: "done." }));
 
   }
 

@@ -1,20 +1,29 @@
 import CliConfig from "../CliConfig";
+import { CliEPApiError, CliError } from "../CliError";
 import { CliLogger, ECliStatusCodes } from "../CliLogger";
-import { CliTask, ICliTaskKeys, ICliGetFuncReturn, ICliTaskConfig } from "../services/CliTask";
-import { ApplicationDomain, ApplicationDomainResponse, ApplicationDomainsResponse, ApplicationDomainsService } from "../_generated/@solace-iot-team/ep-openapi-node";
+import { CliTask, ICliTaskKeys, ICliGetFuncReturn, ICliTaskConfig, ICliCreateFuncReturn, ICliTaskExecuteReturn } from "../services/CliTask";
+import { ApplicationDomain, ApplicationDomainResponse, ApplicationDomainsResponse, ApplicationDomainsService } from "../_generated/@solace-iot-team/sep-openapi-node";
 
 export interface ICliApplicationDomainConfig extends ICliTaskConfig {
 }
 export interface ICliApplicationDomainTask_Keys extends ICliTaskKeys {
   applicationDomainName: string;
 }
-export interface ICliApplicationDomainsResponse extends ICliGetFuncReturn {
+export interface ICliApplicationDomain_GetFuncReturn extends ICliGetFuncReturn {
   applicationDomain: ApplicationDomain | undefined;
 }
+export interface ICliApplicationDomain_CreateFuncReturn extends ICliCreateFuncReturn {
+  applicationDomain: ApplicationDomain;
+}
+export interface ICliApplicationDomain_TaskExecuteReturn extends ICliTaskExecuteReturn {
+  applicationDomain: ApplicationDomain;
+}
+
 
 export class CliApplicationDomainTask extends CliTask {
 
-  private readonly EmptyResponse: ICliApplicationDomainsResponse = {
+  private readonly Empty_ICliApplicationDomain_GetFuncReturn: ICliApplicationDomain_GetFuncReturn = {
+    apiObject: undefined,
     applicationDomain: undefined,
     documentExists: false  
   };
@@ -39,9 +48,9 @@ export class CliApplicationDomainTask extends CliTask {
     }
   }
 
-  protected async getFunc(cliTaskKeys: ICliApplicationDomainTask_Keys): Promise<ICliApplicationDomainsResponse> {
+  protected async getFunc(cliTaskKeys: ICliApplicationDomainTask_Keys): Promise<ICliApplicationDomain_GetFuncReturn> {
     const funcName = 'getFunc';
-    const logName = `${this.constructor.name}.${funcName}()`;
+    const logName = `${CliApplicationDomainTask.name}.${funcName}()`;
 
     const applicationDomainName = cliTaskKeys.applicationDomainName;
 
@@ -59,18 +68,19 @@ export class CliApplicationDomainTask extends CliTask {
       applicationDomainsResponse: applicationDomainsResponse
     }}));
 
-    if(applicationDomainsResponse.data === undefined || applicationDomainsResponse.data.length === 0) return this.EmptyResponse;
+    if(applicationDomainsResponse.data === undefined || applicationDomainsResponse.data.length === 0) return this.Empty_ICliApplicationDomain_GetFuncReturn;
 
-    const cliApplicationDomainsResponse: ICliApplicationDomainsResponse = {
+    const cliApplicationDomain_GetFuncReturn: ICliApplicationDomain_GetFuncReturn = {
+      apiObject: applicationDomainsResponse.data[0],
       applicationDomain: applicationDomainsResponse.data[0],
       documentExists: true
     };
-    return cliApplicationDomainsResponse;
+    return cliApplicationDomain_GetFuncReturn;
   };
 
-  protected async createFunc(): Promise<void> {
+  protected async createFunc(): Promise<ICliApplicationDomain_CreateFuncReturn> {
     const funcName = 'createFunc';
-    const logName = `${this.constructor.name}.${funcName}()`;
+    const logName = `${CliApplicationDomainTask.name}.${funcName}()`;
 
     const applicationDomainName = this.get_CliAsyncApiDocument().getApplicationDomainName();
 
@@ -91,6 +101,27 @@ export class CliApplicationDomainTask extends CliTask {
       applicationDomainResponse: applicationDomainResponse
     }}));
 
+    if(applicationDomainResponse.data === undefined) throw new CliEPApiError(logName, 'applicationDomainResponse.data === undefined', {
+      applicationDomainResponse: applicationDomainResponse
+    });
+    return {
+      applicationDomain: applicationDomainResponse.data
+    };
+
+  }
+
+  public async execute(): Promise<ICliApplicationDomain_TaskExecuteReturn> { 
+    const funcName = 'execute';
+    const logName = `${CliApplicationDomainTask.name}.${funcName}()`;
+
+    const cliTaskExecuteReturn: ICliTaskExecuteReturn = await super.execute();
+    if(cliTaskExecuteReturn.apiObject === undefined) throw new CliError(logName, 'cliTaskExecuteReturn.apiObject === undefined');
+    const cliApplicationDomainTaskExecuteReturn: ICliApplicationDomain_TaskExecuteReturn = {
+      cliTaskState: cliTaskExecuteReturn.cliTaskState,
+      applicationDomain: cliTaskExecuteReturn.apiObject,
+      apiObject: undefined
+    };
+    return cliApplicationDomainTaskExecuteReturn;
   }
 
 

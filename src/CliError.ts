@@ -1,6 +1,7 @@
 // import { EServerStatusCodes, ServerLogger } from "./ServerLogger";
 import CliConfig from "./CliConfig";
 import { CliLogger, ECliStatusCodes } from "./CliLogger";
+import { ApiError } from "./_generated/@solace-iot-team/sep-openapi-node";
 // import ServerStatus from "./ServerStatus";
 
 export class CliErrorFactory {
@@ -133,3 +134,21 @@ export class AbstractMethodError extends CliError {
     this.methodName = methodName;
   }
 }
+
+export class CliEPApiError extends CliError {
+  private details: any;
+  constructor(internalLogName: string, message: string, details: any) {
+    super(internalLogName, message);
+    this.details = details;
+  }
+}
+
+export class EPApiResponseApiError extends CliError {
+  protected static apiDefaultDescription = 'EP Api Error';
+  private apiError: ApiError;
+  constructor(apiError: ApiError, internalLogName: string, internalMessage: string) {
+    super(internalLogName, internalMessage);
+    this.apiError = apiError;
+  }
+}
+

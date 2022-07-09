@@ -1,7 +1,7 @@
 import { CliLogger, ECliStatusCodes } from './CliLogger';
 import { 
   OpenAPI 
-} from './_generated/@solace-iot-team/ep-openapi-node';
+} from './_generated/@solace-iot-team/sep-openapi-node';
 
 
 export class EPClient {

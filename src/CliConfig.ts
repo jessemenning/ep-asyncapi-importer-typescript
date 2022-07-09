@@ -3,29 +3,38 @@ import { CliLogger, ECliStatusCodes } from './CliLogger';
 import { Command, OptionValues } from 'commander';
 import { CliUtils } from './CliUtils';
 
-export enum ECliAssetImportMode {
-  STANDARD = "standard",
-  APIM = "apim",
-}
-const ValidEnvAssetImportMode = {
-  STANDARD: ECliAssetImportMode.STANDARD,
-  APIM: ECliAssetImportMode.APIM,
-}
-export type TAssetImportMode_Standard = {
-  type: ECliAssetImportMode.STANDARD;
-}
-export type TAssetImportMode_Apim = {
-  type: ECliAssetImportMode.APIM;
-  bumpVersionStrategy: "minor" | "patch";
-}
-export type TAssetImportMode = TAssetImportMode_Standard | TAssetImportMode_Apim;
+// export enum ECliAssetImportMode {
+//   STANDARD = "standard",
+//   APIM = "apim",
+// }
+// const ValidEnvAssetImportMode = {
+//   STANDARD: ECliAssetImportMode.STANDARD,
+//   APIM: ECliAssetImportMode.APIM,
+// }
+// export type TAssetImportMode_Standard = {
+//   type: ECliAssetImportMode.STANDARD;
+// }
+// export type TAssetImportMode_Apim = {
+//   type: ECliAssetImportMode.APIM;
+//   bumpVersionStrategy: "minor" | "patch";
+// }
+// export type TAssetImportMode = TAssetImportMode_Standard | TAssetImportMode_Apim;
 
+export enum ECliAssetsTargetState {
+  PRESENT = "present",
+  ABSENT = "absent",
+}
+const ValidEnvAssetsTargetState = {
+  PRESENT: ECliAssetsTargetState.PRESENT,
+  ABSENT: ECliAssetsTargetState.ABSENT,
+}
+  
 export type TCliLoggerConfig = {
   appId: string,
   level: string
 };
 export type TCliAppConfig = {
-  assetImportMode: TAssetImportMode;
+  assetsTargetState: ECliAssetsTargetState;
   asyncApiSpecFileName: string;
   domainName?: string;
   // domainId?: string;  - where would we get this from?
@@ -40,7 +49,8 @@ export enum EEnvVars {
   CLI_APP_ID = 'CLI_APP_ID',
   CLI_SOLACE_CLOUD_TOKEN = "CLI_SOLACE_CLOUD_TOKEN",
   CLI_LOGGER_LOG_LEVEL= 'CLI_LOGGER_LOG_LEVEL',
-  CLI_ASSET_IMPORT_MODE = 'CLI_ASSET_IMPORT_MODE',
+  // CLI_ASSET_IMPORT_MODE = 'CLI_ASSET_IMPORT_MODE',
+  CLI_ASSETS_TARGET_STATE = "CLI_ASSETS_TARGET_STATE"
 };
 
 
@@ -50,7 +60,8 @@ export class CliConfig {
   private solaceCloudToken: string;
   public static DEFAULT_APP_ID = "@solace-iot-team/sep-async-api-importer";
   public static DEFAULT_LOGGER_LOG_LEVEL = "info";
-  private static DEFAULT_ASSET_IMPORT_MODE = ValidEnvAssetImportMode.APIM;
+  private static DEFAULT_ASSETS_TARGET_STATE = ValidEnvAssetsTargetState.PRESENT;
+  // private static DEFAULT_ASSET_IMPORT_MODE = ValidEnvAssetImportMode.APIM;
 
   private static DefaultCliLoggerConfig: TCliLoggerConfig = {
     appId: CliConfig.DEFAULT_APP_ID,
@@ -116,28 +127,28 @@ export class CliConfig {
 
   // constructor() { }
 
-  private initializeAssetImportMode = (): TAssetImportMode => {
-    const funcName = 'initializeAssetImportMode';
-    const logName = `${CliConfig.name}.${funcName}()`;
-    const assetImportMode: ECliAssetImportMode = this.getOptionalEnvVarValueAsString_From_List_WithDefault(EEnvVars.CLI_ASSET_IMPORT_MODE, Object.values(ValidEnvAssetImportMode), CliConfig.DEFAULT_ASSET_IMPORT_MODE) as ECliAssetImportMode;
-    switch(assetImportMode) {
-      case ECliAssetImportMode.STANDARD:
-        const assetImportMode_Standard: TAssetImportMode_Standard = {
-          type: ECliAssetImportMode.STANDARD,
-        };
-        return assetImportMode_Standard;
-      case ECliAssetImportMode.APIM:
-        const assetImportMode_Apim: TAssetImportMode_Apim = {
-          type: ECliAssetImportMode.APIM,
-          bumpVersionStrategy: 'patch',
-        };
-        return assetImportMode_Apim;
-      default:
-        CliUtils.assertNever(logName, assetImportMode);
-    }
-    // should never get here
-    throw new CliError(logName, "internal error");
-  }
+  // private initializeAssetImportMode = (): TAssetImportMode => {
+  //   const funcName = 'initializeAssetImportMode';
+  //   const logName = `${CliConfig.name}.${funcName}()`;
+  //   const assetImportMode: ECliAssetImportMode = this.getOptionalEnvVarValueAsString_From_List_WithDefault(EEnvVars.CLI_ASSET_IMPORT_MODE, Object.values(ValidEnvAssetImportMode), CliConfig.DEFAULT_ASSET_IMPORT_MODE) as ECliAssetImportMode;
+  //   switch(assetImportMode) {
+  //     case ECliAssetImportMode.STANDARD:
+  //       const assetImportMode_Standard: TAssetImportMode_Standard = {
+  //         type: ECliAssetImportMode.STANDARD,
+  //       };
+  //       return assetImportMode_Standard;
+  //     case ECliAssetImportMode.APIM:
+  //       const assetImportMode_Apim: TAssetImportMode_Apim = {
+  //         type: ECliAssetImportMode.APIM,
+  //         bumpVersionStrategy: 'patch',
+  //       };
+  //       return assetImportMode_Apim;
+  //     default:
+  //       CliUtils.assertNever(logName, assetImportMode);
+  //   }
+  //   // should never get here
+  //   throw new CliError(logName, "internal error");
+  // }
 
   public initialize = (packageJson: any): void => {
     const funcName = 'initialize';
@@ -176,12 +187,11 @@ export class CliConfig {
           appId: appId,
           level: this.getOptionalEnvVarValueAsStringWithDefault(EEnvVars.CLI_LOGGER_LOG_LEVEL, CliConfig.DEFAULT_LOGGER_LOG_LEVEL),
         },
-        // TODO: use the typesafe options
         appConfig: {
+          assetsTargetState: this.getOptionalEnvVarValueAsString_From_List_WithDefault(EEnvVars.CLI_ASSETS_TARGET_STATE, Object.values(ValidEnvAssetsTargetState), CliConfig.DEFAULT_ASSETS_TARGET_STATE) as ECliAssetsTargetState,
           asyncApiSpecFileName: asyncApiSpecFileName,
           domainName: options.domain ? options.domain : undefined,
           // domainId: options.domainId ? options.domainId : undefined,
-          assetImportMode: this.initializeAssetImportMode(),
         }
       };
     } catch(e) {
