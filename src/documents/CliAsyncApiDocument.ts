@@ -1,18 +1,20 @@
 import fs from 'fs';
-import { parse, AsyncAPIDocument, Message } from '@asyncapi/parser';
+import { parse, AsyncAPIDocument, Message, Channel } from '@asyncapi/parser';
 import { TCliAppConfig } from '../CliConfig';
 import { AsyncApiSpecError, AsyncApiSpecXtensionError } from '../CliError';
 import { CliLogger, ECliStatusCodes } from '../CliLogger';
 import CliSemVerUtils from '../CliSemVerUtils';
+import { CliMessageDocument } from './CliMessageDocument';
+import { CliChannelDocument } from './CliChannelDocument';
 
 
 enum E_EP_Extensions {
   X_APPLICATION_DOMAIN_NAME = "x-sep-application-domain-name",
 };
 
-export interface ICliMessage {
-  asyncApiMessage: Message;
-}
+export type CliMessageDocumentMap = Map<string, CliMessageDocument>;
+export type CliChannelDocumentMap = Map<string, CliChannelDocument>;
+
 
 export class CliAsyncApiDocument {
   private appConfig: TCliAppConfig;
@@ -91,26 +93,36 @@ export class CliAsyncApiDocument {
 
   public getApplicationDomainName(): string { return this.applicationDomainName; }
 
-  public getMessages(): Map<string, ICliMessage> {
-    const funcName = 'getMessages';
-    const logName = `${CliAsyncApiDocument.name}.${funcName}()`;
+  public getChannelDocuments(): CliChannelDocumentMap {
+
+    const channels: Record<string, Channel> = this.asyncApiDocument.channels();
+
+    const cliChannelDocumentMap: CliChannelDocumentMap = new Map<string, CliChannelDocument>();
+    for(const [key, value] of Object.entries(channels)) {
+      const cliChannelDocument = new CliChannelDocument(value);
+      cliChannelDocumentMap.set(key, cliChannelDocument);
+    }
+    return cliChannelDocumentMap;
+  }
+
+  public getMessageDocuments(): CliMessageDocumentMap {
+    // const funcName = 'getMessageDocuments';
+    // const logName = `${CliAsyncApiDocument.name}.${funcName}()`;
 
     const allMessages: Map<string, Message> = this.asyncApiDocument.allMessages();
 
-    const allCliMessageMap: Map<string, ICliMessage> = new Map<string, ICliMessage>();
+    const allCliMessageDocumentMap: CliMessageDocumentMap = new Map<string, CliMessageDocument>();
     
     for(let [key, message] of allMessages) {
-      // switch off
-      CliLogger.warn(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.INFO, details: {
-        key: key,
-        message: message
-      }}));
-      const cliMessage: ICliMessage = {
-        asyncApiMessage: message
-      };
-      allCliMessageMap.set(key, cliMessage);
+      // // switch off
+      // CliLogger.warn(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.INFO, details: {
+      //   key: key,
+      //   message: message
+      // }}));
+      const cliMessageDocument = new CliMessageDocument(message);
+      allCliMessageDocumentMap.set(key, cliMessageDocument);
     }
-    return allCliMessageMap;
+    return allCliMessageDocumentMap;
   }
 
   public getLogInfo(): any {

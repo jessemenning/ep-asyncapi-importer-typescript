@@ -3,22 +3,32 @@ import { CliLogger, ECliStatusCodes } from './CliLogger';
 import { Command, OptionValues } from 'commander';
 import { CliUtils } from './CliUtils';
 
-// export enum ECliAssetImportMode {
-//   STANDARD = "standard",
-//   APIM = "apim",
-// }
-// const ValidEnvAssetImportMode = {
-//   STANDARD: ECliAssetImportMode.STANDARD,
-//   APIM: ECliAssetImportMode.APIM,
-// }
-// export type TAssetImportMode_Standard = {
-//   type: ECliAssetImportMode.STANDARD;
-// }
-// export type TAssetImportMode_Apim = {
-//   type: ECliAssetImportMode.APIM;
-//   bumpVersionStrategy: "minor" | "patch";
-// }
-// export type TAssetImportMode = TAssetImportMode_Standard | TAssetImportMode_Apim;
+export enum ECliAssetImportTargetLifecycleState_VersionStrategy {
+  BUMP_MINOR = "bump_minor",
+  BUMP_PATCH = "bump_patch"
+}
+const ValidEnvAssetImportTargetLifecycleState_VersionStrategy = {
+  BUMP_MINOR: ECliAssetImportTargetLifecycleState_VersionStrategy.BUMP_MINOR,
+  BUMP_PATCH: ECliAssetImportTargetLifecycleState_VersionStrategy.BUMP_PATCH
+}
+export enum ECliAssetImportTargetLifecycleState {
+  RELEASED = "released",
+  DRAFT = "draft",
+}
+const ValidEnvAssetImportTargetLifecycleState = {
+  RELEASED: ECliAssetImportTargetLifecycleState.RELEASED,
+  DRAFT: ECliAssetImportTargetLifecycleState.DRAFT,
+}
+export type TAssetImportTargetLifecycleState_Base = {
+  versionStrategy: ECliAssetImportTargetLifecycleState_VersionStrategy;
+}
+export type TAssetImportTargetLifecycleState_Draft = TAssetImportTargetLifecycleState_Base & {
+  type: ECliAssetImportTargetLifecycleState.DRAFT;
+}
+export type TAssetImportTargetLifecycleState_Released = TAssetImportTargetLifecycleState_Base & {
+  type: ECliAssetImportTargetLifecycleState.RELEASED;
+}
+export type TAssetImportTargetLifecycleState = TAssetImportTargetLifecycleState_Draft | TAssetImportTargetLifecycleState_Released;
 
 export enum ECliAssetsTargetState {
   PRESENT = "present",
@@ -38,6 +48,7 @@ export type TCliAppConfig = {
   asyncApiSpecFileName: string;
   domainName?: string;
   // domainId?: string;  - where would we get this from?
+  assetImportTargetLifecycleState: TAssetImportTargetLifecycleState;
 }
 export type TCliConfig = {
   appId: string;
@@ -49,8 +60,9 @@ export enum EEnvVars {
   CLI_APP_ID = 'CLI_APP_ID',
   CLI_SOLACE_CLOUD_TOKEN = "CLI_SOLACE_CLOUD_TOKEN",
   CLI_LOGGER_LOG_LEVEL= 'CLI_LOGGER_LOG_LEVEL',
-  // CLI_ASSET_IMPORT_MODE = 'CLI_ASSET_IMPORT_MODE',
-  CLI_ASSETS_TARGET_STATE = "CLI_ASSETS_TARGET_STATE"
+  CLI_ASSETS_TARGET_STATE = "CLI_ASSETS_TARGET_STATE",
+  CLI_ASSET_IMPORT_TARGET_LIFECYLE_STATE = "CLI_ASSET_IMPORT_TARGET_LIFECYLE_STATE",
+  CLI_ASSET_IMPORT_TARGET_VERSION_STRATEGY = "CLI_ASSET_IMPORT_TARGET_VERSION_STRATEGY",
 };
 
 
@@ -61,7 +73,8 @@ export class CliConfig {
   public static DEFAULT_APP_ID = "@solace-iot-team/sep-async-api-importer";
   public static DEFAULT_LOGGER_LOG_LEVEL = "info";
   private static DEFAULT_ASSETS_TARGET_STATE = ValidEnvAssetsTargetState.PRESENT;
-  // private static DEFAULT_ASSET_IMPORT_MODE = ValidEnvAssetImportMode.APIM;
+  private static DEFAULT_CLI_ASSET_IMPORT_TARGET_LIFECYLE_STATE = ValidEnvAssetImportTargetLifecycleState.DRAFT;
+  private static DEFAULT_CLI_ASSET_IMPORT_TARGET_VERSION_STRATEGY = ValidEnvAssetImportTargetLifecycleState_VersionStrategy.BUMP_PATCH;
 
   private static DefaultCliLoggerConfig: TCliLoggerConfig = {
     appId: CliConfig.DEFAULT_APP_ID,
@@ -127,28 +140,32 @@ export class CliConfig {
 
   // constructor() { }
 
-  // private initializeAssetImportMode = (): TAssetImportMode => {
-  //   const funcName = 'initializeAssetImportMode';
-  //   const logName = `${CliConfig.name}.${funcName}()`;
-  //   const assetImportMode: ECliAssetImportMode = this.getOptionalEnvVarValueAsString_From_List_WithDefault(EEnvVars.CLI_ASSET_IMPORT_MODE, Object.values(ValidEnvAssetImportMode), CliConfig.DEFAULT_ASSET_IMPORT_MODE) as ECliAssetImportMode;
-  //   switch(assetImportMode) {
-  //     case ECliAssetImportMode.STANDARD:
-  //       const assetImportMode_Standard: TAssetImportMode_Standard = {
-  //         type: ECliAssetImportMode.STANDARD,
-  //       };
-  //       return assetImportMode_Standard;
-  //     case ECliAssetImportMode.APIM:
-  //       const assetImportMode_Apim: TAssetImportMode_Apim = {
-  //         type: ECliAssetImportMode.APIM,
-  //         bumpVersionStrategy: 'patch',
-  //       };
-  //       return assetImportMode_Apim;
-  //     default:
-  //       CliUtils.assertNever(logName, assetImportMode);
-  //   }
-  //   // should never get here
-  //   throw new CliError(logName, "internal error");
-  // }
+  private initialize_AssetImportTargetLifecycleState = (): TAssetImportTargetLifecycleState => {
+    const funcName = 'initialize_AssetImportTargetLifecycleState';
+    const logName = `${CliConfig.name}.${funcName}()`;
+
+    const cliAssetImportTargetLifecycleState: ECliAssetImportTargetLifecycleState = this.getOptionalEnvVarValueAsString_From_List_WithDefault(EEnvVars.CLI_ASSET_IMPORT_TARGET_LIFECYLE_STATE, Object.values(ValidEnvAssetImportTargetLifecycleState), CliConfig.DEFAULT_CLI_ASSET_IMPORT_TARGET_LIFECYLE_STATE) as ECliAssetImportTargetLifecycleState;
+    const cliAssetImportTargetLifecycleState_VersionStrategy: ECliAssetImportTargetLifecycleState_VersionStrategy = this.getOptionalEnvVarValueAsString_From_List_WithDefault(EEnvVars.CLI_ASSET_IMPORT_TARGET_VERSION_STRATEGY, Object.values(ValidEnvAssetImportTargetLifecycleState_VersionStrategy), CliConfig.DEFAULT_CLI_ASSET_IMPORT_TARGET_VERSION_STRATEGY) as ECliAssetImportTargetLifecycleState_VersionStrategy;
+
+    switch(cliAssetImportTargetLifecycleState) {
+      case ECliAssetImportTargetLifecycleState.DRAFT:
+        const assetImportTargetLifecycleState_Draft: TAssetImportTargetLifecycleState_Draft = {
+          type: ECliAssetImportTargetLifecycleState.DRAFT,
+          versionStrategy: cliAssetImportTargetLifecycleState_VersionStrategy,
+        };
+        return assetImportTargetLifecycleState_Draft;
+      case ECliAssetImportTargetLifecycleState.RELEASED:
+        const assetImportTargetLifecycleState_Released: TAssetImportTargetLifecycleState_Released = {
+          type: ECliAssetImportTargetLifecycleState.RELEASED,
+          versionStrategy: cliAssetImportTargetLifecycleState_VersionStrategy,
+        };
+        return assetImportTargetLifecycleState_Released;
+      default:
+        CliUtils.assertNever(logName, cliAssetImportTargetLifecycleState);
+    }
+    // should never get here
+    throw new CliError(logName, "internal error");
+  }
 
   public initialize = (packageJson: any): void => {
     const funcName = 'initialize';
@@ -192,6 +209,7 @@ export class CliConfig {
           asyncApiSpecFileName: asyncApiSpecFileName,
           domainName: options.domain ? options.domain : undefined,
           // domainId: options.domainId ? options.domainId : undefined,
+          assetImportTargetLifecycleState: this.initialize_AssetImportTargetLifecycleState(),
         }
       };
     } catch(e) {

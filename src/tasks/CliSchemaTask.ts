@@ -1,6 +1,6 @@
 import { CliEPApiError, CliError } from "../CliError";
 import { CliLogger, ECliStatusCodes } from "../CliLogger";
-import { CliTask, ICliTaskKeys, ICliGetFuncReturn, ICliTaskConfig, ICliCreateFuncReturn, ICliTaskExecuteReturn } from "../services/CliTask";
+import { CliTask, ICliTaskKeys, ICliGetFuncReturn, ICliTaskConfig, ICliCreateFuncReturn, ICliTaskExecuteReturn } from "./CliTask";
 import { SchemaObject, SchemaResponse, SchemasResponse, SchemasService, SchemaVersion } from "../_generated/@solace-iot-team/sep-openapi-node";
 
 export enum ESchemaType {
@@ -111,8 +111,14 @@ export class CliSchemaTask extends CliTask {
     if(schemaResponse.data === undefined) throw new CliEPApiError(logName, 'schemaResponse.data === undefined', {
       schemaResponse: schemaResponse
     });
+
+    const created: SchemaObject = schemaResponse.data;
+    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_CREATE, details: {
+      created: created
+    }}));
     return {
-       schemaObject: schemaResponse.data
+       schemaObject: created,
+       apiObject: created,
     };
   }
 

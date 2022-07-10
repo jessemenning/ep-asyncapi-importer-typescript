@@ -1,13 +1,18 @@
 import { CliLogger, ECliStatusCodes } from './CliLogger';
-import { ECliAssetsTargetState, TCliAppConfig } from './CliConfig';
-import { CliAsyncApiDocument, ICliMessage } from './services/CliAsyncApiDocument';
-import { ECliTaskState, ICliTaskExecuteReturn } from './services/CliTask';
+import CliConfig, { ECliAssetImportTargetLifecycleState_VersionStrategy, ECliAssetsTargetState, TCliAppConfig } from './CliConfig';
+import { CliAsyncApiDocument, CliChannelDocumentMap, CliMessageDocumentMap } from './documents/CliAsyncApiDocument';
+import { ECliTaskState } from './tasks/CliTask';
 import { CliApplicationDomainTask, ICliApplicationDomain_TaskExecuteReturn } from './tasks/CliApplicationDomainTask';
-import { Message } from '@asyncapi/parser';
 import CliEPStatesService from './services/CliEPStatesService';
 import { CliUtils } from './CliUtils';
 import { CliEPApiError, CliError, CliErrorFromError } from './CliError';
 import { CliSchemaTask, ESchemaType, ICliSchemaTask_ExecuteReturn } from './tasks/CliSchemaTask';
+import { SchemaObject } from './_generated/@solace-iot-team/sep-openapi-node';
+import { CliMessageDocument } from './documents/CliMessageDocument';
+import { CliSchemaVersionTask, ICliSchemaVersionTask_ExecuteReturn } from './tasks/CliSchemaVersionTask';
+import CliSemVerUtils from './CliSemVerUtils';
+import CliEPSchemaVersionsService from './services/CliEPSchemaVersionsService';
+import { CliChannelDocument, CliChannelPublishOperation, CliChannelSubscribeOperation } from './documents/CliChannelDocument';
 
 
 export class CliImporter {
@@ -15,6 +20,152 @@ export class CliImporter {
 
   constructor(cliAppConfig: TCliAppConfig) { 
     this.cliAppConfig = cliAppConfig;
+  }
+
+  /**
+   * Create a new version of the schema.
+   * 
+   * Check if schemaObject has any versions already.
+   * 
+   * if no versions:
+   * - use version number of api spec as default
+   * if has verions:
+   * - bump latest version per strategy
+   * 
+   */
+  private run_present_schema_version = async({ cliAsyncApiDocument, schemaObject, specVersion, cliMessageDocument }: {
+    cliAsyncApiDocument: CliAsyncApiDocument;
+    schemaObject: SchemaObject;
+    specVersion: string;
+    cliMessageDocument: CliMessageDocument;
+  }): Promise<void> => {
+    const funcName = 'run_present_schema_version';
+    const logName = `${CliImporter.name}.${funcName}()`;
+
+    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_SCHEMA_VERSION, details: {
+      schemaObject: schemaObject,
+      specVersion: specVersion,
+      cliMessageDocument: cliMessageDocument
+    }}));
+
+    if(schemaObject.id === undefined) throw new CliEPApiError(logName, 'schemaObject.id === undefined', {
+      schemaObject: schemaObject
+    });
+
+    const schemaId: string = schemaObject.id;
+    const numberOfVersions: number = schemaObject.numberOfVersions ? schemaObject.numberOfVersions : 0;      
+
+    let newSchemaVersionString: string = specVersion;
+    if(numberOfVersions > 0) {
+      // get the latest version
+      const latestSchemaVersionString: string = await CliEPSchemaVersionsService.getLastestSchemaVersion({ schemaId: schemaId });
+      // bump version according to strategy
+      const versionStrategy: ECliAssetImportTargetLifecycleState_VersionStrategy = CliConfig.getCliAppConfig().assetImportTargetLifecycleState.versionStrategy;
+      newSchemaVersionString = CliSemVerUtils.createNextVersion({
+        versionString: latestSchemaVersionString,
+        strategy: versionStrategy
+      });
+    } 
+
+    const cliSchemaVersionTask: CliSchemaVersionTask = new CliSchemaVersionTask({
+      cliTaskState: ECliTaskState.PRESENT,
+      cliAsyncApiDocument: cliAsyncApiDocument,
+      schemaId: schemaId,
+      schemaVersionString: newSchemaVersionString,
+      schemaString: cliMessageDocument.getPayloadSchemaAsString(),
+      schemaTargetLifecycleState: CliEPStatesService.getTargetLifecycleState({assetImportTargetLifecycleState: CliConfig.getCliAppConfig().assetImportTargetLifecycleState}),
+      schemaVersionSettings: {
+        description: cliMessageDocument.getDescription(),
+        displayName: cliMessageDocument.getDisplayName(),
+      }
+    });
+    const cliSchemaVersionTask_ExecuteReturn: ICliSchemaVersionTask_ExecuteReturn = await cliSchemaVersionTask.execute();
+    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
+      cliSchemaVersionTask_ExecuteReturn: cliSchemaVersionTask_ExecuteReturn
+    }}));
+  }
+
+  private run_present_channel_messages = async({ applicationDomainId, messageDocumentMap, asyncApiDocument }:{
+    applicationDomainId: string;
+    messageDocumentMap: CliMessageDocumentMap;
+    asyncApiDocument: CliAsyncApiDocument;
+  }): Promise<void> => {
+    const funcName = 'run_present_channel_messages';
+    const logName = `${CliImporter.name}.${funcName}()`;
+
+    let xvoid: void;
+
+    for(let [key, messageDocument] of messageDocumentMap) {
+      CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
+        key: key,
+        messageDocument: messageDocument
+      }}));
+
+      // ensure the schema exists
+      const cliSchemaTask = new CliSchemaTask({
+        cliAsyncApiDocument: asyncApiDocument,
+        cliTaskState: ECliTaskState.PRESENT,
+        schemaObject: {
+          applicationDomainId: applicationDomainId,
+          name: messageDocument.getMessage().name(),
+          contentType: messageDocument.getContentType(),
+          schemaType: ESchemaType.JSON_SCHEMA,
+          shared: true
+        }
+      });
+      const cliSchemaTask_ExecuteReturn: ICliSchemaTask_ExecuteReturn = await cliSchemaTask.execute();
+      CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
+        cliSchemaTask_ExecuteReturn: cliSchemaTask_ExecuteReturn
+      }}));
+
+      // present the schema version
+      xvoid = await this.run_present_schema_version({
+        cliAsyncApiDocument: asyncApiDocument,
+        schemaObject: cliSchemaTask_ExecuteReturn.schemaObject,
+        specVersion: asyncApiDocument.getVersion(),
+        cliMessageDocument: messageDocument
+      });
+    }
+
+  }
+  private run_present_channel = async({ applicationDomainId, channelTopic, channelDocument, asyncApiDocument }:{
+    applicationDomainId: string;
+    channelTopic: string;
+    channelDocument: CliChannelDocument;
+    asyncApiDocument: CliAsyncApiDocument;
+  }): Promise<void> => {
+    const funcName = 'run_present_channel';
+    const logName = `${CliImporter.name}.${funcName}()`;
+
+    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
+      channelTopic: channelTopic,
+      channelDocument: channelDocument,
+    }}));
+
+    let xvoid: void;
+
+    const channelPublishOperation: CliChannelPublishOperation | undefined = channelDocument.getChannelPublishOperation();
+    if(channelPublishOperation !== undefined) {
+      const messageDocumentMap: CliMessageDocumentMap = channelPublishOperation.getCliMessageDocumentMap();
+      xvoid = await this.run_present_channel_messages({
+        applicationDomainId: applicationDomainId,
+        asyncApiDocument: asyncApiDocument,
+        messageDocumentMap: messageDocumentMap
+      });
+    }
+
+    const channelSubscribeOperation: CliChannelSubscribeOperation | undefined = channelDocument.getChannelSubscribeOperation();
+    if(channelSubscribeOperation !== undefined) {
+      const messageDocumentMap: CliMessageDocumentMap = channelSubscribeOperation.getCliMessageDocumentMap();
+      xvoid = await this.run_present_channel_messages({
+        applicationDomainId: applicationDomainId,
+        asyncApiDocument: asyncApiDocument,
+        messageDocumentMap: messageDocumentMap
+      });
+    }
+
+    throw new Error(`${logName}: do the events per channel operation`);
+
   }
 
   private run_present = async(): Promise<void> => {
@@ -54,49 +205,56 @@ export class CliImporter {
     });
     const applicationDomainId: string = cliApplicationDomainTaskExecuteReturn.applicationDomain.id;
 
-    // present all the messages
-    const messageMap: Map<string, ICliMessage> = asyncApiDocument.getMessages();
-    for(let [key, message] of messageMap) {
-      CliLogger.warn(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
+    // present all channels
+    const channelDocumentMap: CliChannelDocumentMap = asyncApiDocument.getChannelDocuments();
+    for(let [key, channelDocument] of channelDocumentMap) {
+      CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
         key: key,
-        message: message
+        channelDocument: channelDocument
       }}));
-      const messageName: string = message.asyncApiMessage.name();
-      const messageTitle: string = message.asyncApiMessage.title();
-      const contentType: string = message.asyncApiMessage.contentType();
-
-      // ensure the schema exists
-      const cliSchemaTask = new CliSchemaTask({
-        cliAsyncApiDocument: asyncApiDocument,
-        cliTaskState: ECliTaskState.PRESENT,
-        schemaObject: {
-          applicationDomainId: applicationDomainId,
-          name: messageName,
-          contentType: contentType,
-          schemaType: ESchemaType.JSON_SCHEMA,
-          shared: true
-        }
+      xvoid = await this.run_present_channel({
+        applicationDomainId: applicationDomainId,
+        asyncApiDocument: asyncApiDocument,
+        channelTopic: key,
+        channelDocument: channelDocument
       });
-      const cliSchemaTask_ExecuteReturn: ICliSchemaTask_ExecuteReturn = await cliSchemaTask.execute();
-      CliLogger.warn(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
-        cliSchemaTask_ExecuteReturn: cliSchemaTask_ExecuteReturn
-      }}));
-      if(cliSchemaTask_ExecuteReturn.schemaObject.id === undefined) throw new CliEPApiError(logName, 'cliSchemaTask_ExecuteReturn.schemaObject.id === undefined', {
-        schemaObject: cliSchemaTask_ExecuteReturn.schemaObject
-      });
-      const schemaId: string = cliSchemaTask_ExecuteReturn.schemaObject.id;
-      const numberOfVersions: number = cliSchemaTask_ExecuteReturn.schemaObject.numberOfVersions ? cliSchemaTask_ExecuteReturn.schemaObject.numberOfVersions : 0;      
-      // if any versions: get the latest version number and bump it
-      // else new version number = spec version number
-      // create a new version
-      // config: asset version bump strategy (minor, patch) & imported asset state = released, draft
-
-      throw new Error(`${logName}: check the first schema`);
-
     }
 
-    throw new Error(`${logName}: get all the messages and create schemas for them`);
+    // throw new Error(`${logName}: add the messages to the channel function`);
 
+    // // present all the messages
+    // const messageDocumentMap: CliMessageDocumentMap = asyncApiDocument.getMessageDocuments();
+    // for(let [key, messageDocument] of messageDocumentMap) {
+    //   CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
+    //     key: key,
+    //     messageDocument: messageDocument
+    //   }}));
+
+    //   // ensure the schema exists
+    //   const cliSchemaTask = new CliSchemaTask({
+    //     cliAsyncApiDocument: asyncApiDocument,
+    //     cliTaskState: ECliTaskState.PRESENT,
+    //     schemaObject: {
+    //       applicationDomainId: applicationDomainId,
+    //       name: messageDocument.getMessage().name(),
+    //       contentType: messageDocument.getContentType(),
+    //       schemaType: ESchemaType.JSON_SCHEMA,
+    //       shared: true
+    //     }
+    //   });
+    //   const cliSchemaTask_ExecuteReturn: ICliSchemaTask_ExecuteReturn = await cliSchemaTask.execute();
+    //   CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
+    //     cliSchemaTask_ExecuteReturn: cliSchemaTask_ExecuteReturn
+    //   }}));
+
+    //   // present the schema version
+    //   xvoid = await this.run_present_schema_version({
+    //     cliAsyncApiDocument: asyncApiDocument,
+    //     schemaObject: cliSchemaTask_ExecuteReturn.schemaObject,
+    //     specVersion: asyncApiDocument.getVersion(),
+    //     cliMessageDocument: messageDocument
+    //   });
+    // }
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTED, details: {
       specFile: this.cliAppConfig.asyncApiSpecFileName,
       targetState: this.cliAppConfig.assetsTargetState,

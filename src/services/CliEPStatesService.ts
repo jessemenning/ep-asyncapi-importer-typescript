@@ -1,4 +1,7 @@
+import { ECliAssetImportTargetLifecycleState, TAssetImportTargetLifecycleState } from '../CliConfig';
+import { CliError } from '../CliError';
 import { CliLogger, ECliStatusCodes } from '../CliLogger';
+import { CliUtils } from '../CliUtils';
 import { StatesResponse, StatesService } from '../_generated/@solace-iot-team/sep-openapi-node';
 
 
@@ -47,6 +50,23 @@ class CliEPStatesService {
     return this._retiredId;
   }
 
+  public getTargetLifecycleState({ assetImportTargetLifecycleState }:{
+    assetImportTargetLifecycleState: TAssetImportTargetLifecycleState;
+  }): string {
+    const funcName = 'getTargetLifecycleState';
+    const logName = `${CliEPStatesService.name}.${funcName}()`;
+
+    const type: ECliAssetImportTargetLifecycleState = assetImportTargetLifecycleState.type;
+    switch(type) {
+      case ECliAssetImportTargetLifecycleState.DRAFT:
+        return this.draftId;
+      case ECliAssetImportTargetLifecycleState.RELEASED:
+        return this.releasedId;
+      default:
+        CliUtils.assertNever(logName, type);
+    }
+    throw new CliError(logName, "should never get here");
+  }
 }
 
 export default new CliEPStatesService();

@@ -3,7 +3,7 @@ import { AbstractMethodError, EPApiResponseApiError } from '../CliError';
 import { CliLogger, ECliStatusCodes } from '../CliLogger';
 import { CliUtils } from '../CliUtils';
 import { ApiError } from '../_generated/@solace-iot-team/sep-openapi-node';
-import { CliAsyncApiDocument } from './CliAsyncApiDocument';
+import { CliAsyncApiDocument } from '../documents/CliAsyncApiDocument';
 
 export enum ECliTaskState {
   PRESENT = "PRESENT",
@@ -18,7 +18,9 @@ export interface ICliGetFuncReturn {
   documentExists: boolean;
   apiObject: any;
 }
-export interface ICliCreateFuncReturn {}
+export interface ICliCreateFuncReturn {
+  apiObject: any;
+}
 export interface ICliTaskExecuteReturn {
   cliTaskState: ECliTaskState;
   apiObject: any;
@@ -55,7 +57,7 @@ export abstract class CliTask {
       const createFuncReturn: ICliCreateFuncReturn = await this.createFunc();
       return {
         cliTaskState: ECliTaskState.PRESENT,
-        apiObject: createFuncReturn,
+        apiObject: createFuncReturn.apiObject,
       };
     } 
     return {
