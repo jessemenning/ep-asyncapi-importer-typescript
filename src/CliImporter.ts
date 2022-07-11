@@ -7,7 +7,7 @@ import CliEPStatesService from './services/CliEPStatesService';
 import { CliUtils } from './CliUtils';
 import { CliEPApiError, CliError, CliErrorFromError } from './CliError';
 import { CliSchemaTask, EPSchemaType, ICliSchemaTask_ExecuteReturn } from './tasks/CliSchemaTask';
-import { SchemaObject, Event as EPEvent } from './_generated/@solace-iot-team/sep-openapi-node';
+import { SchemaObject, Event as EPEvent, SchemaVersion } from './_generated/@solace-iot-team/sep-openapi-node';
 import { CliMessageDocument } from './documents/CliMessageDocument';
 import { CliChannelDocument, CliChannelPublishOperation, CliChannelSubscribeOperation } from './documents/CliChannelDocument';
 import { CliSchemaVersionTask, ICliSchemaVersionTask_ExecuteReturn } from './tasks/CliSchemaVersionTask';
@@ -37,7 +37,7 @@ export class CliImporter {
     schemaObject: SchemaObject;
     specVersion: string;
     cliMessageDocument: CliMessageDocument;
-  }): Promise<void> => {
+  }): Promise<ICliSchemaVersionTask_ExecuteReturn> => {
     const funcName = 'run_present_schema_version';
     const logName = `${CliImporter.name}.${funcName}()`;
 
@@ -68,47 +68,44 @@ export class CliImporter {
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
       cliSchemaVersionTask_ExecuteReturn: cliSchemaVersionTask_ExecuteReturn
     }}));
+    return cliSchemaVersionTask_ExecuteReturn;
   }
 
-  private run_present_channel_messages = async({ applicationDomainId, messageDocumentMap, specVersion }:{
+  private run_present_channel_message = async({ applicationDomainId, messageDocument, specVersion }:{
     applicationDomainId: string;
-    messageDocumentMap: CliMessageDocumentMap;
+    messageDocument: CliMessageDocument;
     specVersion: string;
-  }): Promise<void> => {
-    const funcName = 'run_present_channel_messages';
+  }): Promise<SchemaVersion> => {
+    const funcName = 'run_present_channel_message';
     const logName = `${CliImporter.name}.${funcName}()`;
 
-    let xvoid: void;
+    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
+      messageDocument: messageDocument
+    }}));
 
-    for(let [key, messageDocument] of messageDocumentMap) {
-      CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
-        key: key,
-        messageDocument: messageDocument
-      }}));
+    // ensure the schema exists
+    const cliSchemaTask = new CliSchemaTask({
+      cliTaskState: ECliTaskState.PRESENT,
+      applicationDomainId: applicationDomainId,
+      schemaName: messageDocument.getMessage().name(),
+      schemaObjectSettings: {
+        contentType: messageDocument.getContentType(),
+        schemaType: EPSchemaType.JSON_SCHEMA,
+        shared: true,
+      }
+    });
+    const cliSchemaTask_ExecuteReturn: ICliSchemaTask_ExecuteReturn = await cliSchemaTask.execute();
+    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
+      cliSchemaTask_ExecuteReturn: cliSchemaTask_ExecuteReturn
+    }}));
 
-      // ensure the schema exists
-      const cliSchemaTask = new CliSchemaTask({
-        cliTaskState: ECliTaskState.PRESENT,
-        applicationDomainId: applicationDomainId,
-        schemaName: messageDocument.getMessage().name(),
-        schemaObjectSettings: {
-          contentType: messageDocument.getContentType(),
-          schemaType: EPSchemaType.JSON_SCHEMA,
-          shared: true,
-        }
-      });
-      const cliSchemaTask_ExecuteReturn: ICliSchemaTask_ExecuteReturn = await cliSchemaTask.execute();
-      CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
-        cliSchemaTask_ExecuteReturn: cliSchemaTask_ExecuteReturn
-      }}));
-
-      // present the schema version
-      xvoid = await this.run_present_schema_version({
-        schemaObject: cliSchemaTask_ExecuteReturn.schemaObject,
-        specVersion: specVersion,
-        cliMessageDocument: messageDocument
-      });
-    }
+    // present the schema version
+    const cliSchemaVersionTask_ExecuteReturn: ICliSchemaVersionTask_ExecuteReturn = await this.run_present_schema_version({
+      schemaObject: cliSchemaTask_ExecuteReturn.schemaObject,
+      specVersion: specVersion,
+      cliMessageDocument: messageDocument
+    });
+    return cliSchemaVersionTask_ExecuteReturn.schemaVersionObject;
   }
 
   private run_present_event_version = async({ channelTopic, eventObject, specVersion, cliMessageDocument, schemaVersionId }: {
@@ -149,14 +146,11 @@ export class CliImporter {
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
       cliEventVersionTask_ExecuteReturn: cliEventVersionTask_ExecuteReturn
     }}));
-
-    throw new Error(`${logName}: check event correct`);
-
   }
 
-  private run_present_channel_event = async({ applicationDomainId, messageDocumentMap, specVersion, channelTopic, schemaVersionId }:{
+  private run_present_channel_event = async({ applicationDomainId, messageDocument, specVersion, channelTopic, schemaVersionId }:{
     applicationDomainId: string;
-    messageDocumentMap: CliMessageDocumentMap;
+    messageDocument: CliMessageDocument;
     specVersion: string;
     channelTopic: string;
     schemaVersionId: string;
@@ -164,39 +158,32 @@ export class CliImporter {
     const funcName = 'run_present_channel_event';
     const logName = `${CliImporter.name}.${funcName}()`;
 
-    let xvoid: void;
+    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
+      messageDocument: messageDocument
+    }}));
 
-// no map, just one
+    // ensure the event exists
+    const cliEventTask = new CliEventTask({
+      cliTaskState: ECliTaskState.PRESENT,
+      applicationDomainId: applicationDomainId,
+      eventName: messageDocument.getMessage().name(),
+      eventObjectSettings: {
+        shared: true,
+      }
+    });
+    const cliEventTask_ExecuteReturn: ICliEventTask_ExecuteReturn = await cliEventTask.execute();
+    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
+      cliEventTask_ExecuteReturn: cliEventTask_ExecuteReturn
+    }}));
 
-    for(let [key, messageDocument] of messageDocumentMap) {
-      CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
-        key: key,
-        messageDocument: messageDocument
-      }}));
-
-      // ensure the event exists
-      const cliEventTask = new CliEventTask({
-        cliTaskState: ECliTaskState.PRESENT,
-        applicationDomainId: applicationDomainId,
-        eventName: messageDocument.getMessage().name(),
-        eventObjectSettings: {
-          shared: true,
-        }
-      });
-      const cliEventTask_ExecuteReturn: ICliEventTask_ExecuteReturn = await cliEventTask.execute();
-      CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
-        cliEventTask_ExecuteReturn: cliEventTask_ExecuteReturn
-      }}));
-
-      // present the event version
-      xvoid = await this.run_present_event_version({
-        channelTopic: channelTopic,
-        eventObject: cliEventTask_ExecuteReturn.eventObject,
-        specVersion: specVersion,
-        cliMessageDocument: messageDocument,
-        schemaVersionId: schemaVersionId
-      });
-    }
+    // present the event version
+    const xvoid: void = await this.run_present_event_version({
+      channelTopic: channelTopic,
+      eventObject: cliEventTask_ExecuteReturn.eventObject,
+      specVersion: specVersion,
+      cliMessageDocument: messageDocument,
+      schemaVersionId: schemaVersionId
+    });
   }
 
   private run_present_channel = async({ applicationDomainId, channelTopic, channelDocument, specVersion }:{
@@ -217,46 +204,45 @@ export class CliImporter {
 
     const channelPublishOperation: CliChannelPublishOperation | undefined = channelDocument.getChannelPublishOperation();
     if(channelPublishOperation !== undefined) {
-      const messageDocumentMap: CliMessageDocumentMap = channelPublishOperation.getCliMessageDocumentMap();
-      if(messageDocumentMap.size > 1) throw new CliError(logName, 'messageDocumentMap.size > 1');
-
-
-      // TODO: 1 message only
-      // return the executionReturn
-      // get the schemaId
-
-
-
-      xvoid = await this.run_present_channel_messages({
+      const messageDocument: CliMessageDocument = channelPublishOperation.getCliMessageDocument();
+      const schemaVersionObject: SchemaVersion = await this.run_present_channel_message({
         applicationDomainId: applicationDomainId,
-        messageDocumentMap: messageDocumentMap,
+        messageDocument: messageDocument,
         specVersion: specVersion
       });
-
+      if(schemaVersionObject.id === undefined) throw new CliEPApiError(logName, 'schemaVersionObject.id === undefined', {
+        schemaVersionObject: schemaVersionObject,
+      })
       // present event
       xvoid = await this.run_present_channel_event({
         applicationDomainId: applicationDomainId,
-        messageDocumentMap: messageDocumentMap,
+        messageDocument: messageDocument,
         specVersion: specVersion,
         channelTopic: channelTopic,
-        schemaVersionId: "the-schema-version-id"
+        schemaVersionId: schemaVersionObject.id
       });
-
     }
 
     const channelSubscribeOperation: CliChannelSubscribeOperation | undefined = channelDocument.getChannelSubscribeOperation();
     if(channelSubscribeOperation !== undefined) {
-      const messageDocumentMap: CliMessageDocumentMap = channelSubscribeOperation.getCliMessageDocumentMap();
-      if(messageDocumentMap.size > 1) throw new CliError(logName, 'messageDocumentMap.size > 1');
-      xvoid = await this.run_present_channel_messages({
+      const messageDocument: CliMessageDocument = channelSubscribeOperation.getCliMessageDocument();
+      const schemaVersionObject: SchemaVersion = await this.run_present_channel_message({
         applicationDomainId: applicationDomainId,
-        messageDocumentMap: messageDocumentMap,
+        messageDocument: messageDocument,
         specVersion: specVersion,
       });
+      if(schemaVersionObject.id === undefined) throw new CliEPApiError(logName, 'schemaVersionObject.id === undefined', {
+        schemaVersionObject: schemaVersionObject,
+      })
+      // present event
+      xvoid = await this.run_present_channel_event({
+        applicationDomainId: applicationDomainId,
+        messageDocument: messageDocument,
+        specVersion: specVersion,
+        channelTopic: channelTopic,
+        schemaVersionId: schemaVersionObject.id
+      });
     }
-
-    // throw new Error(`${logName}: do the events per channel operation`);
-
   }
 
   private run_present = async(): Promise<void> => {

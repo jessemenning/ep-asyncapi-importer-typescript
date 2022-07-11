@@ -1,4 +1,5 @@
 import { Channel, Message, PublishOperation, SubscribeOperation } from '@asyncapi/parser';
+import { CliError } from '../CliError';
 import { CliMessageDocumentMap } from './CliAsyncApiDocument';
 import { CliMessageDocument } from './CliMessageDocument';
 
@@ -31,6 +32,14 @@ export class CliChannelSubscribeOperation extends CliChannelOperation {
     const messageList: Array<Message>  = this.subscribeOperation.messages();
     return this.getCliMessageDocumentMapByMessageList(messageList);
   }
+
+  public getCliMessageDocument(): CliMessageDocument {
+    const funcName = 'getCliMessageDocument';
+    const logName = `${CliChannelPublishOperation.name}.${funcName}()`;
+    const messageList: Array<Message>  = this.subscribeOperation.messages();
+    if(messageList.length !== 1) throw new CliError(logName, 'messageList.length !== 1');
+    return new CliMessageDocument(messageList[0]);
+  }
 }
 
 export class CliChannelPublishOperation extends CliChannelOperation {
@@ -44,6 +53,14 @@ export class CliChannelPublishOperation extends CliChannelOperation {
   public getCliMessageDocumentMap(): CliMessageDocumentMap {
     const messageList: Array<Message>  = this.publishOperation.messages();
     return this.getCliMessageDocumentMapByMessageList(messageList);
+  }
+
+  public getCliMessageDocument(): CliMessageDocument {
+    const funcName = 'getCliMessageDocument';
+    const logName = `${CliChannelPublishOperation.name}.${funcName}()`;
+    const messageList: Array<Message>  = this.publishOperation.messages();
+    if(messageList.length !== 1) throw new CliError(logName, 'messageList.length !== 1');
+    return new CliMessageDocument(messageList[0]);
   }
 }
 

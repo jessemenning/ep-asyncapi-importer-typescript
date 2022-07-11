@@ -20,8 +20,11 @@ class CliEPEventVersionsService {
       eventVersionResponse: eventVersionResponse
     }}));
 
-    if(eventVersionResponse.data === undefined || eventVersionResponse.data.length === 0) return [];
-    return eventVersionResponse.data;
+
+    throw new Error(`${logName}: expecting this to exist, api probably not working`);
+
+    // if(eventVersionResponse.data === undefined || eventVersionResponse.data.length === 0) return [];
+    // return eventVersionResponse.data;
   }
 
   public getLastestEventVersion = async({ eventId }:{
