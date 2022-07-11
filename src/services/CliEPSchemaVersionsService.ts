@@ -31,7 +31,7 @@ class CliEPSchemaVersionsService {
 
   public getLastestSchemaVersion = async({ schemaId }:{
     schemaId: string;
-  }): Promise<string> => {
+  }): Promise<string | undefined> => {
     const funcName = 'getLastestSchemaVersion';
     const logName = `${CliEPSchemaVersionsService.name}.${funcName}()`;
 
@@ -39,6 +39,7 @@ class CliEPSchemaVersionsService {
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.SERVICE, details: {
       schemaVersionList: schemaVersionList
     }}));
+    if(schemaVersionList.length === 0) return undefined;
 
     let latest: string = '0.0.0';
     for(const schemaVersion of schemaVersionList) {

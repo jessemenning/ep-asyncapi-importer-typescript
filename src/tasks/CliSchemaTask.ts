@@ -1,16 +1,22 @@
 import { CliEPApiError, CliError } from "../CliError";
 import { CliLogger, ECliStatusCodes } from "../CliLogger";
-import { CliTask, ICliTaskKeys, ICliGetFuncReturn, ICliTaskConfig, ICliCreateFuncReturn, ICliTaskExecuteReturn } from "./CliTask";
+import { CliTask, ICliTaskKeys, ICliGetFuncReturn, ICliTaskConfig, ICliCreateFuncReturn, ICliTaskExecuteReturn, ICliUpdateFuncReturn } from "./CliTask";
 import { SchemaObject, SchemaResponse, SchemasResponse, SchemasService, SchemaVersion } from "../_generated/@solace-iot-team/sep-openapi-node";
+import isEqual from "lodash.isequal";
 
-export enum ESchemaType {
+export enum EPSchemaType {
   JSON_SCHEMA = "jsonSchema"
 }
 enum EPContentType {
   APPLICATION_JSON = "json"
 }
+type TCliSchemaTask_Settings = Partial<Pick<SchemaObject, "shared"  | "contentType" | "schemaType">>;
+type TCliSchemaTask_CompareObject = TCliSchemaTask_Settings;
+
 export interface ICliSchemaTask_Config extends ICliTaskConfig {
-  schemaObject: Required<Pick<SchemaObject, "applicationDomainId" | "name" | "shared"  | "contentType" | "schemaType">>;
+  schemaName: string;
+  applicationDomainId: string;
+  schemaObjectSettings: Required<TCliSchemaTask_Settings>;
 }
 export interface ICliSchemaTask_Keys extends ICliTaskKeys {
   schemaName: string;
@@ -22,6 +28,9 @@ export interface ICliSchemaTask_GetFuncReturn extends ICliGetFuncReturn {
 export interface ICliSchemaTask_CreateFuncReturn extends ICliCreateFuncReturn {
   schemaObject: SchemaObject;
 }
+export interface ICliSchemaTask_UpdateFuncReturn extends ICliUpdateFuncReturn {
+  schemaObject: SchemaObject;
+}
 export interface ICliSchemaTask_ExecuteReturn extends ICliTaskExecuteReturn {
   schemaObject: SchemaObject;
 }
@@ -31,17 +40,6 @@ export class CliSchemaTask extends CliTask {
   private readonly ContentTypeMap: Map<string, EPContentType> = new Map<string, EPContentType>([
     ["application/json", EPContentType.APPLICATION_JSON]
   ]); 
-
-  private readonly Empty_ICliSchemaTask_GetFuncReturn: ICliSchemaTask_GetFuncReturn = {
-    apiObject: undefined,
-    schemaObject: undefined,
-    documentExists: false  
-  };
-
-  constructor(taskConfig: ICliSchemaTask_Config) {
-    super(taskConfig);
-  }
-
   private mapContentType(contentType: string): EPContentType {
     const funcName = 'mapContentType';
     const logName = `${CliSchemaTask.name}.${funcName}()`;
@@ -51,11 +49,35 @@ export class CliSchemaTask extends CliTask {
     });
     return mapped;
   }
+
+  private readonly Empty_ICliSchemaTask_GetFuncReturn: ICliSchemaTask_GetFuncReturn = {
+    apiObject: undefined,
+    schemaObject: undefined,
+    documentExists: false  
+  };
+  private readonly Default_TCliSchemaTask_Settings: TCliSchemaTask_Settings = {
+    shared: true,
+    contentType: EPContentType.APPLICATION_JSON,
+    schemaType: EPSchemaType.JSON_SCHEMA,
+  }
+  private getCliTaskConfig(): ICliSchemaTask_Config { return this.cliTaskConfig as ICliSchemaTask_Config; }
+  private createObjectSettings(): Partial<SchemaObject> {
+    return {
+      ...this.Default_TCliSchemaTask_Settings,
+      ...this.getCliTaskConfig().schemaObjectSettings,
+      contentType: this.mapContentType(this.getCliTaskConfig().schemaObjectSettings.contentType)
+    };
+  }
+
+  constructor(taskConfig: ICliSchemaTask_Config) {
+    super(taskConfig);
+  }
+
   protected getTaskKeys(): ICliSchemaTask_Keys {
     return {
-      schemaName: (this.cliTaskConfig as ICliSchemaTask_Config).schemaObject.name,
-      applicationDomainId: (this.cliTaskConfig as ICliSchemaTask_Config).schemaObject.applicationDomainId,
-    }
+      schemaName: this.getCliTaskConfig().schemaName,
+      applicationDomainId: this.getCliTaskConfig().applicationDomainId,
+    };
   }
 
   protected async getFunc(cliTaskKeys: ICliSchemaTask_Keys): Promise<ICliSchemaTask_GetFuncReturn> {
@@ -87,13 +109,38 @@ export class CliSchemaTask extends CliTask {
     return cliSchemaTask_GetFuncReturn;
   };
 
+  protected isUpdateRequired({ cliGetFuncReturn}: { 
+    cliGetFuncReturn: ICliSchemaTask_GetFuncReturn; 
+  }): boolean {
+    const funcName = 'isUpdateRequired';
+    const logName = `${CliSchemaTask.name}.${funcName}()`;
+    if(cliGetFuncReturn.schemaObject === undefined) throw new CliError(logName, 'cliGetFuncReturn.schemaObject === undefined');
+    let isUpdateRequired: boolean = false;
+
+    const existingObject: SchemaObject = cliGetFuncReturn.schemaObject;
+    const existingCompareObject: TCliSchemaTask_CompareObject = {
+      shared: existingObject.shared,
+      contentType: existingObject.contentType,
+      schemaType: existingObject.schemaType,
+    }
+    const requestedCompareObject: TCliSchemaTask_CompareObject = this.createObjectSettings();
+    isUpdateRequired = !isEqual(existingCompareObject, requestedCompareObject);
+    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_IS_UPDATE_REQUIRED, details: {
+      existingCompareObject: existingCompareObject,
+      requestedCompareObject: requestedCompareObject,
+      isUpdateRequired: isUpdateRequired
+    }}));
+    return isUpdateRequired;
+  }
+
   protected async createFunc(): Promise<ICliSchemaTask_CreateFuncReturn> {
     const funcName = 'createFunc';
     const logName = `${CliSchemaTask.name}.${funcName}()`;
 
     const create: SchemaObject = {
-      ...(this.cliTaskConfig as ICliSchemaTask_Config).schemaObject,
-      contentType: this.mapContentType((this.cliTaskConfig as ICliSchemaTask_Config).schemaObject.contentType)
+      ...this.createObjectSettings(),
+      applicationDomainId: this.getCliTaskConfig().applicationDomainId,
+      name: this.getCliTaskConfig().schemaName,
     };
 
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_CREATE, details: {
@@ -120,6 +167,39 @@ export class CliSchemaTask extends CliTask {
        schemaObject: created,
        apiObject: created,
     };
+  }
+
+  protected async updateFunc(cliGetFuncReturn: ICliSchemaTask_GetFuncReturn): Promise<ICliSchemaTask_UpdateFuncReturn> {
+    const funcName = 'updateFunc';
+    const logName = `${CliSchemaTask.name}.${funcName}()`;
+    if(cliGetFuncReturn.schemaObject === undefined) throw new CliError(logName, 'cliGetFuncReturn.schemaObject === undefined');
+
+    const update: SchemaObject = {
+      ...this.createObjectSettings(),
+      applicationDomainId: this.getCliTaskConfig().applicationDomainId,
+      name: this.getCliTaskConfig().schemaName,
+    };
+    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_UPDATE, details: {
+      document: update
+    }}));
+    if(cliGetFuncReturn.schemaObject.id === undefined) throw new CliEPApiError(logName, 'cliGetFuncReturn.schemaObject.id === undefined', {
+      schemaObject: cliGetFuncReturn.schemaObject
+    });
+    const schemaResponse: SchemaResponse = await SchemasService.patchSchema({
+      id: cliGetFuncReturn.schemaObject.id,
+      requestBody: update
+    });
+    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_UPDATE, details: {
+      schemaResponse: schemaResponse
+    }}));
+    if(schemaResponse.data === undefined) throw new CliEPApiError(logName, 'schemaResponse.data === undefined', {
+      schemaResponse: schemaResponse
+    });
+    const cliSchemaTask_UpdateFuncReturn: ICliSchemaTask_UpdateFuncReturn = {
+      apiObject: schemaResponse.data,
+      schemaObject: schemaResponse.data,
+    };
+    return cliSchemaTask_UpdateFuncReturn;
   }
 
   public async execute(): Promise<ICliSchemaTask_ExecuteReturn> { 

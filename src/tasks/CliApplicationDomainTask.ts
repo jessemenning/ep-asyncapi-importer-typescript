@@ -1,54 +1,64 @@
 import CliConfig from "../CliConfig";
 import { CliEPApiError, CliError } from "../CliError";
 import { CliLogger, ECliStatusCodes } from "../CliLogger";
-import { CliTask, ICliTaskKeys, ICliGetFuncReturn, ICliTaskConfig, ICliCreateFuncReturn, ICliTaskExecuteReturn } from "./CliTask";
+import { CliTask, ICliTaskKeys, ICliGetFuncReturn, ICliTaskConfig, ICliCreateFuncReturn, ICliTaskExecuteReturn, ICliUpdateFuncReturn } from "./CliTask";
 import { ApplicationDomain, ApplicationDomainResponse, ApplicationDomainsResponse, ApplicationDomainsService } from "../_generated/@solace-iot-team/sep-openapi-node";
+import isEqual from "lodash.isequal";
 
-export interface ICliApplicationDomainConfig extends ICliTaskConfig {
+type TCliApplicationDomainTask_Settings = Partial<Pick<ApplicationDomain, "topicDomainEnforcementEnabled" | "uniqueTopicAddressEnforcementEnabled" | "description">>;
+type TCliApplicationDomainTask_CompareObject = TCliApplicationDomainTask_Settings;
+export interface ICliApplicationDomainTask_Config extends ICliTaskConfig {
+  applicationDomainName: string;
+  applicationDomainSettings: TCliApplicationDomainTask_Settings;
 }
 export interface ICliApplicationDomainTask_Keys extends ICliTaskKeys {
   applicationDomainName: string;
 }
-export interface ICliApplicationDomain_GetFuncReturn extends ICliGetFuncReturn {
-  applicationDomain: ApplicationDomain | undefined;
+export interface ICliApplicationDomainTask_GetFuncReturn extends ICliGetFuncReturn {
+  applicationDomainObject: ApplicationDomain | undefined;
 }
-export interface ICliApplicationDomain_CreateFuncReturn extends ICliCreateFuncReturn {
-  applicationDomain: ApplicationDomain;
+export interface ICliApplicationDomainTask_CreateFuncReturn extends ICliCreateFuncReturn {
+  applicationDomainObject: ApplicationDomain;
 }
-export interface ICliApplicationDomain_TaskExecuteReturn extends ICliTaskExecuteReturn {
-  applicationDomain: ApplicationDomain;
+export interface ICliApplicationDomainTask_UpdateFuncReturn extends ICliUpdateFuncReturn {
+  applicationDomainObject: ApplicationDomain;
+}
+export interface ICliApplicationDomainTask_ExecuteReturn extends ICliTaskExecuteReturn {
+  applicationDomainObject: ApplicationDomain;
 }
 
 
 export class CliApplicationDomainTask extends CliTask {
 
-  private readonly Empty_ICliApplicationDomain_GetFuncReturn: ICliApplicationDomain_GetFuncReturn = {
+  private readonly Empty_ICliApplicationDomainTask_GetFuncReturn: ICliApplicationDomainTask_GetFuncReturn = {
     apiObject: undefined,
-    applicationDomain: undefined,
+    applicationDomainObject: undefined,
     documentExists: false  
   };
-  private readonly DefaultApplicationDomainParams: Partial<ApplicationDomain> = {
+  private readonly Default_TCliApplicationDomainTask_Settings: TCliApplicationDomainTask_Settings = {
     topicDomainEnforcementEnabled: false,
     uniqueTopicAddressEnforcementEnabled: true,
+    description: `Created by ${CliConfig.getAppDisplayName()}.`,
   }
-  private getApplicationDomainParams(): Partial<ApplicationDomain> {
+  private getCliTaskConfig(): ICliApplicationDomainTask_Config { return this.cliTaskConfig as ICliApplicationDomainTask_Config; }
+  private createApplicationDomainSettings(): Partial<ApplicationDomain> {
     return {
-      ...this.DefaultApplicationDomainParams,
-      description: `Created by ${CliConfig.getAppDisplayName()}.`
+      ...this.Default_TCliApplicationDomainTask_Settings,
+      ...this.getCliTaskConfig().applicationDomainSettings,
     }
   }
 
-  constructor(taskConfig: ICliApplicationDomainConfig) {
+  constructor(taskConfig: ICliApplicationDomainTask_Config) {
     super(taskConfig);
   }
 
   protected getTaskKeys(): ICliApplicationDomainTask_Keys {
     return {
-      applicationDomainName: this.get_CliAsyncApiDocument().getApplicationDomainName()
+      applicationDomainName: this.getCliTaskConfig().applicationDomainName
     }
   }
 
-  protected async getFunc(cliTaskKeys: ICliApplicationDomainTask_Keys): Promise<ICliApplicationDomain_GetFuncReturn> {
+  protected async getFunc(cliTaskKeys: ICliApplicationDomainTask_Keys): Promise<ICliApplicationDomainTask_GetFuncReturn> {
     const funcName = 'getFunc';
     const logName = `${CliApplicationDomainTask.name}.${funcName}()`;
 
@@ -68,25 +78,47 @@ export class CliApplicationDomainTask extends CliTask {
       applicationDomainsResponse: applicationDomainsResponse
     }}));
 
-    if(applicationDomainsResponse.data === undefined || applicationDomainsResponse.data.length === 0) return this.Empty_ICliApplicationDomain_GetFuncReturn;
+    if(applicationDomainsResponse.data === undefined || applicationDomainsResponse.data.length === 0) return this.Empty_ICliApplicationDomainTask_GetFuncReturn;
 
-    const cliApplicationDomain_GetFuncReturn: ICliApplicationDomain_GetFuncReturn = {
+    const cliApplicationDomainTask_GetFuncReturn: ICliApplicationDomainTask_GetFuncReturn = {
       apiObject: applicationDomainsResponse.data[0],
-      applicationDomain: applicationDomainsResponse.data[0],
+      applicationDomainObject: applicationDomainsResponse.data[0],
       documentExists: true
     };
-    return cliApplicationDomain_GetFuncReturn;
+    return cliApplicationDomainTask_GetFuncReturn;
   };
 
-  protected async createFunc(): Promise<ICliApplicationDomain_CreateFuncReturn> {
+  protected isUpdateRequired({ cliGetFuncReturn}: { 
+    cliGetFuncReturn: ICliApplicationDomainTask_GetFuncReturn; 
+  }): boolean {
+    const funcName = 'isUpdateRequired';
+    const logName = `${CliApplicationDomainTask.name}.${funcName}()`;
+    if(cliGetFuncReturn.applicationDomainObject === undefined) throw new CliError(logName, 'cliGetFuncReturn.applicationDomainObject === undefined');
+    let isUpdateRequired: boolean = false;
+
+    const existingObject: ApplicationDomain = cliGetFuncReturn.applicationDomainObject;
+    const existingCompareObject: TCliApplicationDomainTask_CompareObject = {
+      description: existingObject.description,
+      topicDomainEnforcementEnabled: existingObject.topicDomainEnforcementEnabled,
+      uniqueTopicAddressEnforcementEnabled: existingObject.uniqueTopicAddressEnforcementEnabled,
+    }
+    const requestedCompareObject: TCliApplicationDomainTask_CompareObject = this.createApplicationDomainSettings();
+    isUpdateRequired = !isEqual(existingCompareObject, requestedCompareObject);
+    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_IS_UPDATE_REQUIRED, details: {
+      existingCompareObject: existingCompareObject,
+      requestedCompareObject: requestedCompareObject,
+      isUpdateRequired: isUpdateRequired
+    }}));
+    return isUpdateRequired;
+  }
+
+  protected async createFunc(): Promise<ICliApplicationDomainTask_CreateFuncReturn> {
     const funcName = 'createFunc';
     const logName = `${CliApplicationDomainTask.name}.${funcName}()`;
 
-    const applicationDomainName = this.get_CliAsyncApiDocument().getApplicationDomainName();
-
     const create: ApplicationDomain = {
-      ...this.getApplicationDomainParams(),
-      name: applicationDomainName
+      ...this.createApplicationDomainSettings(),
+      name: this.getCliTaskConfig().applicationDomainName,
     }
 
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_CREATE, details: {
@@ -105,24 +137,60 @@ export class CliApplicationDomainTask extends CliTask {
       applicationDomainResponse: applicationDomainResponse
     });
     return {
-      applicationDomain: applicationDomainResponse.data,
+      applicationDomainObject: applicationDomainResponse.data,
       apiObject: applicationDomainResponse.data,
     };
-
   }
 
-  public async execute(): Promise<ICliApplicationDomain_TaskExecuteReturn> { 
+  protected async updateFunc(cliGetFuncReturn: ICliApplicationDomainTask_GetFuncReturn): Promise<ICliApplicationDomainTask_UpdateFuncReturn> {
+    const funcName = 'updateFunc';
+    const logName = `${CliApplicationDomainTask.name}.${funcName}()`;
+    if(cliGetFuncReturn.applicationDomainObject === undefined) throw new CliError(logName, 'cliGetFuncReturn.applicationDomainObject === undefined');
+    
+    const update: ApplicationDomain = {
+      ...this.createApplicationDomainSettings(),
+      name: this.getCliTaskConfig().applicationDomainName,
+    }
+    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_UPDATE, details: {
+      document: update
+    }}));
+
+    if(cliGetFuncReturn.applicationDomainObject.id === undefined) throw new CliEPApiError(logName, 'cliGetFuncReturn.applicationDomainObject.id === undefined', {
+      applicationDomainObject: cliGetFuncReturn.applicationDomainObject
+    });
+    const applicationDomainResponse: ApplicationDomainResponse = await ApplicationDomainsService.update8({
+      id: cliGetFuncReturn.applicationDomainObject.id,
+      requestBody: update
+    });
+
+    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_UPDATE, details: {
+      applicationDomainResponse: applicationDomainResponse
+    }}));
+
+    if(applicationDomainResponse.data === undefined) throw new CliEPApiError(logName, 'applicationDomainResponse.data === undefined', {
+      applicationDomainResponse: applicationDomainResponse
+    });
+    const cliApplicationDomainTask_UpdateFuncReturn: ICliApplicationDomainTask_UpdateFuncReturn = {
+      apiObject: applicationDomainResponse.data,
+      applicationDomainObject: applicationDomainResponse.data,
+    };
+    return cliApplicationDomainTask_UpdateFuncReturn;
+  }
+
+  public async execute(): Promise<ICliApplicationDomainTask_ExecuteReturn> { 
     const funcName = 'execute';
     const logName = `${CliApplicationDomainTask.name}.${funcName}()`;
-
     const cliTaskExecuteReturn: ICliTaskExecuteReturn = await super.execute();
     if(cliTaskExecuteReturn.apiObject === undefined) throw new CliError(logName, 'cliTaskExecuteReturn.apiObject === undefined');
-    const cliApplicationDomainTaskExecuteReturn: ICliApplicationDomain_TaskExecuteReturn = {
+    const cliApplicationDomainTask_ExecuteReturn: ICliApplicationDomainTask_ExecuteReturn = {
       cliTaskState: cliTaskExecuteReturn.cliTaskState,
-      applicationDomain: cliTaskExecuteReturn.apiObject,
+      applicationDomainObject: cliTaskExecuteReturn.apiObject,
       apiObject: undefined
     };
-    return cliApplicationDomainTaskExecuteReturn;
+    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTED_TASK, details: {
+      cliApplicationDomainTask_ExecuteReturn: cliApplicationDomainTask_ExecuteReturn,
+    }}));
+    return cliApplicationDomainTask_ExecuteReturn;
   }
 
 

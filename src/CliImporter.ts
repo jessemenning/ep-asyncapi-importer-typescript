@@ -2,17 +2,17 @@ import { CliLogger, ECliStatusCodes } from './CliLogger';
 import CliConfig, { ECliAssetImportTargetLifecycleState_VersionStrategy, ECliAssetsTargetState, TCliAppConfig } from './CliConfig';
 import { CliAsyncApiDocument, CliChannelDocumentMap, CliMessageDocumentMap } from './documents/CliAsyncApiDocument';
 import { ECliTaskState } from './tasks/CliTask';
-import { CliApplicationDomainTask, ICliApplicationDomain_TaskExecuteReturn } from './tasks/CliApplicationDomainTask';
+import { CliApplicationDomainTask, ICliApplicationDomainTask_ExecuteReturn } from './tasks/CliApplicationDomainTask';
 import CliEPStatesService from './services/CliEPStatesService';
 import { CliUtils } from './CliUtils';
 import { CliEPApiError, CliError, CliErrorFromError } from './CliError';
-import { CliSchemaTask, ESchemaType, ICliSchemaTask_ExecuteReturn } from './tasks/CliSchemaTask';
+import { CliSchemaTask, EPSchemaType, ICliSchemaTask_ExecuteReturn } from './tasks/CliSchemaTask';
 import { SchemaObject } from './_generated/@solace-iot-team/sep-openapi-node';
 import { CliMessageDocument } from './documents/CliMessageDocument';
-import { CliSchemaVersionTask, ICliSchemaVersionTask_ExecuteReturn } from './tasks/CliSchemaVersionTask';
 import CliSemVerUtils from './CliSemVerUtils';
 import CliEPSchemaVersionsService from './services/CliEPSchemaVersionsService';
 import { CliChannelDocument, CliChannelPublishOperation, CliChannelSubscribeOperation } from './documents/CliChannelDocument';
+import { CliSchemaVersionTask, ICliSchemaVersionTask_ExecuteReturn } from './tasks/CliSchemaVersionTask';
 
 
 export class CliImporter {
@@ -33,8 +33,7 @@ export class CliImporter {
    * - bump latest version per strategy
    * 
    */
-  private run_present_schema_version = async({ cliAsyncApiDocument, schemaObject, specVersion, cliMessageDocument }: {
-    cliAsyncApiDocument: CliAsyncApiDocument;
+  private run_present_schema_version = async({ schemaObject, specVersion, cliMessageDocument }: {
     schemaObject: SchemaObject;
     specVersion: string;
     cliMessageDocument: CliMessageDocument;
@@ -53,30 +52,16 @@ export class CliImporter {
     });
 
     const schemaId: string = schemaObject.id;
-    const numberOfVersions: number = schemaObject.numberOfVersions ? schemaObject.numberOfVersions : 0;      
-
-    let newSchemaVersionString: string = specVersion;
-    if(numberOfVersions > 0) {
-      // get the latest version
-      const latestSchemaVersionString: string = await CliEPSchemaVersionsService.getLastestSchemaVersion({ schemaId: schemaId });
-      // bump version according to strategy
-      const versionStrategy: ECliAssetImportTargetLifecycleState_VersionStrategy = CliConfig.getCliAppConfig().assetImportTargetLifecycleState.versionStrategy;
-      newSchemaVersionString = CliSemVerUtils.createNextVersion({
-        versionString: latestSchemaVersionString,
-        strategy: versionStrategy
-      });
-    } 
 
     const cliSchemaVersionTask: CliSchemaVersionTask = new CliSchemaVersionTask({
       cliTaskState: ECliTaskState.PRESENT,
-      cliAsyncApiDocument: cliAsyncApiDocument,
       schemaId: schemaId,
-      schemaVersionString: newSchemaVersionString,
-      schemaString: cliMessageDocument.getPayloadSchemaAsString(),
-      schemaTargetLifecycleState: CliEPStatesService.getTargetLifecycleState({assetImportTargetLifecycleState: CliConfig.getCliAppConfig().assetImportTargetLifecycleState}),
+      baseVersionString: specVersion,
       schemaVersionSettings: {
+        content: cliMessageDocument.getPayloadSchemaAsString(),
         description: cliMessageDocument.getDescription(),
         displayName: cliMessageDocument.getDisplayName(),
+        stateId: CliEPStatesService.getTargetLifecycleState({assetImportTargetLifecycleState: CliConfig.getCliAppConfig().assetImportTargetLifecycleState}),
       }
     });
     const cliSchemaVersionTask_ExecuteReturn: ICliSchemaVersionTask_ExecuteReturn = await cliSchemaVersionTask.execute();
@@ -85,10 +70,10 @@ export class CliImporter {
     }}));
   }
 
-  private run_present_channel_messages = async({ applicationDomainId, messageDocumentMap, asyncApiDocument }:{
+  private run_present_channel_messages = async({ applicationDomainId, messageDocumentMap, specVersion }:{
     applicationDomainId: string;
     messageDocumentMap: CliMessageDocumentMap;
-    asyncApiDocument: CliAsyncApiDocument;
+    specVersion: string;
   }): Promise<void> => {
     const funcName = 'run_present_channel_messages';
     const logName = `${CliImporter.name}.${funcName}()`;
@@ -103,14 +88,13 @@ export class CliImporter {
 
       // ensure the schema exists
       const cliSchemaTask = new CliSchemaTask({
-        cliAsyncApiDocument: asyncApiDocument,
         cliTaskState: ECliTaskState.PRESENT,
-        schemaObject: {
-          applicationDomainId: applicationDomainId,
-          name: messageDocument.getMessage().name(),
+        applicationDomainId: applicationDomainId,
+        schemaName: messageDocument.getMessage().name(),
+        schemaObjectSettings: {
           contentType: messageDocument.getContentType(),
-          schemaType: ESchemaType.JSON_SCHEMA,
-          shared: true
+          schemaType: EPSchemaType.JSON_SCHEMA,
+          shared: true,
         }
       });
       const cliSchemaTask_ExecuteReturn: ICliSchemaTask_ExecuteReturn = await cliSchemaTask.execute();
@@ -120,19 +104,19 @@ export class CliImporter {
 
       // present the schema version
       xvoid = await this.run_present_schema_version({
-        cliAsyncApiDocument: asyncApiDocument,
         schemaObject: cliSchemaTask_ExecuteReturn.schemaObject,
-        specVersion: asyncApiDocument.getVersion(),
+        specVersion: specVersion,
         cliMessageDocument: messageDocument
       });
     }
 
   }
-  private run_present_channel = async({ applicationDomainId, channelTopic, channelDocument, asyncApiDocument }:{
+
+  private run_present_channel = async({ applicationDomainId, channelTopic, channelDocument, specVersion }:{
     applicationDomainId: string;
     channelTopic: string;
     channelDocument: CliChannelDocument;
-    asyncApiDocument: CliAsyncApiDocument;
+    specVersion: string;
   }): Promise<void> => {
     const funcName = 'run_present_channel';
     const logName = `${CliImporter.name}.${funcName}()`;
@@ -149,8 +133,8 @@ export class CliImporter {
       const messageDocumentMap: CliMessageDocumentMap = channelPublishOperation.getCliMessageDocumentMap();
       xvoid = await this.run_present_channel_messages({
         applicationDomainId: applicationDomainId,
-        asyncApiDocument: asyncApiDocument,
-        messageDocumentMap: messageDocumentMap
+        messageDocumentMap: messageDocumentMap,
+        specVersion: specVersion
       });
     }
 
@@ -159,12 +143,12 @@ export class CliImporter {
       const messageDocumentMap: CliMessageDocumentMap = channelSubscribeOperation.getCliMessageDocumentMap();
       xvoid = await this.run_present_channel_messages({
         applicationDomainId: applicationDomainId,
-        asyncApiDocument: asyncApiDocument,
-        messageDocumentMap: messageDocumentMap
+        messageDocumentMap: messageDocumentMap,
+        specVersion: specVersion,
       });
     }
 
-    throw new Error(`${logName}: do the events per channel operation`);
+    // throw new Error(`${logName}: do the events per channel operation`);
 
   }
 
@@ -193,17 +177,18 @@ export class CliImporter {
     
     // ensure application domain name exists
     const applicationDomainsTask = new CliApplicationDomainTask({
-      cliAsyncApiDocument: asyncApiDocument,
-      cliTaskState: ECliTaskState.PRESENT
+      cliTaskState: ECliTaskState.PRESENT,
+      applicationDomainName: asyncApiDocument.getApplicationDomainName(),
+      applicationDomainSettings: {
+        // description: "a new description x"
+      }
     });
-
-    // need the application domain Id back
-    const cliApplicationDomainTaskExecuteReturn: ICliApplicationDomain_TaskExecuteReturn = await applicationDomainsTask.execute();
+    const cliApplicationDomainTask_ExecuteReturn: ICliApplicationDomainTask_ExecuteReturn = await applicationDomainsTask.execute();
     // we need the id in subsequent calls
-    if(cliApplicationDomainTaskExecuteReturn.applicationDomain.id === undefined) throw new CliEPApiError(logName, 'cliApplicationDomainTaskExecuteReturn.applicationDomain.id === undefined', {
-      applicationDomain: cliApplicationDomainTaskExecuteReturn.applicationDomain      
+    if(cliApplicationDomainTask_ExecuteReturn.applicationDomainObject.id === undefined) throw new CliEPApiError(logName, 'cliApplicationDomainTask_ExecuteReturn.applicationDomainObject.id === undefined', {
+      applicationDomainObject: cliApplicationDomainTask_ExecuteReturn.applicationDomainObject,
     });
-    const applicationDomainId: string = cliApplicationDomainTaskExecuteReturn.applicationDomain.id;
+    const applicationDomainId: string = cliApplicationDomainTask_ExecuteReturn.applicationDomainObject.id;
 
     // present all channels
     const channelDocumentMap: CliChannelDocumentMap = asyncApiDocument.getChannelDocuments();
@@ -214,9 +199,9 @@ export class CliImporter {
       }}));
       xvoid = await this.run_present_channel({
         applicationDomainId: applicationDomainId,
-        asyncApiDocument: asyncApiDocument,
         channelTopic: key,
-        channelDocument: channelDocument
+        channelDocument: channelDocument,
+        specVersion: asyncApiDocument.getVersion(),
       });
     }
 

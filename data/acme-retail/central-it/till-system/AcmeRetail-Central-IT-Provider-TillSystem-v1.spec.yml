@@ -51,7 +51,8 @@ components:
     storeTillReceipt-v1:
       name: storeTillReceipt-v1
       title: Store Till Receipt
-      summary: Store Till Receipt.
+      summary: The summary of the Store Till Receipt.
+      description: The description of the Store Till Receipt.
       contentType: application/json
       # traits:
       #   - $ref: '#/components/messageTraits/commonHeaders'

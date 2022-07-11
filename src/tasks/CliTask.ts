@@ -10,7 +10,6 @@ export enum ECliTaskState {
   ABSENT = "ABSENT"
 }
 export interface ICliTaskConfig {
-  cliAsyncApiDocument: CliAsyncApiDocument;
   cliTaskState: ECliTaskState;
 }
 export interface ICliTaskKeys {}
@@ -19,6 +18,9 @@ export interface ICliGetFuncReturn {
   apiObject: any;
 }
 export interface ICliCreateFuncReturn {
+  apiObject: any;
+}
+export interface ICliUpdateFuncReturn {
   apiObject: any;
 }
 export interface ICliTaskExecuteReturn {
@@ -33,9 +35,7 @@ export abstract class CliTask {
     this.cliTaskConfig = taskConfig;
   }
 
-  protected get_CliAsyncApiDocument(): CliAsyncApiDocument { return this.cliTaskConfig.cliAsyncApiDocument; }
-
-  protected get_CliTaskConfig(): ICliTaskConfig { return this.cliTaskConfig; }
+  // protected get_CliAsyncApiDocument(): CliAsyncApiDocument { return this.cliTaskConfig.cliAsyncApiDocument; }
 
   protected abstract getTaskKeys(): ICliTaskKeys;
 
@@ -52,6 +52,17 @@ export abstract class CliTask {
     throw new AbstractMethodError(logName, CliTask.name, funcName);
   }
 
+  protected async updateFunc(cliGetFuncReturn: ICliGetFuncReturn): Promise<ICliUpdateFuncReturn> {
+    const funcName = 'updateFunc';
+    const logName = `${CliTask.name}.${funcName}()`;
+    cliGetFuncReturn;
+    throw new AbstractMethodError(logName, CliTask.name, funcName);
+  }
+
+  protected abstract isUpdateRequired({ cliGetFuncReturn }:{
+    cliGetFuncReturn: ICliGetFuncReturn
+  }): boolean;
+
   private async executePresent(cliGetFuncReturn: ICliGetFuncReturn): Promise<ICliTaskExecuteReturn> {
     if(!cliGetFuncReturn.documentExists) {
       const createFuncReturn: ICliCreateFuncReturn = await this.createFunc();
@@ -59,7 +70,19 @@ export abstract class CliTask {
         cliTaskState: ECliTaskState.PRESENT,
         apiObject: createFuncReturn.apiObject,
       };
-    } 
+    } else {
+      // check if update required
+      const isUpdateRequired: boolean = this.isUpdateRequired({
+        cliGetFuncReturn: cliGetFuncReturn,
+      });
+      if(isUpdateRequired) {
+        const updateFuncReturn: ICliUpdateFuncReturn = await this.updateFunc(cliGetFuncReturn);
+        return {
+          cliTaskState: ECliTaskState.PRESENT,
+          apiObject: updateFuncReturn.apiObject,  
+        }
+      }
+    }
     return {
       cliTaskState: ECliTaskState.PRESENT,
       apiObject: cliGetFuncReturn.apiObject,
@@ -73,9 +96,9 @@ export abstract class CliTask {
     try {
       CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK, details: "starting ..." }));
 
-      CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK, details: {
-        asyncApiDocument: this.cliTaskConfig.cliAsyncApiDocument.getLogInfo()
-      }}));
+      // CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK, details: {
+      //   asyncApiDocument: this.cliTaskConfig.cliAsyncApiDocument.getLogInfo()
+      // }}));
 
       const cliGetFuncReturn: ICliGetFuncReturn = await this.getFunc(this.getTaskKeys());
       CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_GET, details: {

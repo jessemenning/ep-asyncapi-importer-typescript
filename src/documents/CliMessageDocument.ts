@@ -27,7 +27,9 @@ export class CliMessageDocument {
 
   public getDescription(): string {
     const description: string | null = this.asyncApiMessage.description();
-    if(description !== null) return description;    
+    const summary: string | null = this.asyncApiMessage.summary();
+    if(description) return description;
+    if(summary) return summary;
     return '';
   }
 

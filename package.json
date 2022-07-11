@@ -38,6 +38,7 @@
   "devDependencies": {
     "@types/clear": "^0.1.2",
     "@types/figlet": "^1.5.4",
+    "@types/lodash.isequal": "^4.5.6",
     "@types/node": "^15.6.1",
     "@types/node-fetch": "^2.5.12",
     "@types/semver": "^7.3.10",
@@ -57,6 +58,7 @@
     "dotenv": "^16.0.1",
     "figlet": "^1.5.2",
     "form-data": "^4.0.0",
+    "lodash.isequal": "^4.5.0",
     "node-fetch": "^2.6.7",
     "pino": "^8.1.0",
     "semver": "^7.3.7"

@@ -1,64 +1,70 @@
 import { CliEPApiError, CliError } from "../CliError";
 import { CliLogger, ECliStatusCodes } from "../CliLogger";
-import { CliTask, ICliTaskKeys, ICliGetFuncReturn, ICliTaskConfig, ICliCreateFuncReturn, ICliTaskExecuteReturn } from "./CliTask";
+import { CliTask, ICliTaskKeys, ICliGetFuncReturn, ICliTaskConfig, ICliCreateFuncReturn, ICliTaskExecuteReturn, ICliUpdateFuncReturn } from "./CliTask";
 import { SchemasService, SchemaVersion, SchemaVersionResponse, VersionedObjectStateChangeRequest } from "../_generated/@solace-iot-team/sep-openapi-node";
 import CliEPSchemaVersionsService from "../services/CliEPSchemaVersionsService";
+import isEqual from "lodash.isequal";
+import CliEPStatesService from "../services/CliEPStatesService";
+import CliConfig, { ECliAssetImportTargetLifecycleState_VersionStrategy } from "../CliConfig";
+import CliSemVerUtils from "../CliSemVerUtils";
+
+type TCliSchemaVersionTask_Settings = Required<Pick<SchemaVersion, "description" | "displayName" | "content" | "stateId">>;
+type TCliSchemaVersionTask_CompareObject = Partial<TCliSchemaVersionTask_Settings>;
 
 export interface ICliSchemaVersionTask_Config extends ICliTaskConfig {
   schemaId: string;
-  schemaVersionString: string;
-  schemaString: string;
-  schemaTargetLifecycleState: string;
-  schemaVersionSettings: Pick<SchemaVersion, "description" | "displayName">;
-  // schemaObject: Required<Pick<SchemaObject, "applicationDomainId" | "name" | "shared"  | "contentType" | "schemaType">>;
+  baseVersionString: string;
+  schemaVersionSettings: TCliSchemaVersionTask_Settings;
 }
 export interface ICliSchemaVersionTask_Keys extends ICliTaskKeys {
   schemaId: string;
-  schemaVersionString: string;
 }
 export interface ICliSchemaVersionTask_GetFuncReturn extends ICliGetFuncReturn {
-  schemaVersion: SchemaVersion | undefined;
+  schemaVersionObject: SchemaVersion | undefined;
 }
 export interface ICliSchemaVersionTask_CreateFuncReturn extends ICliCreateFuncReturn {
-  schemaVersion: SchemaVersion;
+  schemaVersionObject: SchemaVersion;
+}
+export interface ICliSchemaVersionTask_UpdateFuncReturn extends ICliUpdateFuncReturn {
+  schemaVersionObject: SchemaVersion;
 }
 export interface ICliSchemaVersionTask_ExecuteReturn extends ICliTaskExecuteReturn {
-  schemaVersion: SchemaVersion;
+  schemaVersionObject: SchemaVersion;
 }
 
 export class CliSchemaVersionTask extends CliTask {
-
-  // private readonly ContentTypeMap: Map<string, EPContentType> = new Map<string, EPContentType>([
-  //   ["application/json", EPContentType.APPLICATION_JSON]
-  // ]); 
+  private newVersionString: string;
 
   private readonly Empty_ICliSchemaVersionTask_GetFuncReturn: ICliSchemaVersionTask_GetFuncReturn = {
-    apiObject: undefined,
     documentExists: false,
-    schemaVersion: undefined,
+    apiObject: undefined,
+    schemaVersionObject: undefined,
   };
+  private readonly Default_TCliSchemaVersionTask_Settings: Partial<TCliSchemaVersionTask_Settings> = {
+    // stateId: CliEPStatesService.getTargetLifecycleState({assetImportTargetLifecycleState: CliConfig.getCliAppConfig().assetImportTargetLifecycleState}),
+  }
+  private getCliTaskConfig(): ICliSchemaVersionTask_Config { return this.cliTaskConfig as ICliSchemaVersionTask_Config; }
+  private createObjectSettings(): Partial<SchemaVersion> {
+    return {
+      ...this.Default_TCliSchemaVersionTask_Settings,
+      ...this.getCliTaskConfig().schemaVersionSettings,
+    };
+  }
 
   constructor(taskConfig: ICliSchemaVersionTask_Config) {
     super(taskConfig);
+    this.newVersionString = taskConfig.baseVersionString;
   }
-
-  // private mapContentType(contentType: string): EPContentType {
-  //   const funcName = 'mapContentType';
-  //   const logName = `${CliSchemaTask.name}.${funcName}()`;
-  //   const mapped: EPContentType | undefined = this.ContentTypeMap.get(contentType);
-  //   if(mapped === undefined) throw new CliEPApiError(logName, "mapped === undefined", {
-  //     contentType: contentType
-  //   });
-  //   return mapped;
-  // }
 
   protected getTaskKeys(): ICliSchemaVersionTask_Keys {
     return {
-      schemaId: (this.cliTaskConfig as ICliSchemaVersionTask_Config).schemaId,
-      schemaVersionString: (this.cliTaskConfig as ICliSchemaVersionTask_Config).schemaVersionString,
-    }
+      schemaId: this.getCliTaskConfig().schemaId,
+    };
   }
 
+  /**
+   * Get the latest schema version.
+   */
   protected async getFunc(cliTaskKeys: ICliSchemaVersionTask_Keys): Promise<ICliSchemaVersionTask_GetFuncReturn> {
     const funcName = 'getFunc';
     const logName = `${CliSchemaVersionTask.name}.${funcName}()`;
@@ -66,89 +72,167 @@ export class CliSchemaVersionTask extends CliTask {
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_GET, details: {
       params: {
         schemaId: cliTaskKeys.schemaId,
-        schemaVersionString: cliTaskKeys.schemaVersionString,
       }
     }}));
 
+    // get the latest schema version
+    const latestSchemaVersionString: string | undefined = await CliEPSchemaVersionsService.getLastestSchemaVersion({ schemaId: cliTaskKeys.schemaId });
+    if(latestSchemaVersionString === undefined) return this.Empty_ICliSchemaVersionTask_GetFuncReturn;
+
     const schemaVersion: SchemaVersion | undefined = await CliEPSchemaVersionsService.getSchemaVersion({ 
       schemaId: cliTaskKeys.schemaId,
-      schemaVersionString: cliTaskKeys.schemaVersionString
+      schemaVersionString: latestSchemaVersionString
     });
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_GET, details: {
-      schemaVersion: schemaVersion
+      schemaVersion: schemaVersion ? schemaVersion : 'undefined'
     }}));
-
-    if(schemaVersion === undefined) return this.Empty_ICliSchemaVersionTask_GetFuncReturn;
+    if(schemaVersion === undefined) throw new CliError(logName, 'schemaVersion === undefined');
 
     const cliSchemaVersionTask_GetFuncReturn: ICliSchemaVersionTask_GetFuncReturn = {
       apiObject: schemaVersion,
-      schemaVersion: schemaVersion,
+      schemaVersionObject: schemaVersion,
       documentExists: true,
     }
     return cliSchemaVersionTask_GetFuncReturn;
   };
 
-  protected async createFunc(): Promise<ICliSchemaVersionTask_CreateFuncReturn> {
-    const funcName = 'createFunc';
+  protected isUpdateRequired({ cliGetFuncReturn}: { 
+    cliGetFuncReturn: ICliSchemaVersionTask_GetFuncReturn; 
+  }): boolean {
+    const funcName = 'isUpdateRequired';
+    const logName = `${CliSchemaVersionTask.name}.${funcName}()`;
+    if(cliGetFuncReturn.schemaVersionObject === undefined) throw new CliError(logName, 'cliGetFuncReturn.schemaVersionObject === undefined');
+    let isUpdateRequired: boolean = false;
+
+    const existingObject: SchemaVersion = cliGetFuncReturn.schemaVersionObject;
+    const existingCompareObject: TCliSchemaVersionTask_CompareObject = {
+      content: existingObject.content,
+      description: existingObject.description,
+      displayName: existingObject.displayName,
+      stateId: existingObject.stateId
+    };
+    const requestedCompareObject: TCliSchemaVersionTask_CompareObject = this.createObjectSettings();
+    isUpdateRequired = !isEqual(existingCompareObject, requestedCompareObject);
+    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_IS_UPDATE_REQUIRED, details: {
+      existingCompareObject: existingCompareObject,
+      requestedCompareObject: requestedCompareObject,
+      isUpdateRequired: isUpdateRequired
+    }}));
+    // if(isUpdateRequired) throw new Error(`${logName}: check updates requiired`);
+    return isUpdateRequired;
+  }
+
+  private async createSchemaVersion({ schemaId, schemaVersion, code, targetLifecycleStateId }:{
+    schemaId: string;
+    schemaVersion: SchemaVersion;
+    code: ECliStatusCodes;
+    targetLifecycleStateId: string;
+  }): Promise<SchemaVersion> {
+    const funcName = 'createSchemaVersion';
     const logName = `${CliSchemaVersionTask.name}.${funcName}()`;
 
-    const schemaId: string = (this.cliTaskConfig as ICliSchemaVersionTask_Config).schemaId;
-    const schemaVersionString: string = (this.cliTaskConfig as ICliSchemaVersionTask_Config).schemaVersionString
-    const create: SchemaVersion = {
-      ...(this.cliTaskConfig as ICliSchemaVersionTask_Config).schemaVersionSettings,
-      schemaId: schemaId,
-      version: schemaVersionString,
-      content: (this.cliTaskConfig as ICliSchemaVersionTask_Config).schemaString,
-    };
-
-    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_CREATE, details: {
-      document: create
+    CliLogger.trace(CliLogger.createLogEntry(logName, { code: code, details: {
+      document: schemaVersion
     }}));
 
     const schemaVersionResponse: SchemaVersionResponse = await SchemasService.postSchemaVersion({
-      schemaId: (this.cliTaskConfig as ICliSchemaVersionTask_Config).schemaId,
-      requestBody: create
+      schemaId: schemaId,
+      requestBody: schemaVersion
     });
 
-    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_CREATE, details: {
+    CliLogger.trace(CliLogger.createLogEntry(logName, { code: code, details: {
       schemaVersionResponse: schemaVersionResponse
     }}));
 
     if(schemaVersionResponse.data === undefined) throw new CliEPApiError(logName, 'schemaVersionResponse.data === undefined', {
       schemaVersionResponse: schemaVersionResponse
     });
-    const schemaVersion: SchemaVersion = schemaVersionResponse.data;
-    if(schemaVersion.id === undefined || schemaVersion.stateId === undefined) throw new CliEPApiError(logName, 'schemaVersion.id === undefined || schemaVersion.stateId === undefined', {
-      schemaVersion: schemaVersion
+    const createdSchemaVersion: SchemaVersion = schemaVersionResponse.data;
+
+    if(createdSchemaVersion.id === undefined || createdSchemaVersion.stateId === undefined) throw new CliEPApiError(logName, 'createdSchemaVersion.id === undefined || createdSchemaVersion.stateId === undefined', {
+      createdSchemaVersion: createdSchemaVersion
     });
     // check the target lifecycle state
-    const schemaVersionId: string = schemaVersion.id;
-    const schemaVersionStateId: string = schemaVersion.stateId;
-    const targetLifecycleStateId: string = (this.cliTaskConfig as ICliSchemaVersionTask_Config).schemaTargetLifecycleState;
-    if(schemaVersionStateId !== targetLifecycleStateId) {
+    if(createdSchemaVersion.stateId !== targetLifecycleStateId) {
       const versionedObjectStateChangeRequest: VersionedObjectStateChangeRequest = await SchemasService.changeState({
         schemaId: schemaId,
-        id: schemaVersionId,
+        id: createdSchemaVersion.id,
         requestBody: {
           stateId: targetLifecycleStateId
         }
       });
       const updatedSchemaVersion: SchemaVersion | undefined = await CliEPSchemaVersionsService.getSchemaVersion({
         schemaId: schemaId,
-        schemaVersionString: schemaVersionString
+        schemaVersionString: this.newVersionString
       });
       if(updatedSchemaVersion === undefined) throw new CliEPApiError(logName, 'updatedSchemaVersion === undefined', {
         updatedSchemaVersion: updatedSchemaVersion
       });
-      return {
-        schemaVersion: updatedSchemaVersion,
-        apiObject: updatedSchemaVersion,
-      };
+      return updatedSchemaVersion;
     }
+    return createdSchemaVersion;
+  }
+  /**
+   * Create a new SchemaVersion
+   */
+  protected async createFunc(): Promise<ICliSchemaVersionTask_CreateFuncReturn> {
+    const funcName = 'createFunc';
+    const logName = `${CliSchemaVersionTask.name}.${funcName}()`;
+
+    const schemaId: string = this.getCliTaskConfig().schemaId;
+    
+    const create: SchemaVersion = {
+      ...this.createObjectSettings(),
+      schemaId: schemaId,
+      version: this.newVersionString,
+    };
+    const schemaVersion: SchemaVersion = await this.createSchemaVersion({
+      schemaId: schemaId,
+      schemaVersion: create,
+      code: ECliStatusCodes.EXECUTING_TASK_CREATE,
+      targetLifecycleStateId: this.getCliTaskConfig().schemaVersionSettings.stateId,
+    });
     return {
-      schemaVersion: schemaVersion,
+      schemaVersionObject: schemaVersion,
       apiObject: schemaVersion
     };
+  }
+
+  /**
+   * Creates a new SchemaVersion with bumped version number.
+   */
+  protected async updateFunc(cliGetFuncReturn: ICliSchemaVersionTask_GetFuncReturn): Promise<ICliSchemaVersionTask_UpdateFuncReturn> {
+    const funcName = 'updateFunc';
+    const logName = `${CliSchemaVersionTask.name}.${funcName}()`;
+
+    cliGetFuncReturn;
+    const schemaId: string = this.getCliTaskConfig().schemaId;
+
+    const latestSchemaVersionString: string | undefined = await CliEPSchemaVersionsService.getLastestSchemaVersion({ schemaId: this.getCliTaskConfig().schemaId });
+    if(latestSchemaVersionString === undefined) throw new CliError(logName, 'latestSchemaVersionString === undefined');
+    // bump version according to strategy
+    const newSchemaVersionString = CliSemVerUtils.createNextVersion({
+      versionString: latestSchemaVersionString,
+      strategy: CliConfig.getCliAppConfig().assetImportTargetLifecycleState.versionStrategy,
+    });
+
+    const create: SchemaVersion = {
+      ...this.createObjectSettings(),
+      schemaId: schemaId,
+      version: newSchemaVersionString,
+    };
+    const schemaVersion: SchemaVersion = await this.createSchemaVersion({
+      schemaId: schemaId,
+      schemaVersion: create,
+      code: ECliStatusCodes.EXECUTING_TASK_UPDATE,
+      targetLifecycleStateId: this.getCliTaskConfig().schemaVersionSettings.stateId
+    });
+
+    const cliSchemaVersionTask_UpdateFuncReturn: ICliSchemaVersionTask_UpdateFuncReturn = {
+      apiObject: schemaVersion,
+      schemaVersionObject: schemaVersion,
+    };
+    return cliSchemaVersionTask_UpdateFuncReturn;
   }
 
   public async execute(): Promise<ICliSchemaVersionTask_ExecuteReturn> { 
@@ -161,8 +245,11 @@ export class CliSchemaVersionTask extends CliTask {
     const cliSchemaVersionTask_ExecuteReturn: ICliSchemaVersionTask_ExecuteReturn = {
       cliTaskState: cliTaskExecuteReturn.cliTaskState,
       apiObject: undefined,
-      schemaVersion: cliTaskExecuteReturn.apiObject,
+      schemaVersionObject: cliTaskExecuteReturn.apiObject,
     };
+    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTED_TASK, details: {
+      cliSchemaVersionTask_ExecuteReturn: cliSchemaVersionTask_ExecuteReturn,
+    }}));
     return cliSchemaVersionTask_ExecuteReturn;
   }
 
