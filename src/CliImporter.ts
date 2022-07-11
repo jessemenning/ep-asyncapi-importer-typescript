@@ -1,5 +1,5 @@
 import { CliLogger, ECliStatusCodes } from './CliLogger';
-import CliConfig, { ECliAssetImportTargetLifecycleState_VersionStrategy, ECliAssetsTargetState, TCliAppConfig } from './CliConfig';
+import CliConfig, { ECliAssetsTargetState, TCliAppConfig } from './CliConfig';
 import { CliAsyncApiDocument, CliChannelDocumentMap, CliMessageDocumentMap } from './documents/CliAsyncApiDocument';
 import { ECliTaskState } from './tasks/CliTask';
 import { CliApplicationDomainTask, ICliApplicationDomainTask_ExecuteReturn } from './tasks/CliApplicationDomainTask';
@@ -7,12 +7,12 @@ import CliEPStatesService from './services/CliEPStatesService';
 import { CliUtils } from './CliUtils';
 import { CliEPApiError, CliError, CliErrorFromError } from './CliError';
 import { CliSchemaTask, EPSchemaType, ICliSchemaTask_ExecuteReturn } from './tasks/CliSchemaTask';
-import { SchemaObject } from './_generated/@solace-iot-team/sep-openapi-node';
+import { SchemaObject, Event as EPEvent } from './_generated/@solace-iot-team/sep-openapi-node';
 import { CliMessageDocument } from './documents/CliMessageDocument';
-import CliSemVerUtils from './CliSemVerUtils';
-import CliEPSchemaVersionsService from './services/CliEPSchemaVersionsService';
 import { CliChannelDocument, CliChannelPublishOperation, CliChannelSubscribeOperation } from './documents/CliChannelDocument';
 import { CliSchemaVersionTask, ICliSchemaVersionTask_ExecuteReturn } from './tasks/CliSchemaVersionTask';
+import { CliEventTask, ICliEventTask_ExecuteReturn } from './tasks/CliEventTask';
+import { CliEventVersionTask, ICliEventVersionTask_ExecuteReturn } from './tasks/CliEventVersionTask';
 
 
 export class CliImporter {
@@ -109,7 +109,94 @@ export class CliImporter {
         cliMessageDocument: messageDocument
       });
     }
+  }
 
+  private run_present_event_version = async({ channelTopic, eventObject, specVersion, cliMessageDocument, schemaVersionId }: {
+    channelTopic: string;
+    eventObject: EPEvent;
+    specVersion: string;
+    cliMessageDocument: CliMessageDocument;
+    schemaVersionId: string;
+  }): Promise<void> => {
+    const funcName = 'run_present_event_version';
+    const logName = `${CliImporter.name}.${funcName}()`;
+
+    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_SCHEMA_VERSION, details: {
+      eventObject: eventObject,
+      specVersion: specVersion,
+      cliMessageDocument: cliMessageDocument
+    }}));
+
+    if(eventObject.id === undefined) throw new CliEPApiError(logName, 'eventObject.id === undefined', {
+      eventObject: eventObject
+    });
+
+    const eventId: string = eventObject.id;
+
+    const cliEventVersionTask: CliEventVersionTask = new CliEventVersionTask({
+      cliTaskState: ECliTaskState.PRESENT,
+      eventId: eventId,
+      baseVersionString: specVersion,
+      channelTopic: channelTopic,
+      eventVersionSettings: {
+        description: cliMessageDocument.getDescription(),
+        displayName: cliMessageDocument.getDisplayName(),
+        stateId: CliEPStatesService.getTargetLifecycleState({assetImportTargetLifecycleState: CliConfig.getCliAppConfig().assetImportTargetLifecycleState}),
+        schemaVersionId: schemaVersionId,
+      }
+    });
+    const cliEventVersionTask_ExecuteReturn: ICliEventVersionTask_ExecuteReturn = await cliEventVersionTask.execute();
+    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
+      cliEventVersionTask_ExecuteReturn: cliEventVersionTask_ExecuteReturn
+    }}));
+
+    throw new Error(`${logName}: check event correct`);
+
+  }
+
+  private run_present_channel_event = async({ applicationDomainId, messageDocumentMap, specVersion, channelTopic, schemaVersionId }:{
+    applicationDomainId: string;
+    messageDocumentMap: CliMessageDocumentMap;
+    specVersion: string;
+    channelTopic: string;
+    schemaVersionId: string;
+  }): Promise<void> => {
+    const funcName = 'run_present_channel_event';
+    const logName = `${CliImporter.name}.${funcName}()`;
+
+    let xvoid: void;
+
+// no map, just one
+
+    for(let [key, messageDocument] of messageDocumentMap) {
+      CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
+        key: key,
+        messageDocument: messageDocument
+      }}));
+
+      // ensure the event exists
+      const cliEventTask = new CliEventTask({
+        cliTaskState: ECliTaskState.PRESENT,
+        applicationDomainId: applicationDomainId,
+        eventName: messageDocument.getMessage().name(),
+        eventObjectSettings: {
+          shared: true,
+        }
+      });
+      const cliEventTask_ExecuteReturn: ICliEventTask_ExecuteReturn = await cliEventTask.execute();
+      CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
+        cliEventTask_ExecuteReturn: cliEventTask_ExecuteReturn
+      }}));
+
+      // present the event version
+      xvoid = await this.run_present_event_version({
+        channelTopic: channelTopic,
+        eventObject: cliEventTask_ExecuteReturn.eventObject,
+        specVersion: specVersion,
+        cliMessageDocument: messageDocument,
+        schemaVersionId: schemaVersionId
+      });
+    }
   }
 
   private run_present_channel = async({ applicationDomainId, channelTopic, channelDocument, specVersion }:{
@@ -131,16 +218,36 @@ export class CliImporter {
     const channelPublishOperation: CliChannelPublishOperation | undefined = channelDocument.getChannelPublishOperation();
     if(channelPublishOperation !== undefined) {
       const messageDocumentMap: CliMessageDocumentMap = channelPublishOperation.getCliMessageDocumentMap();
+      if(messageDocumentMap.size > 1) throw new CliError(logName, 'messageDocumentMap.size > 1');
+
+
+      // TODO: 1 message only
+      // return the executionReturn
+      // get the schemaId
+
+
+
       xvoid = await this.run_present_channel_messages({
         applicationDomainId: applicationDomainId,
         messageDocumentMap: messageDocumentMap,
         specVersion: specVersion
       });
+
+      // present event
+      xvoid = await this.run_present_channel_event({
+        applicationDomainId: applicationDomainId,
+        messageDocumentMap: messageDocumentMap,
+        specVersion: specVersion,
+        channelTopic: channelTopic,
+        schemaVersionId: "the-schema-version-id"
+      });
+
     }
 
     const channelSubscribeOperation: CliChannelSubscribeOperation | undefined = channelDocument.getChannelSubscribeOperation();
     if(channelSubscribeOperation !== undefined) {
       const messageDocumentMap: CliMessageDocumentMap = channelSubscribeOperation.getCliMessageDocumentMap();
+      if(messageDocumentMap.size > 1) throw new CliError(logName, 'messageDocumentMap.size > 1');
       xvoid = await this.run_present_channel_messages({
         applicationDomainId: applicationDomainId,
         messageDocumentMap: messageDocumentMap,
