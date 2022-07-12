@@ -29,10 +29,10 @@ class CliEPSchemaVersionsService {
     return data;
   }
 
-  public getLastestSchemaVersion = async({ schemaId }:{
+  public getLastestSchemaVersionString = async({ schemaId }:{
     schemaId: string;
   }): Promise<string | undefined> => {
-    const funcName = 'getLastestSchemaVersion';
+    const funcName = 'getLastestSchemaVersionString';
     const logName = `${CliEPSchemaVersionsService.name}.${funcName}()`;
 
     const schemaVersionList: Array<SchemaVersion> = await this.getSchemaVersions({ schemaId: schemaId });

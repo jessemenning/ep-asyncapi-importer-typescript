@@ -1,0 +1,6 @@
+  description: The region id.
+  type: string
+  enum:
+  - fr
+  - de
+  - it

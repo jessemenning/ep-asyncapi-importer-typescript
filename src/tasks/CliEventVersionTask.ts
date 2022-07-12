@@ -118,7 +118,7 @@ export class CliEventVersionTask extends CliTask {
     }}));
 
     // get the latest event version
-    const latestEventVersionString: string | undefined = await CliEPEventVersionsService.getLastestEventVersion({ eventId: cliTaskKeys.eventId });
+    const latestEventVersionString: string | undefined = await CliEPEventVersionsService.getLastestEventVersionString({ eventId: cliTaskKeys.eventId });
     if(latestEventVersionString === undefined) return this.Empty_ICliEventVersionTask_GetFuncReturn;
 
     const eventVersion: EventVersion | undefined = await CliEPEventVersionsService.getEventVersion({ 
@@ -147,12 +147,16 @@ export class CliEventVersionTask extends CliTask {
     let isUpdateRequired: boolean = false;
 
     const existingObject: EventVersion = cliGetFuncReturn.eventVersionObject;
+    const existingObjectDeliveryDescriptor = existingObject.deliveryDescriptor;
+    delete existingObjectDeliveryDescriptor?.keySchemaPrimitiveType;
+    delete existingObjectDeliveryDescriptor?.keySchemaVersionId;
+
     const existingCompareObject: TCliEventVersionTask_CompareObject = {
       description: existingObject.description,
       displayName: existingObject.displayName,
       stateId: existingObject.stateId,
       schemaVersionId: existingObject.schemaVersionId,
-      deliveryDescriptor: existingObject.deliveryDescriptor,
+      deliveryDescriptor: existingObjectDeliveryDescriptor,
     };
     const requestedCompareObject: TCliEventVersionTask_CompareObject = this.createObjectSettings();
     isUpdateRequired = !isEqual(existingCompareObject, requestedCompareObject);
@@ -161,7 +165,7 @@ export class CliEventVersionTask extends CliTask {
       requestedCompareObject: requestedCompareObject,
       isUpdateRequired: isUpdateRequired
     }}));
-    if(isUpdateRequired) throw new Error(`${logName}: check updates requiired`);
+    // if(isUpdateRequired) throw new Error(`${logName}: check updates requiired`);
     return isUpdateRequired;
   }
 
@@ -251,7 +255,7 @@ export class CliEventVersionTask extends CliTask {
     cliGetFuncReturn;
     const eventId: string = this.getCliTaskConfig().eventId;
 
-    const latestEventVersionString: string | undefined = await CliEPEventVersionsService.getLastestEventVersion({ eventId: this.getCliTaskConfig().eventId });
+    const latestEventVersionString: string | undefined = await CliEPEventVersionsService.getLastestEventVersionString({ eventId: this.getCliTaskConfig().eventId });
     if(latestEventVersionString === undefined) throw new CliError(logName, 'latestEventVersionString === undefined');
     // bump version according to strategy
     const newEventVersionString = CliSemVerUtils.createNextVersion({

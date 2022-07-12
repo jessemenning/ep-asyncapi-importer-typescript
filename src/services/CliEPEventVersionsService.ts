@@ -12,25 +12,27 @@ class CliEPEventVersionsService {
     const funcName = 'getEventVersions';
     const logName = `${CliEPEventVersionsService.name}.${funcName}()`;
 
+    // TODO: BUG_IN_EP_API
+    // id is not actually required, waiting for fix
+
+    // trick API into not having the id
+    const BUG_IN_EP_API_trickParams: any = {
+      eventId: eventId
+    };
     const eventVersionResponse: EventVersionsResponse = await EventsService.list2({
-      eventId: eventId,
-      id: 'what-id?'
+      ...BUG_IN_EP_API_trickParams
     });
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.SERVICE, details: {
       eventVersionResponse: eventVersionResponse
     }}));
-
-
-    throw new Error(`${logName}: expecting this to exist, api probably not working`);
-
-    // if(eventVersionResponse.data === undefined || eventVersionResponse.data.length === 0) return [];
-    // return eventVersionResponse.data;
+    if(eventVersionResponse.data === undefined || eventVersionResponse.data.length === 0) return [];
+    return eventVersionResponse.data;
   }
 
-  public getLastestEventVersion = async({ eventId }:{
+  public getLastestEventVersionString = async({ eventId }:{
     eventId: string;
   }): Promise<string | undefined> => {
-    const funcName = 'getLastestEventVersion';
+    const funcName = 'getLastestEventVersionString';
     const logName = `${CliEPEventVersionsService.name}.${funcName}()`;
 
     const eventVersionList: Array<EventVersion> = await this.getEventVersions({ eventId: eventId });

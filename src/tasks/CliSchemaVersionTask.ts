@@ -76,7 +76,7 @@ export class CliSchemaVersionTask extends CliTask {
     }}));
 
     // get the latest schema version
-    const latestSchemaVersionString: string | undefined = await CliEPSchemaVersionsService.getLastestSchemaVersion({ schemaId: cliTaskKeys.schemaId });
+    const latestSchemaVersionString: string | undefined = await CliEPSchemaVersionsService.getLastestSchemaVersionString({ schemaId: cliTaskKeys.schemaId });
     if(latestSchemaVersionString === undefined) return this.Empty_ICliSchemaVersionTask_GetFuncReturn;
 
     const schemaVersion: SchemaVersion | undefined = await CliEPSchemaVersionsService.getSchemaVersion({ 
@@ -208,7 +208,7 @@ export class CliSchemaVersionTask extends CliTask {
     cliGetFuncReturn;
     const schemaId: string = this.getCliTaskConfig().schemaId;
 
-    const latestSchemaVersionString: string | undefined = await CliEPSchemaVersionsService.getLastestSchemaVersion({ schemaId: this.getCliTaskConfig().schemaId });
+    const latestSchemaVersionString: string | undefined = await CliEPSchemaVersionsService.getLastestSchemaVersionString({ schemaId: this.getCliTaskConfig().schemaId });
     if(latestSchemaVersionString === undefined) throw new CliError(logName, 'latestSchemaVersionString === undefined');
     // bump version according to strategy
     const newSchemaVersionString = CliSemVerUtils.createNextVersion({

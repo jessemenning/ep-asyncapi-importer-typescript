@@ -20,10 +20,9 @@ class CliEPStatesService {
     const funcName = 'initialize';
     const logName = `${CliEPStatesService.name}.${funcName}()`;
 
+    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.INITIALIZING }));
+
     const stateResponse: StatesResponse = await StatesService.listStates();
-    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.INITIALIZING, details: {
-      stateResponse: stateResponse,
-    }}));
 
     // stateResponse.
     // const stateDTOList: Array<StateDTO> = await StatesService.listStates()
