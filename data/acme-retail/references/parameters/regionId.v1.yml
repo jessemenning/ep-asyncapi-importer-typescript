@@ -1,6 +1,7 @@
-  description: The region id.
+description: The region Id.
+schema:
   type: string
   enum:
-  - fr
   - de
+  - fr
   - it
