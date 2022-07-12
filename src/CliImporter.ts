@@ -1,13 +1,20 @@
 import { CliLogger, ECliStatusCodes } from './CliLogger';
 import CliConfig, { ECliAssetsTargetState, TCliAppConfig } from './CliConfig';
-import { CliAsyncApiDocument, CliChannelDocumentMap, CliChannelParameterDocumentMap, CliMessageDocumentMap } from './documents/CliAsyncApiDocument';
+import { CliAsyncApiDocument, CliChannelDocumentMap, CliChannelParameterDocumentMap } from './documents/CliAsyncApiDocument';
 import { ECliTaskState } from './tasks/CliTask';
 import { CliApplicationDomainTask, ICliApplicationDomainTask_ExecuteReturn } from './tasks/CliApplicationDomainTask';
 import CliEPStatesService from './services/CliEPStatesService';
 import { CliUtils } from './CliUtils';
-import { CliEPApiError, CliError, CliErrorFromError } from './CliError';
+import { AsyncApiSpecBestPracticesError, CliEPApiError, CliError, CliErrorFromError } from './CliError';
 import { CliSchemaTask, EPSchemaType, ICliSchemaTask_ExecuteReturn } from './tasks/CliSchemaTask';
-import { SchemaObject, Event as EPEvent, SchemaVersion, Enum, EnumValue } from './_generated/@solace-iot-team/sep-openapi-node';
+import { 
+  SchemaObject, 
+  Event as EPEvent, 
+  SchemaVersion, 
+  Enum, 
+  EventApi, 
+  eventApiVersion as EventApiVersion
+} from './_generated/@solace-iot-team/sep-openapi-node';
 import { CliMessageDocument } from './documents/CliMessageDocument';
 import { CliChannelDocument, CliChannelParameterDocument, CliChannelPublishOperation, CliChannelSubscribeOperation } from './documents/CliChannelDocument';
 import { CliSchemaVersionTask, ICliSchemaVersionTask_ExecuteReturn } from './tasks/CliSchemaVersionTask';
@@ -15,6 +22,10 @@ import { CliEventTask, ICliEventTask_ExecuteReturn } from './tasks/CliEventTask'
 import { CliEventVersionTask, ICliEventVersionTask_ExecuteReturn } from './tasks/CliEventVersionTask';
 import { CliEnumTask, ICliEnumTask_ExecuteReturn } from './tasks/CliEnumTask';
 import { CliEnumVersionTask, ICliEnumVersionTask_ExecuteReturn } from './tasks/CliEnumVersionTask';
+import CliEPEventApisService from './services/CliEPEventApisService';
+import CliEPEventApiVersionsService from './services/CliEPEventApiVersionsService';
+import CliSemVerUtils from './CliSemVerUtils';
+import CliAsyncApiDocumentsService, { TCliImportActionList } from './services/CliAsyncApiDocumentsService';
 
 
 export class CliImporter {
@@ -346,7 +357,9 @@ export class CliImporter {
     }
   }
 
-  private run_present = async(): Promise<void> => {
+  private run_present = async({ cliAsyncApiDocument }:{
+    cliAsyncApiDocument: CliAsyncApiDocument;
+  }): Promise<void> => {
     const funcName = 'run_present';
     const logName = `${CliImporter.name}.${funcName}()`;
 
@@ -355,24 +368,13 @@ export class CliImporter {
       targetState: this.cliAppConfig.assetsTargetState,
     }}));
 
-    // parse & validate spec
-    const asyncApiDocument: CliAsyncApiDocument = await CliAsyncApiDocument.createFromFile({ 
-      filePath: this.cliAppConfig.asyncApiSpecFileName,
-      appConfig: this.cliAppConfig,
-    });
-    CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
-      title: asyncApiDocument.getTitle(),
-      version: asyncApiDocument.getVersion(),
-      applicationDomainName: asyncApiDocument.getApplicationDomainName()
-    }}));
-
     // use for type validation when calling async functions
     let xvoid: void;
     
     // ensure application domain name exists
     const applicationDomainsTask = new CliApplicationDomainTask({
       cliTaskState: ECliTaskState.PRESENT,
-      applicationDomainName: asyncApiDocument.getApplicationDomainName(),
+      applicationDomainName: cliAsyncApiDocument.getApplicationDomainName(),
       applicationDomainSettings: {
         // description: "a new description x"
       }
@@ -384,8 +386,77 @@ export class CliImporter {
     });
     const applicationDomainId: string = cliApplicationDomainTask_ExecuteReturn.applicationDomainObject.id;
 
+    // check if event api exists
+    // TODO: not implemented in EP 
+    const eventApi: EventApi | undefined = await CliEPEventApisService.getEventApiByName({ 
+      applicationDomainId: applicationDomainId,
+      eventApiName: cliAsyncApiDocument.getTitle()
+    });
+    if(eventApi === undefined) {
+      CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, message: "eventApi does not exist, importing ...", details: {
+        applicationDomainId: applicationDomainId,
+        eventApiName: cliAsyncApiDocument.getTitle()  
+      }}));
+      // throw new Error(`${logName}: check here`);
+    }
+
+    if(eventApi !== undefined) {
+      if(eventApi.id === undefined) throw new CliEPApiError(logName, 'eventApi.id === undefined', {
+        eventApi: eventApi
+      });
+      // check if event api version already exists in the application domain
+      const latestEventApiVersion: EventApiVersion | undefined = await CliEPEventApiVersionsService.getLastestVersion({ 
+        eventApiId: eventApi.id,
+      });
+      if(latestEventApiVersion !== undefined) {
+        if(latestEventApiVersion.version === undefined || latestEventApiVersion.id === undefined) throw new CliEPApiError(logName, 'latestEventApiVersion.version === undefined || latestEventApiVersion.id === undefined', {
+          latestEventApiVersion: latestEventApiVersion
+        });
+        // if ep version is greater spec version ==> don't continue, manual versioning in EP happened
+        if(CliSemVerUtils.is_NewVersion_GreaterThan_OldVersion({
+          newVersion: latestEventApiVersion.version,
+          oldVersion: cliAsyncApiDocument.getVersion(),
+        })) {
+          throw new AsyncApiSpecBestPracticesError(logName, undefined, "Event Portal Event API Version greater than Api Spec version exists, aborting import...", {
+            epEventApiName: eventApi.name ? eventApi.name : 'undefined',
+            epEventApiVersionName: latestEventApiVersion.displayName ? latestEventApiVersion.displayName : 'undefined',
+            epEventApiVersion: latestEventApiVersion.version,
+            asyncApiSpecVersion: cliAsyncApiDocument.getVersion()
+          });
+        }
+        // versions are either the same or spec version is greater than ep version
+        // get the async api document
+        const epCliAsyncApiDocument: CliAsyncApiDocument = await CliEPEventApiVersionsService.getAsyncApiDocument( {
+          eventApiId: eventApi.id,
+          eventApiVersionId: latestEventApiVersion.id
+        });
+        // create list of actions by comparing the two, if they are the same, do nothing
+        const cliImportActionList: TCliImportActionList = CliAsyncApiDocumentsService.createDiffActionList({
+          existingAsyncApiDocument: epCliAsyncApiDocument,
+          newAsyncApiDocument: cliAsyncApiDocument 
+        });
+        // if same version and action list not empty ==> abort
+        if(epCliAsyncApiDocument.getVersion() === cliAsyncApiDocument.getVersion() && cliImportActionList.length > 0) {
+          throw new AsyncApiSpecBestPracticesError(logName, undefined, "Event Portal Event API Version equals Api Spec version, but they are not the same. Aborting import...", {
+            epEventApiName: eventApi.name ? eventApi.name : 'undefined',
+            epEventApiVersionName: latestEventApiVersion.displayName ? latestEventApiVersion.displayName : 'undefined',
+            epEventApiVersion: latestEventApiVersion.version,
+            asyncApiSpecVersion: cliAsyncApiDocument.getVersion(),
+            cliImportActionList: cliImportActionList
+          });
+        }
+
+        CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
+          cliImportActionList: cliImportActionList
+        }}));
+
+        throw new Error(`${logName}: check action list`);
+
+      }
+    }
+
     // present all channels
-    const channelDocumentMap: CliChannelDocumentMap = asyncApiDocument.getChannelDocuments();
+    const channelDocumentMap: CliChannelDocumentMap = cliAsyncApiDocument.getChannelDocuments();
     for(let [key, channelDocument] of channelDocumentMap) {
       CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
         key: key,
@@ -395,45 +466,13 @@ export class CliImporter {
         applicationDomainId: applicationDomainId,
         channelTopic: key,
         channelDocument: channelDocument,
-        specVersion: asyncApiDocument.getVersion(),
+        specVersion: cliAsyncApiDocument.getVersion(),
       });
     }
 
-    // throw new Error(`${logName}: add the messages to the channel function`);
+    // present eventApi & eventApiVersion
+    // TODOxx 
 
-    // // present all the messages
-    // const messageDocumentMap: CliMessageDocumentMap = asyncApiDocument.getMessageDocuments();
-    // for(let [key, messageDocument] of messageDocumentMap) {
-    //   CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
-    //     key: key,
-    //     messageDocument: messageDocument
-    //   }}));
-
-    //   // ensure the schema exists
-    //   const cliSchemaTask = new CliSchemaTask({
-    //     cliAsyncApiDocument: asyncApiDocument,
-    //     cliTaskState: ECliTaskState.PRESENT,
-    //     schemaObject: {
-    //       applicationDomainId: applicationDomainId,
-    //       name: messageDocument.getMessage().name(),
-    //       contentType: messageDocument.getContentType(),
-    //       schemaType: ESchemaType.JSON_SCHEMA,
-    //       shared: true
-    //     }
-    //   });
-    //   const cliSchemaTask_ExecuteReturn: ICliSchemaTask_ExecuteReturn = await cliSchemaTask.execute();
-    //   CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
-    //     cliSchemaTask_ExecuteReturn: cliSchemaTask_ExecuteReturn
-    //   }}));
-
-    //   // present the schema version
-    //   xvoid = await this.run_present_schema_version({
-    //     cliAsyncApiDocument: asyncApiDocument,
-    //     schemaObject: cliSchemaTask_ExecuteReturn.schemaObject,
-    //     specVersion: asyncApiDocument.getVersion(),
-    //     cliMessageDocument: messageDocument
-    //   });
-    // }
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTED, details: {
       specFile: this.cliAppConfig.asyncApiSpecFileName,
       targetState: this.cliAppConfig.assetsTargetState,
@@ -441,10 +480,36 @@ export class CliImporter {
 
   }
 
-  private run_absent = async(): Promise<void> => {
+  private run_absent = async({ cliAsyncApiDocument }:{
+    cliAsyncApiDocument: CliAsyncApiDocument;
+  }): Promise<void> => {
     const funcName = 'run_absent';
     const logName = `${CliImporter.name}.${funcName}()`;
+    cliAsyncApiDocument;
     throw new Error(`${logName}: implement me.`);
+  }
+
+  private parse_and_run_validations = async(): Promise<CliAsyncApiDocument> => {
+    const funcName = 'parse_and_run_validations';
+    const logName = `${CliImporter.name}.${funcName}()`;
+
+    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.VALIDATING_SPEC, details: {
+      specFile: this.cliAppConfig.asyncApiSpecFileName,
+    }}));
+
+    // parse & validate spec
+    const asyncApiDocument: CliAsyncApiDocument = await CliAsyncApiDocumentsService.createFromFile({ 
+      filePath: this.cliAppConfig.asyncApiSpecFileName,
+      appConfig: this.cliAppConfig,
+    });
+
+    CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.VALIDATED_SPEC, details: {
+      title: asyncApiDocument.getTitle(),
+      version: asyncApiDocument.getVersion(),
+      applicationDomainName: asyncApiDocument.getApplicationDomainName()
+    }}));
+
+    return asyncApiDocument;
   }
 
   public run = async(): Promise<void> => {
@@ -458,17 +523,20 @@ export class CliImporter {
 
     try {
 
+      const cliAsyncApiDocument: CliAsyncApiDocument = await this.parse_and_run_validations();
+
       let xvoid: void;
+
       // get the state dtos as reference
       xvoid = await CliEPStatesService.initialize();
 
       // run the respective pipeline
       switch(this.cliAppConfig.assetsTargetState) {
         case ECliAssetsTargetState.PRESENT:
-          xvoid = await this.run_present();
+          xvoid = await this.run_present({ cliAsyncApiDocument: cliAsyncApiDocument });
           break;
         case ECliAssetsTargetState.ABSENT:
-          xvoid = await this.run_absent();
+          xvoid = await this.run_absent( { cliAsyncApiDocument: cliAsyncApiDocument });
           break;
         default:
           CliUtils.assertNever(logName, this.cliAppConfig.assetsTargetState);

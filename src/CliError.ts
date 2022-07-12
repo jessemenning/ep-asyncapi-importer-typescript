@@ -117,6 +117,28 @@ export class AsyncApiSpecError extends CliError {
   }
 }
 
+export class AsyncApiSpecBestPracticesError extends CliError {
+  protected static defaultDescription = 'Async Api Best Practices Error';
+  private bestPracticesValidationError: any;
+  private value: any;
+  constructor(internalLogName: string, internalMessage: string = AsyncApiSpecBestPracticesError.defaultDescription, bestPracticesValidationError: any, value: any) {
+    super(internalLogName, internalMessage);
+    this.bestPracticesValidationError = bestPracticesValidationError;
+    this.value = value;
+  }
+}
+
+export class AsyncApiSpecEPValidationError extends CliError {
+  protected static defaultDescription = 'EP Async Api Spec Valiation Error';
+  private epValidationError: any;
+  private value: any;
+  constructor(internalLogName: string, internalMessage: string = AsyncApiSpecEPValidationError.defaultDescription, error: any, value: any, ) {
+    super(internalLogName, internalMessage);
+    this.epValidationError = error;
+    this.value = value;
+  }
+}
+
 export class AsyncApiSpecXtensionError extends CliError {
   private xtension: any;
   constructor(internalLogName: string, internalMessage: string, xtension: string) {

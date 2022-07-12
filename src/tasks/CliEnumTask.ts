@@ -1,12 +1,14 @@
 import { CliEPApiError, CliError } from "../CliError";
 import { CliLogger, ECliStatusCodes } from "../CliLogger";
 import { CliTask, ICliTaskKeys, ICliGetFuncReturn, ICliTaskConfig, ICliCreateFuncReturn, ICliTaskExecuteReturn, ICliUpdateFuncReturn } from "./CliTask";
-import { Enum, EnumResponse, EnumsResponse, EnumsService, Event as EPEvent, EventResponse, EventsResponse, EventsService} from "../_generated/@solace-iot-team/sep-openapi-node";
+import { 
+  Enum, 
+  EnumResponse, 
+  EnumsResponse, 
+  EnumsService, 
+  // Event as EPEvent
+} from "../_generated/@solace-iot-team/sep-openapi-node";
 import isEqual from "lodash.isequal";
-
-// applicationDomainId?: string;
-// name?: string;
-// shared?: boolean;
 
 type TCliEnumTask_Settings = Partial<Pick<Enum, "shared">>;
 type TCliEnumTask_CompareObject = TCliEnumTask_Settings;
@@ -44,7 +46,7 @@ export class CliEnumTask extends CliTask {
     shared: true,
   }
   private getCliTaskConfig(): ICliEnumTask_Config { return this.cliTaskConfig as ICliEnumTask_Config; }
-  private createObjectSettings(): Partial<EPEvent> {
+  private createObjectSettings(): Partial<Enum> {
     return {
       ...this.Default_TCliEnumTask_Settings,
       ...this.getCliTaskConfig().enumObjectSettings,
@@ -98,7 +100,7 @@ export class CliEnumTask extends CliTask {
     if(cliGetFuncReturn.enumObject === undefined) throw new CliError(logName, 'cliGetFuncReturn.enumObject === undefined');
     let isUpdateRequired: boolean = false;
 
-    const existingObject: EPEvent = cliGetFuncReturn.enumObject;
+    const existingObject: Enum = cliGetFuncReturn.enumObject;
     const existingCompareObject: TCliEnumTask_CompareObject = {
       shared: existingObject.shared,
     }

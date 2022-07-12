@@ -1,12 +1,11 @@
 import fs from 'fs';
 import { parse, AsyncAPIDocument, Message, Channel } from '@asyncapi/parser';
 import { TCliAppConfig } from '../CliConfig';
-import { AsyncApiSpecError, AsyncApiSpecXtensionError } from '../CliError';
-import { CliLogger, ECliStatusCodes } from '../CliLogger';
+import { AsyncApiSpecBestPracticesError, AsyncApiSpecError, AsyncApiSpecXtensionError } from '../CliError';
 import CliSemVerUtils from '../CliSemVerUtils';
 import { CliMessageDocument } from './CliMessageDocument';
 import { CliChannelDocument, CliChannelParameterDocument } from './CliChannelDocument';
-
+import CliEPEventApiVersionsService from '../services/CliEPEventApiVersionsService';
 
 enum E_EP_Extensions {
   X_APPLICATION_DOMAIN_NAME = "x-sep-application-domain-name",
@@ -48,38 +47,62 @@ export class CliAsyncApiDocument {
     return appDomainName;
   }
 
-  private validate(): void {
-    const funcName = 'validate';
+  private validate_EP(): void {
+    
+    CliEPEventApiVersionsService.validateTitle({ title: this.getTitle() });
+
+  }
+
+  private validate_BestPractices(): void {
+    const funcName = 'validate_BestPractices';
     const logName = `${CliAsyncApiDocument.name}.${funcName}()`;
+
+    // version must be in SemVer format
     const versionStr: string = this.getVersion();
-    // must be in SemVer format
     if(!CliSemVerUtils.isSemVerFormat({ versionString: versionStr })) {
-      throw new AsyncApiSpecError(logName, "Please use semantic versioning format for API version.", { versionString: versionStr });
+      throw new AsyncApiSpecBestPracticesError(logName, undefined, "Please use semantic versioning format for API version.", { versionString: versionStr });
     }
+    // validate channel param schemas - must be unique
+    // TODO
   }
-  /**
-   * Factory method
-   */
-  public static createFromFile = async({ filePath, appConfig }:{
-    filePath: string;
-    appConfig: TCliAppConfig;
-  }): Promise<CliAsyncApiDocument> => {
-    const apiSpecString: string = fs.readFileSync(filePath).toString();
-    const asyncApiDocument: AsyncAPIDocument = await parse(apiSpecString);
-    const cliAsyncApiDocument: CliAsyncApiDocument = new CliAsyncApiDocument(asyncApiDocument, appConfig);
-    // validate
-    cliAsyncApiDocument.validate();
-    return cliAsyncApiDocument;
 
-    // try {
-    // } catch(e: any) {
-    //   const errors = e.validationErrors ? `, Errors: ${JSON.stringify(e.validationErrors)}` : '';
-
-    //   return `${e.title}${errors}`;
-    // }
-
-
+  public validate(): void {
+    this.validate_BestPractices();
+    this.validate_EP();
   }
+  // /**
+  //  * Factory method
+  //  */
+  // public static createFromFile = async({ filePath, appConfig }:{
+  //   filePath: string;
+  //   appConfig: TCliAppConfig;
+  // }): Promise<CliAsyncApiDocument> => {
+  //   const apiSpecString: string = fs.readFileSync(filePath).toString();
+  //   const asyncApiDocument: AsyncAPIDocument = await parse(apiSpecString);
+  //   const cliAsyncApiDocument: CliAsyncApiDocument = new CliAsyncApiDocument(asyncApiDocument, appConfig);
+  //   // validate
+  //   cliAsyncApiDocument.validate();
+  //   return cliAsyncApiDocument;
+
+  //   // try {
+  //   // } catch(e: any) {
+  //   //   const errors = e.validationErrors ? `, Errors: ${JSON.stringify(e.validationErrors)}` : '';
+
+  //   //   return `${e.title}${errors}`;
+  //   // }
+
+
+  // }
+
+  // public static createFromAny = async({ anySpec, appConfig }:{
+  //   anySpec: any;
+  //   appConfig: TCliAppConfig;
+  // }): Promise<CliAsyncApiDocument> => {
+  //   const asyncApiDocument: AsyncAPIDocument = await parse(anySpec);
+  //   const cliAsyncApiDocument: CliAsyncApiDocument = new CliAsyncApiDocument(asyncApiDocument, appConfig);
+  //   cliAsyncApiDocument.validate();
+  //   return cliAsyncApiDocument;
+  // }
 
   constructor(asyncApiDocument: AsyncAPIDocument, appConfig: TCliAppConfig) {
     this.asyncApiDocument = asyncApiDocument;
