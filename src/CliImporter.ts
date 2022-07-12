@@ -1,18 +1,20 @@
 import { CliLogger, ECliStatusCodes } from './CliLogger';
 import CliConfig, { ECliAssetsTargetState, TCliAppConfig } from './CliConfig';
-import { CliAsyncApiDocument, CliChannelDocumentMap, CliMessageDocumentMap } from './documents/CliAsyncApiDocument';
+import { CliAsyncApiDocument, CliChannelDocumentMap, CliChannelParameterDocumentMap, CliMessageDocumentMap } from './documents/CliAsyncApiDocument';
 import { ECliTaskState } from './tasks/CliTask';
 import { CliApplicationDomainTask, ICliApplicationDomainTask_ExecuteReturn } from './tasks/CliApplicationDomainTask';
 import CliEPStatesService from './services/CliEPStatesService';
 import { CliUtils } from './CliUtils';
 import { CliEPApiError, CliError, CliErrorFromError } from './CliError';
 import { CliSchemaTask, EPSchemaType, ICliSchemaTask_ExecuteReturn } from './tasks/CliSchemaTask';
-import { SchemaObject, Event as EPEvent, SchemaVersion } from './_generated/@solace-iot-team/sep-openapi-node';
+import { SchemaObject, Event as EPEvent, SchemaVersion, Enum, EnumValue } from './_generated/@solace-iot-team/sep-openapi-node';
 import { CliMessageDocument } from './documents/CliMessageDocument';
-import { CliChannelDocument, CliChannelPublishOperation, CliChannelSubscribeOperation } from './documents/CliChannelDocument';
+import { CliChannelDocument, CliChannelParameterDocument, CliChannelPublishOperation, CliChannelSubscribeOperation } from './documents/CliChannelDocument';
 import { CliSchemaVersionTask, ICliSchemaVersionTask_ExecuteReturn } from './tasks/CliSchemaVersionTask';
 import { CliEventTask, ICliEventTask_ExecuteReturn } from './tasks/CliEventTask';
 import { CliEventVersionTask, ICliEventVersionTask_ExecuteReturn } from './tasks/CliEventVersionTask';
+import { CliEnumTask, ICliEnumTask_ExecuteReturn } from './tasks/CliEnumTask';
+import { CliEnumVersionTask, ICliEnumVersionTask_ExecuteReturn } from './tasks/CliEnumVersionTask';
 
 
 export class CliImporter {
@@ -118,7 +120,7 @@ export class CliImporter {
     const funcName = 'run_present_event_version';
     const logName = `${CliImporter.name}.${funcName}()`;
 
-    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_SCHEMA_VERSION, details: {
+    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_EVENT_VERSION, details: {
       eventObject: eventObject,
       specVersion: specVersion,
       cliMessageDocument: cliMessageDocument
@@ -186,6 +188,95 @@ export class CliImporter {
     });
   }
 
+  private run_present_enum_version = async({ enumObject, specVersion, cliChannelParameterDocument }: {
+    enumObject: Enum;
+    specVersion: string;
+    cliChannelParameterDocument: CliChannelParameterDocument;
+  }): Promise<void> => {
+    const funcName = 'run_present_enum_version';
+    const logName = `${CliImporter.name}.${funcName}()`;
+
+    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_ENUM_VERSION, details: {
+      enumObject: enumObject,
+      specVersion: specVersion,
+      cliChannelParameterDocument: cliChannelParameterDocument
+    }}));
+
+    if(enumObject.id === undefined) throw new CliEPApiError(logName, 'enumObject.id === undefined', {
+      enumObject: enumObject
+    });
+
+    const cliEnumVersionTask: CliEnumVersionTask = new CliEnumVersionTask({
+      cliTaskState: ECliTaskState.PRESENT,
+      enumId: enumObject.id,
+      baseVersionString: specVersion,
+      parameterEnumValues: cliChannelParameterDocument.getParameterEnumValueList(),
+      enumVersionSettings: {
+        description: cliChannelParameterDocument.getDescription(),
+        displayName: cliChannelParameterDocument.getDisplayName(),
+        stateId: CliEPStatesService.getTargetLifecycleState({assetImportTargetLifecycleState: CliConfig.getCliAppConfig().assetImportTargetLifecycleState}),
+      }
+    });
+    const cliEnumVersionTask_ExecuteReturn: ICliEnumVersionTask_ExecuteReturn = await cliEnumVersionTask.execute();
+    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
+      cliEnumVersionTask_ExecuteReturn: cliEnumVersionTask_ExecuteReturn
+    }}));
+  }
+
+  private run_present_channel_parameters = async({ applicationDomainId, channelParameterDocumentMap, specVersion }:{
+    applicationDomainId: string;
+    channelParameterDocumentMap?: CliChannelParameterDocumentMap;
+    specVersion: string;
+  }): Promise<void> => {
+    const funcName = 'run_present_channel_parameters';
+    const logName = `${CliImporter.name}.${funcName}()`;
+
+    if(channelParameterDocumentMap === undefined) return;
+
+    for(const [enumName, channelParameterDocument] of channelParameterDocumentMap) {
+      
+      const parameterEnumList: Array<any> = channelParameterDocument.getParameterEnumValueList();
+      CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_CHANNEL_PARAMETERS, details: {
+        enumName: enumName,
+        channelParameterDocument: channelParameterDocument,
+        parameterEnumList: parameterEnumList
+      }}));
+      // only create the enum if there are any values in the list
+      if(parameterEnumList.length > 0) {
+        // ensure the enum exists
+        const cliEnumTask = new CliEnumTask({
+          cliTaskState: ECliTaskState.PRESENT,
+          applicationDomainId: applicationDomainId,
+          enumName: enumName,
+          enumObjectSettings: {
+            shared: true,
+          }
+        });
+        const cliEnumTask_ExecuteReturn: ICliEnumTask_ExecuteReturn = await cliEnumTask.execute();
+        CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
+          cliEnumTask_ExecuteReturn: cliEnumTask_ExecuteReturn
+        }}));
+        const enumObject: Enum = cliEnumTask_ExecuteReturn.enumObject;
+        if(enumObject.id === undefined) throw new CliEPApiError(logName, 'enumObject.id === undefined', {
+          enumObject: enumObject,
+        })
+
+        specVersion;
+        throw new Error(`${logName}: continue with enum version`);
+
+
+        // present the enum version
+        const xvoid: void = await this.run_present_enum_version({
+          enumObject: enumObject,
+          specVersion: specVersion,
+          cliChannelParameterDocument: channelParameterDocument,
+        });
+      }
+    }
+
+    throw new Error(`${logName}: return the map of what - enum ids?`);
+  }
+
   private run_present_channel = async({ applicationDomainId, channelTopic, channelDocument, specVersion }:{
     applicationDomainId: string;
     channelTopic: string;
@@ -205,6 +296,16 @@ export class CliImporter {
     const channelPublishOperation: CliChannelPublishOperation | undefined = channelDocument.getChannelPublishOperation();
     if(channelPublishOperation !== undefined) {
       const messageDocument: CliMessageDocument = channelPublishOperation.getCliMessageDocument();
+
+      // TODO: wait for implementation in EP and then start testing again
+      // // present parameters
+      // const x = await this.run_present_channel_parameters({
+      //   applicationDomainId: applicationDomainId,
+      //   channelParameterDocumentMap: channelDocument.getChannelParameters(),
+      //   specVersion: specVersion
+      // });        
+
+      // present message
       const schemaVersionObject: SchemaVersion = await this.run_present_channel_message({
         applicationDomainId: applicationDomainId,
         messageDocument: messageDocument,
@@ -212,7 +313,7 @@ export class CliImporter {
       });
       if(schemaVersionObject.id === undefined) throw new CliEPApiError(logName, 'schemaVersionObject.id === undefined', {
         schemaVersionObject: schemaVersionObject,
-      })
+      });
       // present event
       xvoid = await this.run_present_channel_event({
         applicationDomainId: applicationDomainId,

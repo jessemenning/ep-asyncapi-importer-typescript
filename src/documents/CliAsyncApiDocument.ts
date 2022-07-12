@@ -5,7 +5,7 @@ import { AsyncApiSpecError, AsyncApiSpecXtensionError } from '../CliError';
 import { CliLogger, ECliStatusCodes } from '../CliLogger';
 import CliSemVerUtils from '../CliSemVerUtils';
 import { CliMessageDocument } from './CliMessageDocument';
-import { CliChannelDocument } from './CliChannelDocument';
+import { CliChannelDocument, CliChannelParameterDocument } from './CliChannelDocument';
 
 
 enum E_EP_Extensions {
@@ -14,6 +14,7 @@ enum E_EP_Extensions {
 
 export type CliMessageDocumentMap = Map<string, CliMessageDocument>;
 export type CliChannelDocumentMap = Map<string, CliChannelDocument>;
+export type CliChannelParameterDocumentMap = Map<string, CliChannelParameterDocument>;
 
 
 export class CliAsyncApiDocument {

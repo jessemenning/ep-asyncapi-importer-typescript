@@ -1,15 +1,20 @@
 import { CliEPApiError, CliError } from "../CliError";
 import { CliLogger, ECliStatusCodes } from "../CliLogger";
 import { CliTask, ICliTaskKeys, ICliGetFuncReturn, ICliTaskConfig, ICliCreateFuncReturn, ICliTaskExecuteReturn, ICliUpdateFuncReturn } from "./CliTask";
-import { Address, AddressLevel, EventsService, EventVersion, EventVersionResponse, SchemasService, SchemaVersion, SchemaVersionResponse, VersionedObjectStateChangeRequest } from "../_generated/@solace-iot-team/sep-openapi-node";
-import CliEPSchemaVersionsService from "../services/CliEPSchemaVersionsService";
+import { 
+  Address, 
+  AddressLevel, 
+  EventsService, 
+  EventVersion, 
+  EventVersionResponse, 
+  SchemaVersion, 
+  VersionedObjectStateChangeRequest 
+} from "../_generated/@solace-iot-team/sep-openapi-node";
 import isEqual from "lodash.isequal";
-import CliEPStatesService from "../services/CliEPStatesService";
-import CliConfig, { ECliAssetImportTargetLifecycleState_VersionStrategy } from "../CliConfig";
+import CliConfig from "../CliConfig";
 import CliSemVerUtils from "../CliSemVerUtils";
 import CliEPEventVersionsService from "../services/CliEPEventVersionsService";
 
-// todo: topic => address levels
 type TCliEventVersionTask_Settings = Required<Pick<EventVersion, "description" | "displayName" | "stateId" | "schemaVersionId">>;
 type TCliEventVersionTask_CompareObject = Partial<TCliEventVersionTask_Settings> & Pick<EventVersion, "deliveryDescriptor">;
 
@@ -38,32 +43,17 @@ export interface ICliEventVersionTask_ExecuteReturn extends ICliTaskExecuteRetur
 export class CliEventVersionTask extends CliTask {
   private newVersionString: string;
 
-
-  // function constructAddressLevels(topic){
-  //   addressLevels = []
-  
-  //   topic.split("/").map(level => {
-  //     let type = "literal"
-  //     if (level.includes("{")) {
-  //       level = level.replace('}','').replace('{','')
-  //       type = "variable"
-  //     }
-  //     addressLevels.push({
-  //       name: level,
-  //       addressLevelType: type
-  //     })
-  //   })
-  
-  //   return addressLevels
-  // }
   private readonly Empty_ICliEventVersionTask_GetFuncReturn: ICliEventVersionTask_GetFuncReturn = {
     documentExists: false,
     apiObject: undefined,
     eventVersionObject: undefined,
   };
+
   private readonly Default_TCliEventVersionTask_Settings: Partial<TCliEventVersionTask_Settings> = {
   }
+
   private getCliTaskConfig(): ICliEventVersionTask_Config { return this.cliTaskConfig as ICliEventVersionTask_Config; }
+  
   private createTopicAddressLevels(channelTopic: string): Array<AddressLevel> {
     const addressLevels: Array<AddressLevel> = [];
     channelTopic.split("/").map( (level: string) => {
@@ -79,6 +69,7 @@ export class CliEventVersionTask extends CliTask {
     });
     return addressLevels;
   }
+  
   private createObjectSettings(): Partial<EventVersion> {
     return {
       ...this.Default_TCliEventVersionTask_Settings,
@@ -105,7 +96,7 @@ export class CliEventVersionTask extends CliTask {
   }
 
   /**
-   * Get the latest schema version.
+   * Get the latest event version.
    */
   protected async getFunc(cliTaskKeys: ICliEventVersionTask_Keys): Promise<ICliEventVersionTask_GetFuncReturn> {
     const funcName = 'getFunc';
@@ -220,7 +211,7 @@ export class CliEventVersionTask extends CliTask {
     return createdEventVersion;
   }
   /**
-   * Create a new SchemaVersion
+   * Create a new EventVersion
    */
   protected async createFunc(): Promise<ICliEventVersionTask_CreateFuncReturn> {
     const funcName = 'createFunc';
@@ -246,7 +237,7 @@ export class CliEventVersionTask extends CliTask {
   }
 
   /**
-   * Creates a new SchemaVersion with bumped version number.
+   * Creates a new EventVersion with bumped version number.
    */
   protected async updateFunc(cliGetFuncReturn: ICliEventVersionTask_GetFuncReturn): Promise<ICliEventVersionTask_UpdateFuncReturn> {
     const funcName = 'updateFunc';

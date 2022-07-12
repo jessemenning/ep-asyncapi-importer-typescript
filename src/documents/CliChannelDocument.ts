@@ -1,6 +1,6 @@
-import { Channel, Message, PublishOperation, SubscribeOperation } from '@asyncapi/parser';
+import { Channel, ChannelParameter, Message, PublishOperation, Schema, SubscribeOperation } from '@asyncapi/parser';
 import { CliError } from '../CliError';
-import { CliMessageDocumentMap } from './CliAsyncApiDocument';
+import { CliChannelParameterDocumentMap, CliMessageDocumentMap } from './CliAsyncApiDocument';
 import { CliMessageDocument } from './CliMessageDocument';
 
 enum E_EP_Channel_Extensions {
@@ -62,6 +62,35 @@ export class CliChannelPublishOperation extends CliChannelOperation {
     if(messageList.length !== 1) throw new CliError(logName, 'messageList.length !== 1');
     return new CliMessageDocument(messageList[0]);
   }
+
+}
+
+export class CliChannelParameterDocument {
+  private channelParameterName: string;
+  private asyncApiChannelParameter: ChannelParameter;
+
+  constructor(channelParameterName: string, asyncApiChannelParameter: ChannelParameter) {
+    this.channelParameterName = channelParameterName;
+    this.asyncApiChannelParameter = asyncApiChannelParameter;
+  }
+
+  public getChannelParameter(): ChannelParameter { return this.asyncApiChannelParameter; }
+
+  public getDescription(): string {
+    const description: string | null = this.asyncApiChannelParameter.description();
+    if(description) return description;
+    return '';
+  }
+
+  public getDisplayName(): string { return this.channelParameterName; }
+
+  public getParameterEnumValueList(): Array<string> {
+    const schema: Schema = this.asyncApiChannelParameter.schema();
+    const enumList: Array<string> | undefined = schema.enum();
+    if(enumList === undefined) return [];
+    return enumList;
+  }
+
 }
 
 export class CliChannelDocument {
@@ -72,6 +101,18 @@ export class CliChannelDocument {
   }
 
   public getChannel(): Channel { return this.asyncApiChannel; }
+
+  public getChannelParameters(): CliChannelParameterDocumentMap | undefined {
+    if(!this.asyncApiChannel.hasParameters()) return undefined;
+    
+    const paramRecords: Record<string, ChannelParameter> = this.asyncApiChannel.parameters();
+    const cliChannelParameterDocumentMap: CliChannelParameterDocumentMap = new Map<string, CliChannelParameterDocument>();
+    for(const [name, parameter] of Object.entries(paramRecords)) {
+      const cliChannelParameterDocument = new CliChannelParameterDocument(name, parameter);
+      cliChannelParameterDocumentMap.set(name, cliChannelParameterDocument);
+    }
+    return cliChannelParameterDocumentMap;
+  }
 
   public getChannelPublishOperation(): CliChannelPublishOperation | undefined {
     if(this.asyncApiChannel.hasPublish()) {

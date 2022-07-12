@@ -21,11 +21,13 @@ defaultContentType: application/json
 
 channels:
 
-  catalyst-labs/acme-retail/till-system/v1/{regionId}/{storeId}/receipt:
+  catalyst-labs/acme-retail/till-system/v1/{regionId_v1}/{storeId_v1}/receipt:
     description: The topic to receive till receipts from stores on.
     parameters:
-      storeId:
-        $ref: '#/components/parameters/storeId'
+      storeId_v1:
+        $ref: '#/components/parameters/storeId-v1'
+      regionId_v1:
+        $ref: '#/components/parameters/regionId-v1'
     publish:
       summary: Receive till receipts from stores.
       operationId: receiveStoreTillReceipts
@@ -33,11 +35,13 @@ channels:
         # x-parser-message-name: storeTillReceipt
         $ref: '#/components/messages/storeTillReceipt-v1'
 
-  catalyst-labs/acme-retail/till-system/v1/{regionId}/{storeId}/error:
+  catalyst-labs/acme-retail/till-system/v1/{regionId_v1}/{storeId_v1}/error:
     description: The topic to send errors as response to a transaction on.
     parameters:
-      storeId:
-        $ref: '#/components/parameters/storeId'
+      storeId_v1:
+        $ref: '#/components/parameters/storeId-v1'
+      regionId_v1:
+        $ref: '#/components/parameters/regionId-v1'
     subscribe:
       summary: Send errors to store for transaction.
       operationId: sendStoreTillSystemError
@@ -73,7 +77,7 @@ components:
         payload:
           $ref: "#/components/schemas/storeTillReceiptPayload-v1"
         header:
-          $ref: "https://raw.githubusercontent.com/solace-iot-team/solace-apim-reference-designs/main/use-cases/acme-retail/central-it/schemas/CommonHeader.v1.yml"
+          $ref: "https://raw.githubusercontent.com/solace-iot-team/sep-async-api-importer/main/data/acme-retail/references/schemas/CommonHeader.v1.yml"
     storeTillReceiptPayload-v1:
       type: array
       items:
@@ -82,13 +86,13 @@ components:
       type: object
       properties:
         sku:
-          $ref: "https://raw.githubusercontent.com/solace-iot-team/solace-apim-reference-designs/main/use-cases/acme-retail/central-it/schemas/sku.v1.yml"
+          $ref: "https://raw.githubusercontent.com/solace-iot-team/sep-async-api-importer/main/data/acme-retail/references/schemas/sku.v1.yml"
         quantity:
-          $ref: "https://raw.githubusercontent.com/solace-iot-team/solace-apim-reference-designs/main/use-cases/acme-retail/central-it/schemas/quantity.v1.yml"
+          $ref: "https://raw.githubusercontent.com/solace-iot-team/sep-async-api-importer/main/data/acme-retail/references/schemas/quantity.v1.yml"
         price:
-          $ref: "https://raw.githubusercontent.com/solace-iot-team/solace-apim-reference-designs/main/use-cases/acme-retail/central-it/schemas/price.v1.yml"
+          $ref: "https://raw.githubusercontent.com/solace-iot-team/sep-async-api-importer/main/data/acme-retail/references/schemas/price.v1.yml"
         currency:
-          $ref: "https://raw.githubusercontent.com/solace-iot-team/solace-apim-reference-designs/main/use-cases/acme-retail/central-it/schemas/currency.v1.yml"
+          $ref: "https://raw.githubusercontent.com/solace-iot-team/sep-async-api-importer/main/data/acme-retail/references/schemas/currency.v1.yml"
       required:
         - sku
         - quantity
@@ -99,9 +103,9 @@ components:
       type: object
       properties:
         payload:
-          $ref: "https://raw.githubusercontent.com/solace-iot-team/solace-apim-reference-designs/main/use-cases/acme-retail/central-it/schemas/storeTillSystemErrorPayload-v1.yml"
+          $ref: "https://raw.githubusercontent.com/solace-iot-team/sep-async-api-importer/main/data/acme-retail/references/schemas/storeTillSystemErrorPayload-v1.yml"
         header:
-          $ref: "https://raw.githubusercontent.com/solace-iot-team/solace-apim-reference-designs/main/use-cases/acme-retail/central-it/schemas/CommonHeader.v1.yml"
+          $ref: "https://raw.githubusercontent.com/solace-iot-team/sep-async-api-importer/main/data/acme-retail/references/schemas/CommonHeader.v1.yml"
 
 
   # securitySchemes:
@@ -110,10 +114,12 @@ components:
   #     description: Provide your username and password for SASL/SCRAM authentication
 
   parameters:
-    storeId:
+    storeId-v1:
       description: The ID of the store.
       schema:
         type: string
+    regionId-v1:
+      $ref: "https://raw.githubusercontent.com/solace-iot-team/sep-async-api-importer/main/data/acme-retail/references/parameters/regionId.v1.yml"
 
   # messageTraits:
   #   commonHeaders:
