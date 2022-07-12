@@ -131,9 +131,10 @@ class CliEPEventApiVersionsService {
     return found;
   }
 
-  public getAsyncApiDocument = async({ eventApiId, eventApiVersionId }:{
+  public getAsyncApiDocument = async({ eventApiId, eventApiVersionId, asyncApiSpecVersion }:{
     eventApiId: string;
     eventApiVersionId: string;
+    asyncApiSpecVersion: string;
   }): Promise<CliAsyncApiDocument> => {
     // const funcName = 'getAsyncApiDocument';
     // const logName = `${CliEPEventApiVersionsService.name}.${funcName}()`;
@@ -142,7 +143,7 @@ class CliEPEventApiVersionsService {
       eventApiId: eventApiId,
       id: eventApiVersionId,
       format: 'json',
-      version: '2.4.0'
+      version: asyncApiSpecVersion
     });
 
     const cliAsyncApiDocument: CliAsyncApiDocument = await CliAsyncApiDocumentsService.createFromAny({ 
