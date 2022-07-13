@@ -1,9 +1,10 @@
+import _ from "lodash";
+
 import { CliEPApiContentError, CliError } from "../CliError";
 import { CliLogger, ECliStatusCodes } from "../CliLogger";
 import { CliTask, ICliTaskKeys, ICliGetFuncReturn, ICliTaskConfig, ICliCreateFuncReturn, ICliTaskExecuteReturn, ICliUpdateFuncReturn } from "./CliTask";
 import { SchemasService, SchemaVersion, SchemaVersionResponse, VersionedObjectStateChangeRequest } from "../_generated/@solace-iot-team/sep-openapi-node";
 import CliEPSchemaVersionsService from "../services/CliEPSchemaVersionsService";
-import isEqual from "lodash.isequal";
 import CliConfig from "../CliConfig";
 import CliSemVerUtils from "../CliSemVerUtils";
 
@@ -111,7 +112,7 @@ export class CliSchemaVersionTask extends CliTask {
       stateId: existingObject.stateId
     };
     const requestedCompareObject: TCliSchemaVersionTask_CompareObject = this.createObjectSettings();
-    isUpdateRequired = !isEqual(existingCompareObject, requestedCompareObject);
+    isUpdateRequired = !_.isEqual(existingCompareObject, requestedCompareObject);
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_IS_UPDATE_REQUIRED, details: {
       existingCompareObject: existingCompareObject,
       requestedCompareObject: requestedCompareObject,

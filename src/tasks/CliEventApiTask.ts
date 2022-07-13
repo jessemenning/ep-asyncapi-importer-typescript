@@ -1,3 +1,5 @@
+import _ from "lodash";
+
 import { CliEPApiContentError, CliError } from "../CliError";
 import { CliLogger, ECliStatusCodes } from "../CliLogger";
 import { CliTask, ICliTaskKeys, ICliGetFuncReturn, ICliTaskConfig, ICliCreateFuncReturn, ICliTaskExecuteReturn, ICliUpdateFuncReturn } from "./CliTask";
@@ -7,7 +9,6 @@ import {
   EventApisResponse,
   EventApIsService, 
 } from "../_generated/@solace-iot-team/sep-openapi-node";
-import isEqual from "lodash.isequal";
 
 type TCliEventApiTask_Settings = Partial<Pick<EventApi, "shared">>;
 type TCliEventApiTask_CompareObject = TCliEventApiTask_Settings;
@@ -104,7 +105,7 @@ export class CliEventApiTask extends CliTask {
       shared: existingObject.shared,
     }
     const requestedCompareObject: TCliEventApiTask_CompareObject = this.createObjectSettings();
-    isUpdateRequired = !isEqual(existingCompareObject, requestedCompareObject);
+    isUpdateRequired = !_.isEqual(existingCompareObject, requestedCompareObject);
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_IS_UPDATE_REQUIRED, details: {
       existingCompareObject: existingCompareObject,
       requestedCompareObject: requestedCompareObject,

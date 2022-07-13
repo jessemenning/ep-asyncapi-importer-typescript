@@ -82,6 +82,16 @@ export class InvalidFileConfigError extends CliError {
   }
 }
 
+export class CliInvalidDirConfigEnvVarError extends CliError {
+  private dir: string;
+  private envVar: string;
+  constructor(internalLogName: string, internalMessage: string, envVar: string, dir: string) {
+    super(internalLogName, `${internalMessage}: ${envVar}=${dir}`);
+    this.dir = dir;
+    this.envVar = envVar;
+  }
+}
+
 export class InvalidEnvVarValueFromListError extends CliError {
   private envVarName: string;
   private envVarValue: string;

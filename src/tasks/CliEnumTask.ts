@@ -1,3 +1,5 @@
+import _ from "lodash";
+
 import { CliEPApiContentError, CliError } from "../CliError";
 import { CliLogger, ECliStatusCodes } from "../CliLogger";
 import { CliTask, ICliTaskKeys, ICliGetFuncReturn, ICliTaskConfig, ICliCreateFuncReturn, ICliTaskExecuteReturn, ICliUpdateFuncReturn } from "./CliTask";
@@ -8,7 +10,6 @@ import {
   EnumsService, 
   // Event as EPEvent
 } from "../_generated/@solace-iot-team/sep-openapi-node";
-import isEqual from "lodash.isequal";
 
 type TCliEnumTask_Settings = Partial<Pick<Enum, "shared">>;
 type TCliEnumTask_CompareObject = TCliEnumTask_Settings;
@@ -105,7 +106,7 @@ export class CliEnumTask extends CliTask {
       shared: existingObject.shared,
     }
     const requestedCompareObject: TCliEnumTask_CompareObject = this.createObjectSettings();
-    isUpdateRequired = !isEqual(existingCompareObject, requestedCompareObject);
+    isUpdateRequired = !_.isEqual(existingCompareObject, requestedCompareObject);
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_IS_UPDATE_REQUIRED, details: {
       existingCompareObject: existingCompareObject,
       requestedCompareObject: requestedCompareObject,

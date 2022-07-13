@@ -475,6 +475,51 @@ export class CliImporter {
     }
   }
 
+  private generate_asset_ouput = ({ cliAsyncApiDocument, filePath, appConfig }:{
+    cliAsyncApiDocument: CliAsyncApiDocument;
+    filePath: string;
+    appConfig: TCliAppConfig;
+  }): void => {
+    const funcName = 'generate_asset_ouput';
+    const logName = `${CliImporter.name}.${funcName}()`;
+
+    // calculate the asset output dir
+    const applicationDomainName: string = cliAsyncApiDocument.getApplicationDomainName();
+    
+    
+    // TODO: make a proper dirs out of these
+    const assetOutputRootDir: string = appConfig.assetOutputRootDir + "/" + applicationDomainName;
+    CliUtils.ensurePathExists(assetOutputRootDir);
+    const asyncApiSpecDir = assetOutputRootDir + "/" + cliAsyncApiDocument.getTitleAsFilePath();
+    CliUtils.ensurePathExists(asyncApiSpecDir);
+    const schemasDir = assetOutputRootDir + "/schemas"; 
+    CliUtils.ensurePathExists(schemasDir);
+
+    const asyncApiSpecFileNameJson = asyncApiSpecDir + "/" + cliAsyncApiDocument.getTitleAsFileName("json");
+    const asyncApiSpecFileNameYaml = asyncApiSpecDir + "/" + cliAsyncApiDocument.getTitleAsFileName("yml");
+
+    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.GENERATING_ASSETS, details: {
+      filePath: filePath,
+      asyncApiSpecFileNameJson: asyncApiSpecFileNameJson,
+      asyncApiSpecFileNameYaml: asyncApiSpecFileNameYaml,
+      schemasDir: schemasDir
+    }}));
+
+    // save specs as file
+    CliUtils.saveContents2File({ 
+      filePath: asyncApiSpecFileNameJson,
+      content: JSON.stringify(cliAsyncApiDocument.getSpecAsSanitizedJson(), null, 2)
+    });
+    CliUtils.saveContents2File({ 
+      filePath: asyncApiSpecFileNameYaml,
+      content: cliAsyncApiDocument.getSpecAsSanitizedYamlString()
+    });
+    // save all channel message schemas to files
+
+    // TODOxxxx
+
+  }
+
   private run_present = async({ cliAsyncApiDocument }:{
     cliAsyncApiDocument: CliAsyncApiDocument;
   }): Promise<void> => {
@@ -532,11 +577,17 @@ export class CliImporter {
     //   cliAsyncApiDocument: cliAsyncApiDocument
     // }); 
 
+    // generate the output for all assets
+    this.generate_asset_ouput({
+      cliAsyncApiDocument: cliAsyncApiDocument,
+      filePath: this.cliAppConfig.asyncApiSpecFileName,
+      appConfig: this.cliAppConfig,
+    });
+
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTED, details: {
       specFile: this.cliAppConfig.asyncApiSpecFileName,
       targetState: this.cliAppConfig.assetsTargetState,
     }}));
-
   }
 
   private run_absent = async({ cliAsyncApiDocument }:{

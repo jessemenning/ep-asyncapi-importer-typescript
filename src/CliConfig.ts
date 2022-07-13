@@ -1,4 +1,7 @@
-import { CliError, ConfigMissingEnvVarError, InvalidEnvVarValueFromListError, InvalidFileConfigError } from './CliError';
+import path from 'path';
+import fs from 'fs';
+
+import { CliError, CliErrorFromError, CliInvalidDirConfigEnvVarError, ConfigMissingEnvVarError, InvalidEnvVarValueFromListError, InvalidFileConfigError } from './CliError';
 import { CliLogger, ECliStatusCodes } from './CliLogger';
 import { Command, OptionValues } from 'commander';
 import { CliUtils } from './CliUtils';
@@ -40,8 +43,9 @@ const ValidEnvAssetsTargetState = {
 }
   
 export type TCliLoggerConfig = {
-  appId: string,
-  level: string
+  appId: string;
+  level: string;
+  logsDir?: string;
 };
 export type TCliAppConfig = {
   assetsTargetState: ECliAssetsTargetState;
@@ -49,6 +53,7 @@ export type TCliAppConfig = {
   domainName?: string;
   // domainId?: string;  - where would we get this from?
   assetImportTargetLifecycleState: TAssetImportTargetLifecycleState;
+  assetOutputRootDir: string;
 }
 export type TCliConfig = {
   appId: string;
@@ -63,6 +68,8 @@ export enum EEnvVars {
   CLI_ASSETS_TARGET_STATE = "CLI_ASSETS_TARGET_STATE",
   CLI_ASSET_IMPORT_TARGET_LIFECYLE_STATE = "CLI_ASSET_IMPORT_TARGET_LIFECYLE_STATE",
   CLI_ASSET_IMPORT_TARGET_VERSION_STRATEGY = "CLI_ASSET_IMPORT_TARGET_VERSION_STRATEGY",
+  CLI_ASSET_OUTPUT_DIR = "CLI_ASSET_OUTPUT_DIR",
+  CLI_LOG_DIR = "CLI_LOG_DIR"
 };
 
 
@@ -75,6 +82,7 @@ export class CliConfig {
   private static DEFAULT_ASSETS_TARGET_STATE = ValidEnvAssetsTargetState.PRESENT;
   private static DEFAULT_CLI_ASSET_IMPORT_TARGET_LIFECYLE_STATE = ValidEnvAssetImportTargetLifecycleState.DRAFT;
   private static DEFAULT_CLI_ASSET_IMPORT_TARGET_VERSION_STRATEGY = ValidEnvAssetImportTargetLifecycleState_VersionStrategy.BUMP_PATCH;
+  private static TMP_DIR = "./tmp";
 
   private static DefaultCliLoggerConfig: TCliLoggerConfig = {
     appId: CliConfig.DEFAULT_APP_ID,
@@ -167,6 +175,20 @@ export class CliConfig {
     throw new CliError(logName, "internal error");
   }
 
+  private initializeDir = (envVarName: string, from: string): string => {
+    const funcName = 'initializeDir';
+    const logName = `${CliConfig.name}.${funcName}()`;
+
+    const dir = this.getMandatoryEnvVarValueAsString(envVarName);
+
+    if(dir.includes('..') || dir.startsWith('/')) throw new CliInvalidDirConfigEnvVarError(logName, "dir must not start with '/' nor include '..'.", envVarName, dir );
+
+    const absoluteDir = path.resolve(from, dir);
+    if(fs.existsSync(absoluteDir)) fs.rmSync(absoluteDir, { recursive: true, force: true });
+    if(!fs.existsSync(absoluteDir)) fs.mkdirSync(absoluteDir, { recursive: true });
+    return absoluteDir;
+  }
+
   public initialize = (packageJson: any): void => {
     const funcName = 'initialize';
     const logName = `${CliConfig.name}.${funcName}()`;
@@ -191,6 +213,9 @@ export class CliConfig {
       // handle solace cloud token separately
       this.solaceCloudToken = this.getMandatoryEnvVarValueAsString(EEnvVars.CLI_SOLACE_CLOUD_TOKEN);
 
+      const assetOutputRootDir = this.initializeDir(EEnvVars.CLI_ASSET_OUTPUT_DIR, CliConfig.TMP_DIR);
+      const logsDir = this.initializeDir(EEnvVars.CLI_LOG_DIR, CliConfig.TMP_DIR);
+
       const asyncApiSpecFileName: string | undefined = CliUtils.validateFilePathWithReadPermission(options.file);
       if(asyncApiSpecFileName === undefined) {
         throw new InvalidFileConfigError(logName, 'cannot read asyncApiSpecFile', options.file);    
@@ -203,6 +228,7 @@ export class CliConfig {
         cliLoggerConfig: {
           appId: appId,
           level: this.getOptionalEnvVarValueAsStringWithDefault(EEnvVars.CLI_LOGGER_LOG_LEVEL, CliConfig.DEFAULT_LOGGER_LOG_LEVEL),
+          logsDir: logsDir
         },
         appConfig: {
           assetsTargetState: this.getOptionalEnvVarValueAsString_From_List_WithDefault(EEnvVars.CLI_ASSETS_TARGET_STATE, Object.values(ValidEnvAssetsTargetState), CliConfig.DEFAULT_ASSETS_TARGET_STATE) as ECliAssetsTargetState,
@@ -210,6 +236,7 @@ export class CliConfig {
           domainName: options.domain ? options.domain : undefined,
           // domainId: options.domainId ? options.domainId : undefined,
           assetImportTargetLifecycleState: this.initialize_AssetImportTargetLifecycleState(),
+          assetOutputRootDir: assetOutputRootDir,
         }
       };
     } catch(e) {
@@ -217,7 +244,7 @@ export class CliConfig {
         const se: CliError = e as CliError;
         CliLogger.fatal(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.INITIALIZING, message: 'env', details: se.toObject() }));
       }
-      throw e;
+      throw new CliErrorFromError(e, logName);
     }
   }
 

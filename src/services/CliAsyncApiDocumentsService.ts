@@ -1,9 +1,10 @@
 import fs from 'fs';
+import _ from 'lodash';
+
 import { parse, AsyncAPIDocument } from '@asyncapi/parser';
 import { TCliAppConfig } from '../CliConfig';
 import { CliAsyncApiDocument, CliChannelDocumentMap } from '../documents/CliAsyncApiDocument';
 import { CliChannelDocument } from '../documents/CliChannelDocument';
-import isEqual from 'lodash.isequal';
 
 export enum TCliActionType {
   CREATE = "CREATE",
@@ -80,7 +81,7 @@ export class CliAsyncApiDocumentsService {
         cliImportActionList.push(importAction);
       } else {
         // check channel parameters
-        if(!isEqual(existing_channelDocument.getChannelParameters(), new_CliChannelDocument.getChannelParameters())) {
+        if(!_.isEqual(existing_channelDocument.getChannelParameters(), new_CliChannelDocument.getChannelParameters())) {
           const importAction: ICliImportAction = {
             type: TCliActionType.UPDATE,
             details: {
@@ -91,7 +92,7 @@ export class CliAsyncApiDocumentsService {
           cliImportActionList.push(importAction);
         }
         // check publish operation
-        if(!isEqual(existing_channelDocument.getChannelPublishOperation(), new_CliChannelDocument.getChannelPublishOperation())) {
+        if(!_.isEqual(existing_channelDocument.getChannelPublishOperation(), new_CliChannelDocument.getChannelPublishOperation())) {
           const importAction: ICliImportAction = {
             type: TCliActionType.UPDATE,
             details: {
@@ -102,7 +103,7 @@ export class CliAsyncApiDocumentsService {
           cliImportActionList.push(importAction);
         }
         // check subscribe operation
-        if(!isEqual(existing_channelDocument.getChannelSubscribeOperation(), new_CliChannelDocument.getChannelSubscribeOperation())) {
+        if(!_.isEqual(existing_channelDocument.getChannelSubscribeOperation(), new_CliChannelDocument.getChannelSubscribeOperation())) {
           const importAction: ICliImportAction = {
             type: TCliActionType.UPDATE,
             details: {
@@ -115,7 +116,7 @@ export class CliAsyncApiDocumentsService {
       }
     }
     // check messages
-    if(!isEqual(existingAsyncApiDocument.getMessageDocuments(), newAsyncApiDocument.getMessageDocuments())) {
+    if(!_.isEqual(existingAsyncApiDocument.getMessageDocuments(), newAsyncApiDocument.getMessageDocuments())) {
       const importAction: ICliImportAction = {
         type: TCliActionType.UPDATE,
         details: {

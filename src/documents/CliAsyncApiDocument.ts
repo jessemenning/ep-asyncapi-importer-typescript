@@ -1,5 +1,7 @@
-import fs from 'fs';
-import { parse, AsyncAPIDocument, Message, Channel } from '@asyncapi/parser';
+import yaml from "js-yaml";
+// import _ from 'lodash';
+
+import { AsyncAPIDocument, Message, Channel } from '@asyncapi/parser';
 import { TCliAppConfig } from '../CliConfig';
 import { AsyncApiSpecBestPracticesError, AsyncApiSpecError, AsyncApiSpecXtensionError } from '../CliError';
 import CliSemVerUtils from '../CliSemVerUtils';
@@ -124,6 +126,35 @@ export class CliAsyncApiDocument {
   }
 
   public getApplicationDomainName(): string { return this.applicationDomainName; }
+
+  public getTitleAsFilePath(): string {
+    return this.getTitle();
+  }
+
+  public getTitleAsFileName(ext: string): string {
+    return `${this.getTitle()}.${ext}`;
+  }
+
+  public getSpecAsSanitizedJson(): any {
+    // not deep
+    // const sanitized = _.omitBy(this.asyncApiDocumentJson, (value, key) => {
+    //   value;
+    //   if(key.startsWith("x-parser")) return false;
+    //   return true;
+    // });
+
+    const sanitized = JSON.parse(JSON.stringify(this.asyncApiDocumentJson, (k,v) => {
+      if(k.startsWith("x-parser")) return undefined;
+      return v;
+    }));
+
+    return sanitized;
+  }
+
+  public getSpecAsSanitizedYamlString(): string {
+    const json = this.getSpecAsSanitizedJson();
+    return yaml.dump(json);
+  }
 
   public getChannelDocuments(): CliChannelDocumentMap {
 

@@ -22,6 +22,12 @@ export class CliUtils {
     }
   }
 
+  public static ensurePathExists = (dir: string) => {
+    const absoluteFilePath = path.resolve(dir);
+    if(!fs.existsSync(absoluteFilePath)) fs.mkdirSync(absoluteFilePath, { recursive: true });
+    fs.accessSync(absoluteFilePath, fs.constants.W_OK);
+  }
+
   public static readFileContentsAsJson = (filePath: string): any => {
     const b: Buffer = fs.readFileSync(filePath);
     try {
@@ -29,6 +35,13 @@ export class CliUtils {
     } catch(e) {
       throw e;
     }
+  }
+
+  public static saveContents2File = ({ content, filePath}: {
+    content: any;
+    filePath: string;
+  }) => {
+    fs.writeFileSync(filePath, content, { encoding: "utf8"});
   }
 
   public static assertNever = (extLogName: string, x: never): never => {
