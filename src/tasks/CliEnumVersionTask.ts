@@ -1,5 +1,5 @@
 import isEqual from "lodash.isequal";
-import { CliEPApiError, CliError } from "../CliError";
+import { CliEPApiContentError, CliError } from "../CliError";
 import { CliLogger, ECliStatusCodes } from "../CliLogger";
 import { CliTask, ICliTaskKeys, ICliGetFuncReturn, ICliTaskConfig, ICliCreateFuncReturn, ICliTaskExecuteReturn, ICliUpdateFuncReturn } from "./CliTask";
 import { 
@@ -163,12 +163,12 @@ export class CliEnumVersionTask extends CliTask {
       enumVersionResponse: enumVersionResponse
     }}));
 
-    if(enumVersionResponse.data === undefined) throw new CliEPApiError(logName, 'enumVersionResponse.data === undefined', {
+    if(enumVersionResponse.data === undefined) throw new CliEPApiContentError(logName, 'enumVersionResponse.data === undefined', {
       enumVersionResponse: enumVersionResponse
     });
     const createdEnumVersion: EnumVersion = enumVersionResponse.data;
 
-    if(createdEnumVersion.id === undefined || createdEnumVersion.stateId === undefined) throw new CliEPApiError(logName, 'createdEnumVersion.id === undefined || createdEnumVersion.stateId === undefined', {
+    if(createdEnumVersion.id === undefined || createdEnumVersion.stateId === undefined) throw new CliEPApiContentError(logName, 'createdEnumVersion.id === undefined || createdEnumVersion.stateId === undefined', {
       createdEnumVersion: createdEnumVersion
     });
     // check the target lifecycle state
@@ -184,7 +184,7 @@ export class CliEnumVersionTask extends CliTask {
         enumId: enumId,
         enumVersionString: this.newVersionString
       });
-      if(updatedEnumVersion === undefined) throw new CliEPApiError(logName, 'updatedEnumVersion === undefined', {
+      if(updatedEnumVersion === undefined) throw new CliEPApiContentError(logName, 'updatedEnumVersion === undefined', {
         updatedEnumVersion: updatedEnumVersion
       });
       return updatedEnumVersion;

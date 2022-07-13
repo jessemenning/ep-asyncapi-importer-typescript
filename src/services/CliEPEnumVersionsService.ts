@@ -1,4 +1,4 @@
-import { CliEPApiError } from '../CliError';
+import { CliEPApiContentError } from '../CliError';
 import { CliLogger, ECliStatusCodes } from '../CliLogger';
 import CliSemVerUtils from '../CliSemVerUtils';
 import { 
@@ -40,7 +40,7 @@ class CliEPEnumVersionsService {
 
     let latest: string = '0.0.0';
     for(const enumVersion of enumVersionList) {
-      if(enumVersion.version === undefined) throw new CliEPApiError(logName, 'enumVersion.version === undefined', {
+      if(enumVersion.version === undefined) throw new CliEPApiContentError(logName, 'enumVersion.version === undefined', {
         enumVersion: enumVersion
       });
       const newVersion: string = enumVersion.version;
@@ -63,7 +63,7 @@ class CliEPEnumVersionsService {
 
     const enumVersionList: Array<EnumVersion> = await this.getEnumVersions({ enumId: enumId });
     const found: EnumVersion | undefined = enumVersionList.find( (enumVersion: EnumVersion ) => {
-      if(enumVersion.version === undefined) throw new CliEPApiError(logName, 'enumVersion.version === undefined', {
+      if(enumVersion.version === undefined) throw new CliEPApiContentError(logName, 'enumVersion.version === undefined', {
         enumVersion: enumVersion
       });
       return enumVersion.version === enumVersionString;

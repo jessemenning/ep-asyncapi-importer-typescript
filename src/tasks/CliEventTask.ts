@@ -1,4 +1,4 @@
-import { CliEPApiError, CliError } from "../CliError";
+import { CliEPApiContentError, CliError } from "../CliError";
 import { CliLogger, ECliStatusCodes } from "../CliLogger";
 import { CliTask, ICliTaskKeys, ICliGetFuncReturn, ICliTaskConfig, ICliCreateFuncReturn, ICliTaskExecuteReturn, ICliUpdateFuncReturn } from "./CliTask";
 import { Event as EPEvent, EventResponse, EventsResponse, EventsService} from "../_generated/@solace-iot-team/sep-openapi-node";
@@ -138,7 +138,7 @@ export class CliEventTask extends CliTask {
       eventResponse: eventResponse
     }}));
 
-    if(eventResponse.data === undefined) throw new CliEPApiError(logName, 'eventResponse.data === undefined', {
+    if(eventResponse.data === undefined) throw new CliEPApiContentError(logName, 'eventResponse.data === undefined', {
       eventResponse: eventResponse
     });
 
@@ -165,7 +165,7 @@ export class CliEventTask extends CliTask {
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_UPDATE, details: {
       document: update
     }}));
-    if(cliGetFuncReturn.eventObject.id === undefined) throw new CliEPApiError(logName, 'cliGetFuncReturn.eventObject.id === undefined', {
+    if(cliGetFuncReturn.eventObject.id === undefined) throw new CliEPApiContentError(logName, 'cliGetFuncReturn.eventObject.id === undefined', {
       eventObject: cliGetFuncReturn.eventObject
     });
     const eventResponse: EventResponse = await EventsService.update({
@@ -175,7 +175,7 @@ export class CliEventTask extends CliTask {
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_UPDATE, details: {
       eventResponse: eventResponse
     }}));
-    if(eventResponse.data === undefined) throw new CliEPApiError(logName, 'eventResponse.data === undefined', {
+    if(eventResponse.data === undefined) throw new CliEPApiContentError(logName, 'eventResponse.data === undefined', {
       eventResponse: eventResponse
     });
     const cliEventTask_UpdateFuncReturn: ICliEventTask_UpdateFuncReturn = {

@@ -1,4 +1,4 @@
-import { CliEPApiError, CliError } from "../CliError";
+import { CliEPApiContentError, CliError } from "../CliError";
 import { CliLogger, ECliStatusCodes } from "../CliLogger";
 import { CliTask, ICliTaskKeys, ICliGetFuncReturn, ICliTaskConfig, ICliCreateFuncReturn, ICliTaskExecuteReturn, ICliUpdateFuncReturn } from "./CliTask";
 import { SchemaObject, SchemaResponse, SchemasResponse, SchemasService, SchemaVersion } from "../_generated/@solace-iot-team/sep-openapi-node";
@@ -44,7 +44,7 @@ export class CliSchemaTask extends CliTask {
     const funcName = 'mapContentType';
     const logName = `${CliSchemaTask.name}.${funcName}()`;
     const mapped: EPContentType | undefined = this.ContentTypeMap.get(contentType);
-    if(mapped === undefined) throw new CliEPApiError(logName, "mapped === undefined", {
+    if(mapped === undefined) throw new CliEPApiContentError(logName, "mapped === undefined", {
       contentType: contentType
     });
     return mapped;
@@ -155,7 +155,7 @@ export class CliSchemaTask extends CliTask {
       schemaResponse: schemaResponse
     }}));
 
-    if(schemaResponse.data === undefined) throw new CliEPApiError(logName, 'schemaResponse.data === undefined', {
+    if(schemaResponse.data === undefined) throw new CliEPApiContentError(logName, 'schemaResponse.data === undefined', {
       schemaResponse: schemaResponse
     });
 
@@ -182,7 +182,7 @@ export class CliSchemaTask extends CliTask {
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_UPDATE, details: {
       document: update
     }}));
-    if(cliGetFuncReturn.schemaObject.id === undefined) throw new CliEPApiError(logName, 'cliGetFuncReturn.schemaObject.id === undefined', {
+    if(cliGetFuncReturn.schemaObject.id === undefined) throw new CliEPApiContentError(logName, 'cliGetFuncReturn.schemaObject.id === undefined', {
       schemaObject: cliGetFuncReturn.schemaObject
     });
     const schemaResponse: SchemaResponse = await SchemasService.patchSchema({
@@ -192,7 +192,7 @@ export class CliSchemaTask extends CliTask {
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_UPDATE, details: {
       schemaResponse: schemaResponse
     }}));
-    if(schemaResponse.data === undefined) throw new CliEPApiError(logName, 'schemaResponse.data === undefined', {
+    if(schemaResponse.data === undefined) throw new CliEPApiContentError(logName, 'schemaResponse.data === undefined', {
       schemaResponse: schemaResponse
     });
     const cliSchemaTask_UpdateFuncReturn: ICliSchemaTask_UpdateFuncReturn = {

@@ -111,9 +111,17 @@ export class CliAsyncApiDocument {
     this.applicationDomainName = this.determineApplicationDomainName();
   }
 
+  public getAsyncApiVersion(): string { return this.asyncApiDocument.version(); }
+
   public getTitle(): string { return this.asyncApiDocument.info().title(); }
 
   public getVersion(): string { return this.asyncApiDocument.info().version(); }
+
+  public getDescription(): string { 
+    const descr: string | null = this.asyncApiDocument.info().description();
+    if(descr) return descr;
+    return '';
+  }
 
   public getApplicationDomainName(): string { return this.applicationDomainName; }
 

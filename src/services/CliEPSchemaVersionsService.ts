@@ -1,4 +1,4 @@
-import { CliEPApiError } from '../CliError';
+import { CliEPApiContentError } from '../CliError';
 import { CliLogger, ECliStatusCodes } from '../CliLogger';
 import CliSemVerUtils from '../CliSemVerUtils';
 import { SchemasService, SchemaVersion, SchemaVersionResponse, StatesResponse, StatesService } from '../_generated/@solace-iot-team/sep-openapi-node';
@@ -43,7 +43,7 @@ class CliEPSchemaVersionsService {
 
     let latest: string = '0.0.0';
     for(const schemaVersion of schemaVersionList) {
-      if(schemaVersion.version === undefined) throw new CliEPApiError(logName, 'schemaVersion.version === undefined', {
+      if(schemaVersion.version === undefined) throw new CliEPApiContentError(logName, 'schemaVersion.version === undefined', {
         schemaVersion: schemaVersion
       });
       const newVersion: string = schemaVersion.version;
@@ -66,7 +66,7 @@ class CliEPSchemaVersionsService {
 
     const schemaVersionList: Array<SchemaVersion> = await this.getSchemaVersions({ schemaId: schemaId });
     const found: SchemaVersion | undefined = schemaVersionList.find( (schemaVersion: SchemaVersion ) => {
-      if(schemaVersion.version === undefined) throw new CliEPApiError(logName, 'schemaVersion.version === undefined', {
+      if(schemaVersion.version === undefined) throw new CliEPApiContentError(logName, 'schemaVersion.version === undefined', {
         schemaVersion: schemaVersion
       });
       return schemaVersion.version === schemaVersionString;

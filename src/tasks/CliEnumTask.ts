@@ -1,4 +1,4 @@
-import { CliEPApiError, CliError } from "../CliError";
+import { CliEPApiContentError, CliError } from "../CliError";
 import { CliLogger, ECliStatusCodes } from "../CliLogger";
 import { CliTask, ICliTaskKeys, ICliGetFuncReturn, ICliTaskConfig, ICliCreateFuncReturn, ICliTaskExecuteReturn, ICliUpdateFuncReturn } from "./CliTask";
 import { 
@@ -136,7 +136,7 @@ export class CliEnumTask extends CliTask {
       enumResponse: enumResponse
     }}));
 
-    if(enumResponse.data === undefined) throw new CliEPApiError(logName, 'enumResponse.data === undefined', {
+    if(enumResponse.data === undefined) throw new CliEPApiContentError(logName, 'enumResponse.data === undefined', {
       enumResponse: enumResponse
     });
 
@@ -163,7 +163,7 @@ export class CliEnumTask extends CliTask {
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_UPDATE, details: {
       document: update
     }}));
-    if(cliGetFuncReturn.enumObject.id === undefined) throw new CliEPApiError(logName, 'cliGetFuncReturn.enumObject.id === undefined', {
+    if(cliGetFuncReturn.enumObject.id === undefined) throw new CliEPApiContentError(logName, 'cliGetFuncReturn.enumObject.id === undefined', {
       enumObject: cliGetFuncReturn.enumObject
     });
     const enumResponse: EnumResponse = await EnumsService.updateEnum({
@@ -173,7 +173,7 @@ export class CliEnumTask extends CliTask {
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_UPDATE, details: {
       enumResponse: enumResponse
     }}));
-    if(enumResponse.data === undefined) throw new CliEPApiError(logName, 'enumResponse.data === undefined', {
+    if(enumResponse.data === undefined) throw new CliEPApiContentError(logName, 'enumResponse.data === undefined', {
       enumResponse: enumResponse
     });
     const cliEnumTask_UpdateFuncReturn: ICliEnumTask_UpdateFuncReturn = {

@@ -1,4 +1,4 @@
-import { CliEPApiError, CliError } from "../CliError";
+import { CliEPApiContentError, CliError } from "../CliError";
 import { CliLogger, ECliStatusCodes } from "../CliLogger";
 import { CliTask, ICliTaskKeys, ICliGetFuncReturn, ICliTaskConfig, ICliCreateFuncReturn, ICliTaskExecuteReturn, ICliUpdateFuncReturn } from "./CliTask";
 import { 
@@ -135,7 +135,7 @@ export class CliEventApiTask extends CliTask {
       eventApiResponse: eventApiResponse
     }}));
 
-    if(eventApiResponse.data === undefined) throw new CliEPApiError(logName, 'eventApiResponse.data === undefined', {
+    if(eventApiResponse.data === undefined) throw new CliEPApiContentError(logName, 'eventApiResponse.data === undefined', {
       eventApiResponse: eventApiResponse
     });
 
@@ -162,7 +162,7 @@ export class CliEventApiTask extends CliTask {
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_UPDATE, details: {
       document: update
     }}));
-    if(cliGetFuncReturn.eventApiObject.id === undefined) throw new CliEPApiError(logName, 'cliGetFuncReturn.eventApiObject.id === undefined', {
+    if(cliGetFuncReturn.eventApiObject.id === undefined) throw new CliEPApiContentError(logName, 'cliGetFuncReturn.eventApiObject.id === undefined', {
       eventApiObject: cliGetFuncReturn.eventApiObject
     });
     const eventApiResponse: EventApiResponse = await EventApIsService.update3({
@@ -172,7 +172,7 @@ export class CliEventApiTask extends CliTask {
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_UPDATE, details: {
       eventApiResponse: eventApiResponse
     }}));
-    if(eventApiResponse.data === undefined) throw new CliEPApiError(logName, 'eventApiResponse.data === undefined', {
+    if(eventApiResponse.data === undefined) throw new CliEPApiContentError(logName, 'eventApiResponse.data === undefined', {
       eventApiResponse: eventApiResponse
     });
     const cliEventApiTask_UpdateFuncReturn: ICliEventApiTask_UpdateFuncReturn = {

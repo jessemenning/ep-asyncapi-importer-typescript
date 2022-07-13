@@ -3,7 +3,6 @@ import { AbstractMethodError, EPApiResponseApiError } from '../CliError';
 import { CliLogger, ECliStatusCodes } from '../CliLogger';
 import { CliUtils } from '../CliUtils';
 import { ApiError } from '../_generated/@solace-iot-team/sep-openapi-node';
-import { CliAsyncApiDocument } from '../documents/CliAsyncApiDocument';
 
 export enum ECliTaskState {
   PRESENT = "PRESENT",

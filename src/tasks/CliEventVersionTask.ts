@@ -1,4 +1,4 @@
-import { CliEPApiError, CliError } from "../CliError";
+import { CliEPApiContentError, CliError } from "../CliError";
 import { CliLogger, ECliStatusCodes } from "../CliLogger";
 import { CliTask, ICliTaskKeys, ICliGetFuncReturn, ICliTaskConfig, ICliCreateFuncReturn, ICliTaskExecuteReturn, ICliUpdateFuncReturn } from "./CliTask";
 import { 
@@ -182,12 +182,12 @@ export class CliEventVersionTask extends CliTask {
       eventVersionResponse: eventVersionResponse
     }}));
 
-    if(eventVersionResponse.data === undefined) throw new CliEPApiError(logName, 'eventVersionResponse.data === undefined', {
+    if(eventVersionResponse.data === undefined) throw new CliEPApiContentError(logName, 'eventVersionResponse.data === undefined', {
       eventVersionResponse: eventVersionResponse
     });
     const createdEventVersion: EventVersion = eventVersionResponse.data;
 
-    if(createdEventVersion.id === undefined || createdEventVersion.stateId === undefined) throw new CliEPApiError(logName, 'createdEventVersion.id === undefined || createdSchemaVersion.stateId === undefined', {
+    if(createdEventVersion.id === undefined || createdEventVersion.stateId === undefined) throw new CliEPApiContentError(logName, 'createdEventVersion.id === undefined || createdSchemaVersion.stateId === undefined', {
       createdEventVersion: createdEventVersion
     });
     // check the target lifecycle state
@@ -203,7 +203,7 @@ export class CliEventVersionTask extends CliTask {
         eventId: eventId,
         eventVersionString: this.newVersionString
       });
-      if(updatedEventVersion === undefined) throw new CliEPApiError(logName, 'updatedEventVersion === undefined', {
+      if(updatedEventVersion === undefined) throw new CliEPApiContentError(logName, 'updatedEventVersion === undefined', {
         updatedEventVersion: updatedEventVersion
       });
       return updatedEventVersion;

@@ -1,17 +1,22 @@
 import { Validator, ValidatorResult } from 'jsonschema';
 import CliConfig from '../CliConfig';
 
-import { AsyncApiSpecEPValidationError, CliEPApiError } from '../CliError';
+import { AsyncApiSpecEPValidationError, CliEPApiContentError, CliError, CliImporterError } from '../CliError';
 import { CliLogger, ECliStatusCodes } from '../CliLogger';
 import CliSemVerUtils from '../CliSemVerUtils';
-import { CliAsyncApiDocument } from '../documents/CliAsyncApiDocument';
+import { CliAsyncApiDocument, CliChannelDocumentMap } from '../documents/CliAsyncApiDocument';
+import { CliChannelPublishOperation, CliChannelSubscribeOperation } from '../documents/CliChannelDocument';
+import { CliMessageDocument } from '../documents/CliMessageDocument';
 import { 
   $eventApiVersion, 
   EventApIsService, 
   eventApiVersion as EventApiVersion, 
-  EventApiVersionsResponse
+  EventApiVersionResponse, 
+  EventApiVersionsResponse,
+  EventVersion
 } from '../_generated/@solace-iot-team/sep-openapi-node';
 import CliAsyncApiDocumentsService from './CliAsyncApiDocumentsService';
+import CliEPEventVersionsService from './CliEPEventVersionsService';
 
 
 class CliEPEventApiVersionsService {
@@ -69,7 +74,7 @@ class CliEPEventApiVersionsService {
 
     let latest: string = '0.0.0';
     for(const eventApiVersion of eventApiVersionList) {
-      if(eventApiVersion.version === undefined) throw new CliEPApiError(logName, 'eventApiVersion.version === undefined', {
+      if(eventApiVersion.version === undefined) throw new CliEPApiContentError(logName, 'eventApiVersion.version === undefined', {
         eventApiVersion: eventApiVersion
       });
       const newVersion: string = eventApiVersion.version;
@@ -98,7 +103,7 @@ class CliEPEventApiVersionsService {
     let latestEventApiVersion: EventApiVersion | undefined = undefined;
     let latestVersion: string = '0.0.0';
     for(const eventApiVersion of eventApiVersionList) {
-      if(eventApiVersion.version === undefined) throw new CliEPApiError(logName, 'eventApiVersion.version === undefined', {
+      if(eventApiVersion.version === undefined) throw new CliEPApiContentError(logName, 'eventApiVersion.version === undefined', {
         eventApiVersion: eventApiVersion
       });
 
@@ -123,7 +128,7 @@ class CliEPEventApiVersionsService {
 
     const eventApiVersionList: Array<EventApiVersion> = await this.getVersions({ eventApiId: eventApiId });
     const found: EventApiVersion | undefined = eventApiVersionList.find( (eventApiVersion: EventApiVersion ) => {
-      if(eventApiVersion.version === undefined) throw new CliEPApiError(logName, 'eventApiVersion.version === undefined', {
+      if(eventApiVersion.version === undefined) throw new CliEPApiContentError(logName, 'eventApiVersion.version === undefined', {
         eventApiVersion: eventApiVersion
       });
       return eventApiVersion.version === versionString;
@@ -150,9 +155,102 @@ class CliEPEventApiVersionsService {
       anySpec: anySpec,
       appConfig: CliConfig.getCliAppConfig()
     });
-
     return cliAsyncApiDocument;
+  }
 
+  public createNewEventApiVersion = async({ applicationDomainId, eventApiId, cliAsyncApiDocument, stateId }:{
+    applicationDomainId: string;
+    eventApiId: string;
+    stateId: string;
+    cliAsyncApiDocument: CliAsyncApiDocument;
+  }): Promise<EventApiVersion> => {
+    const funcName = 'createNewVersion';
+    const logName = `${CliEPEventApiVersionsService.name}.${funcName}()`;
+
+    applicationDomainId;
+    const newVersion: string = cliAsyncApiDocument.getVersion();
+    const latestExistingVersion: string | undefined = await this.getLastestVersionString({ eventApiId: eventApiId });
+    if(latestExistingVersion !== undefined) {
+      // ensure new Version is greater
+      if(!CliSemVerUtils.is_NewVersion_GreaterThan_OldVersion({ newVersion: newVersion, oldVersion: latestExistingVersion })) {
+        throw new CliImporterError(logName, 'new version is not greater than existing version', {
+          title: cliAsyncApiDocument.getTitle(),
+          newVersion: newVersion,
+          latestExistingVersion: latestExistingVersion,
+        });
+      }
+    }
+    // collect all publish event version Ids
+    const publishEventVersionIds: Array<string> = [];
+    const subscribeEventVersionIds: Array<string> = [];
+    const cliChannelDocumentMap: CliChannelDocumentMap = cliAsyncApiDocument.getChannelDocuments();
+    for(let [topic, cliChannelDocument] of cliChannelDocumentMap) {
+      // collect all publish event version Ids
+      const cliChannelPublishOperation: CliChannelPublishOperation | undefined = cliChannelDocument.getChannelPublishOperation();
+      if(cliChannelPublishOperation !== undefined) {
+        const cliMessageDocument: CliMessageDocument = cliChannelPublishOperation.getCliMessageDocument();
+        const eventName: string = cliMessageDocument.getDisplayName();
+        const eventVersion: EventVersion | undefined = await CliEPEventVersionsService.getLastestVersionByName({
+          applicationDomainId: applicationDomainId,
+          eventName: eventName
+        });
+        if(eventVersion === undefined) throw new CliImporterError(logName, 'expecting the an eventVersion to exists', {
+          applicationDomainId: applicationDomainId,
+          eventName: eventName
+        });
+        if(eventVersion.id === undefined) throw new CliEPApiContentError(logName, 'eventVersion.id === undefined', {
+          eventVersion: eventVersion,
+        });
+        publishEventVersionIds.push(eventVersion.id);
+      }
+      //  collect all subscribe event version Ids
+      const cliChannelSubscribeOperation: CliChannelSubscribeOperation | undefined = cliChannelDocument.getChannelSubscribeOperation();
+      if(cliChannelSubscribeOperation !== undefined) {
+        const cliMessageDocument: CliMessageDocument = cliChannelSubscribeOperation.getCliMessageDocument();
+        const eventName: string = cliMessageDocument.getDisplayName();
+        const eventVersion: EventVersion | undefined = await CliEPEventVersionsService.getLastestVersionByName({
+          applicationDomainId: applicationDomainId,
+          eventName: eventName
+        });
+        if(eventVersion === undefined) throw new CliImporterError(logName, 'expecting the an eventVersion to exists', {
+          applicationDomainId: applicationDomainId,
+          eventName: eventName
+        });
+        if(eventVersion.id === undefined) throw new CliEPApiContentError(logName, 'eventVersion.id === undefined', {
+          eventVersion: eventVersion,
+        });
+        subscribeEventVersionIds.push(eventVersion.id);
+      }
+    }
+    throw new Error(`${logName}: continue here once EP API is complete`);
+    stateId;
+    // // create the version object
+    // const create: EventApiVersion = {
+    //   description: cliAsyncApiDocument.getDescription(),
+    //   version: cliAsyncApiDocument.getVersion(),
+    //   displayName: cliAsyncApiDocument.getTitle(),
+    //   stateId: stateId,
+    //   // TODO: wait for API
+    //   // producedEventVersionIds: publishEventVersionIds,
+    //   // consumedEventVersionIds: subscribeEventVersionIds,
+    // }
+    // const eventApiVersionResponse: EventApiVersionResponse = await EventApIsService.create5({
+    //   eventApiId: eventApiId,
+    //   requestBody: create
+    // });
+    // CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.SERVICE_CREATE, details: {
+    //   eventApiVersionResponse: eventApiVersionResponse
+    // }}));
+
+    // if(eventApiVersionResponse.data === undefined) throw new CliEPApiContentError(logName, 'eventApiVersionResponse.data === undefined', {
+    //   eventApiVersionResponse: eventApiVersionResponse
+    // });
+
+    // const created: EventApiVersion = eventApiVersionResponse.data;
+    // CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.SERVICE_CREATE, details: {
+    //   created: created
+    // }}));
+    // return created;
   }
 }
 

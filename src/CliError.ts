@@ -50,21 +50,6 @@ export class CliError extends Error {
   }
 }
 
-// export class ServerFatalError extends ServerError {
-//   private originalError: {
-//     name: string,
-//     errors: any,
-//     status: number
-//   }
-//   constructor(originalError: any, internalLogName: string) {
-//     super(internalLogName, originalError.message);
-//     this.originalError = {
-//       name: originalError.name,
-//       errors: originalError.errors || [{ message: originalError.message }],
-//       status: originalError.status
-//     }
-//   }
-// }
 export class CliErrorFromError extends CliError {
   private originalError: {
     name: string,
@@ -157,7 +142,8 @@ export class AbstractMethodError extends CliError {
   }
 }
 
-export class CliEPApiError extends CliError {
+export class CliEPApiContentError extends CliError {
+  protected static apiDefaultDescription = 'EP Api Content Error';
   private details: any;
   constructor(internalLogName: string, message: string, details: any) {
     super(internalLogName, message);
@@ -174,3 +160,11 @@ export class EPApiResponseApiError extends CliError {
   }
 }
 
+export class CliImporterError extends CliError {
+  protected static apiDefaultDescription = 'Importer Error';
+  private details: any;
+  constructor(internalLogName: string, message: string, details: any) {
+    super(internalLogName, message);
+    this.details = details;
+  }
+}

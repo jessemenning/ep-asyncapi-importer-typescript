@@ -1,5 +1,5 @@
 import CliConfig from "../CliConfig";
-import { CliEPApiError, CliError } from "../CliError";
+import { CliEPApiContentError, CliError } from "../CliError";
 import { CliLogger, ECliStatusCodes } from "../CliLogger";
 import { CliTask, ICliTaskKeys, ICliGetFuncReturn, ICliTaskConfig, ICliCreateFuncReturn, ICliTaskExecuteReturn, ICliUpdateFuncReturn } from "./CliTask";
 import { ApplicationDomain, ApplicationDomainResponse, ApplicationDomainsResponse, ApplicationDomainsService } from "../_generated/@solace-iot-team/sep-openapi-node";
@@ -133,7 +133,7 @@ export class CliApplicationDomainTask extends CliTask {
       applicationDomainResponse: applicationDomainResponse
     }}));
 
-    if(applicationDomainResponse.data === undefined) throw new CliEPApiError(logName, 'applicationDomainResponse.data === undefined', {
+    if(applicationDomainResponse.data === undefined) throw new CliEPApiContentError(logName, 'applicationDomainResponse.data === undefined', {
       applicationDomainResponse: applicationDomainResponse
     });
     return {
@@ -155,7 +155,7 @@ export class CliApplicationDomainTask extends CliTask {
       document: update
     }}));
 
-    if(cliGetFuncReturn.applicationDomainObject.id === undefined) throw new CliEPApiError(logName, 'cliGetFuncReturn.applicationDomainObject.id === undefined', {
+    if(cliGetFuncReturn.applicationDomainObject.id === undefined) throw new CliEPApiContentError(logName, 'cliGetFuncReturn.applicationDomainObject.id === undefined', {
       applicationDomainObject: cliGetFuncReturn.applicationDomainObject
     });
     const applicationDomainResponse: ApplicationDomainResponse = await ApplicationDomainsService.update8({
@@ -167,7 +167,7 @@ export class CliApplicationDomainTask extends CliTask {
       applicationDomainResponse: applicationDomainResponse
     }}));
 
-    if(applicationDomainResponse.data === undefined) throw new CliEPApiError(logName, 'applicationDomainResponse.data === undefined', {
+    if(applicationDomainResponse.data === undefined) throw new CliEPApiContentError(logName, 'applicationDomainResponse.data === undefined', {
       applicationDomainResponse: applicationDomainResponse
     });
     const cliApplicationDomainTask_UpdateFuncReturn: ICliApplicationDomainTask_UpdateFuncReturn = {

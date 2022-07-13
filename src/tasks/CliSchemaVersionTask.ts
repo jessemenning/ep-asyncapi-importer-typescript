@@ -1,11 +1,10 @@
-import { CliEPApiError, CliError } from "../CliError";
+import { CliEPApiContentError, CliError } from "../CliError";
 import { CliLogger, ECliStatusCodes } from "../CliLogger";
 import { CliTask, ICliTaskKeys, ICliGetFuncReturn, ICliTaskConfig, ICliCreateFuncReturn, ICliTaskExecuteReturn, ICliUpdateFuncReturn } from "./CliTask";
 import { SchemasService, SchemaVersion, SchemaVersionResponse, VersionedObjectStateChangeRequest } from "../_generated/@solace-iot-team/sep-openapi-node";
 import CliEPSchemaVersionsService from "../services/CliEPSchemaVersionsService";
 import isEqual from "lodash.isequal";
-import CliEPStatesService from "../services/CliEPStatesService";
-import CliConfig, { ECliAssetImportTargetLifecycleState_VersionStrategy } from "../CliConfig";
+import CliConfig from "../CliConfig";
 import CliSemVerUtils from "../CliSemVerUtils";
 
 type TCliSchemaVersionTask_Settings = Required<Pick<SchemaVersion, "description" | "displayName" | "content" | "stateId">>;
@@ -144,12 +143,12 @@ export class CliSchemaVersionTask extends CliTask {
       schemaVersionResponse: schemaVersionResponse
     }}));
 
-    if(schemaVersionResponse.data === undefined) throw new CliEPApiError(logName, 'schemaVersionResponse.data === undefined', {
+    if(schemaVersionResponse.data === undefined) throw new CliEPApiContentError(logName, 'schemaVersionResponse.data === undefined', {
       schemaVersionResponse: schemaVersionResponse
     });
     const createdSchemaVersion: SchemaVersion = schemaVersionResponse.data;
 
-    if(createdSchemaVersion.id === undefined || createdSchemaVersion.stateId === undefined) throw new CliEPApiError(logName, 'createdSchemaVersion.id === undefined || createdSchemaVersion.stateId === undefined', {
+    if(createdSchemaVersion.id === undefined || createdSchemaVersion.stateId === undefined) throw new CliEPApiContentError(logName, 'createdSchemaVersion.id === undefined || createdSchemaVersion.stateId === undefined', {
       createdSchemaVersion: createdSchemaVersion
     });
     // check the target lifecycle state
@@ -165,7 +164,7 @@ export class CliSchemaVersionTask extends CliTask {
         schemaId: schemaId,
         schemaVersionString: this.newVersionString
       });
-      if(updatedSchemaVersion === undefined) throw new CliEPApiError(logName, 'updatedSchemaVersion === undefined', {
+      if(updatedSchemaVersion === undefined) throw new CliEPApiContentError(logName, 'updatedSchemaVersion === undefined', {
         updatedSchemaVersion: updatedSchemaVersion
       });
       return updatedSchemaVersion;
