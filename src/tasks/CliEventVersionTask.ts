@@ -6,6 +6,7 @@ import { CliTask, ICliTaskKeys, ICliGetFuncReturn, ICliTaskConfig, ICliCreateFun
 import { 
   Address, 
   AddressLevel, 
+  EnumVersion, 
   EventsService, 
   EventVersion, 
   EventVersionResponse, 
@@ -15,6 +16,7 @@ import {
 import CliConfig from "../CliConfig";
 import CliSemVerUtils from "../CliSemVerUtils";
 import CliEPEventVersionsService from "../services/CliEPEventVersionsService";
+import CliEPEnumVersionsService from "../services/CliEPEnumVersionsService";
 
 type TCliEventVersionTask_Settings = Required<Pick<EventVersion, "description" | "displayName" | "stateId" | "schemaVersionId">>;
 type TCliEventVersionTask_CompareObject = Partial<TCliEventVersionTask_Settings> & Pick<EventVersion, "deliveryDescriptor">;
@@ -23,6 +25,7 @@ export interface ICliEventVersionTask_Config extends ICliTaskConfig {
   eventId: string;
   channelTopic: string;
   baseVersionString: string;
+  applicationDomainId: string;
   eventVersionSettings: TCliEventVersionTask_Settings;
 }
 export interface ICliEventVersionTask_Keys extends ICliTaskKeys {
@@ -43,6 +46,7 @@ export interface ICliEventVersionTask_ExecuteReturn extends ICliTaskExecuteRetur
 
 export class CliEventVersionTask extends CliTask {
   private newVersionString: string;
+  private topicAddressLevelList: Array<AddressLevel> = [];
 
   private readonly Empty_ICliEventVersionTask_GetFuncReturn: ICliEventVersionTask_GetFuncReturn = {
     documentExists: false,
@@ -54,20 +58,35 @@ export class CliEventVersionTask extends CliTask {
   }
 
   private getCliTaskConfig(): ICliEventVersionTask_Config { return this.cliTaskConfig as ICliEventVersionTask_Config; }
-  
-  private createTopicAddressLevels(channelTopic: string): Array<AddressLevel> {
+
+  private initializeTopicAddressLevels = async({ channelTopic }:{
+    channelTopic: string;
+  }): Promise<Array<AddressLevel>> => {
+    const funcName = 'initializeTopicAddressLevels';
+    const logName = `${CliEventVersionTask.name}.${funcName}()`;
+
     const addressLevels: Array<AddressLevel> = [];
-    channelTopic.split("/").map( (level: string) => {
+    
+    const topicLevelList: Array<string> = channelTopic.split("/");
+    for(let topicLevel of topicLevelList) {
       let type = AddressLevel.addressLevelType.LITERAL;
-      if(level.includes("{")) {
-        level = level.replace('}', '').replace('{', '');
+      let enumVersionId: string | undefined = undefined;
+      if(topicLevel.includes("{")) {
+        topicLevel = topicLevel.replace('}', '').replace('{', '');
         type = AddressLevel.addressLevelType.VARIABLE;
+        // get the enumVersionId if it exists
+        const enumVersion: EnumVersion | undefined = await CliEPEnumVersionsService.getLastestEnumVersionByName({ 
+          enumName: topicLevel, 
+          applicationDomainId: this.getCliTaskConfig().applicationDomainId        
+        });
+        if(enumVersion !== undefined) enumVersionId = enumVersion.id;
       }
       addressLevels.push({
-        name: level,
+        name: topicLevel,
         addressLevelType: type,
+        enumVersionId: enumVersionId
       });
-    });
+    }
     return addressLevels;
   }
   
@@ -78,11 +97,15 @@ export class CliEventVersionTask extends CliTask {
       deliveryDescriptor: {
         brokerType: "solace",
         address: {
-          addressLevels: this.createTopicAddressLevels(this.getCliTaskConfig().channelTopic),
+          addressLevels: this.topicAddressLevelList,
           addressType: Address.addressType.TOPIC,
         }
       }
     };
+  }
+
+  protected async initializeTask(): Promise<void> {
+    this.topicAddressLevelList = await this.initializeTopicAddressLevels({ channelTopic: this.getCliTaskConfig().channelTopic });
   }
 
   constructor(taskConfig: ICliEventVersionTask_Config) {

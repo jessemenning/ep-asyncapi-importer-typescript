@@ -88,6 +88,10 @@ export abstract class CliTask {
     };
   }
 
+  protected async initializeTask(): Promise<void> {
+    // do nothing, override in derived class
+  }
+
   protected async execute(): Promise<ICliTaskExecuteReturn> { 
     const funcName = 'execute';
     const logName = `${CliTask.name}.${funcName}()`;
@@ -95,6 +99,7 @@ export abstract class CliTask {
     try {
       CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK, details: "starting ..." }));
 
+      const xvoid: void = await this.initializeTask();
       // CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK, details: {
       //   asyncApiDocument: this.cliTaskConfig.cliAsyncApiDocument.getLogInfo()
       // }}));

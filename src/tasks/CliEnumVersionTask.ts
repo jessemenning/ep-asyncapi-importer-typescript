@@ -3,6 +3,7 @@ import { CliEPApiContentError, CliError } from "../CliError";
 import { CliLogger, ECliStatusCodes } from "../CliLogger";
 import { CliTask, ICliTaskKeys, ICliGetFuncReturn, ICliTaskConfig, ICliCreateFuncReturn, ICliTaskExecuteReturn, ICliUpdateFuncReturn } from "./CliTask";
 import { 
+  Enum,
   EnumsService, 
   EnumValue, 
   EnumVersion, 
@@ -115,6 +116,19 @@ export class CliEnumVersionTask extends CliTask {
     return cliEnumVersionTask_GetFuncReturn;
   };
 
+  private createCompareEnumValueList_From_SEP({ sepValueList}:{
+    sepValueList?: Array<EnumValue>;
+  }): Array<EnumValue> {
+    if(sepValueList === undefined) return [];
+    return sepValueList.map( (sepEnumValue: EnumValue) => {
+      return {
+        label: sepEnumValue.label,
+        value: sepEnumValue.value
+      }
+    });
+  }
+
+
   protected isUpdateRequired({ cliGetFuncReturn}: { 
     cliGetFuncReturn: ICliEnumVersionTask_GetFuncReturn; 
   }): boolean {
@@ -128,7 +142,7 @@ export class CliEnumVersionTask extends CliTask {
       description: existingObject.description,
       displayName: existingObject.displayName,
       stateId: existingObject.stateId,
-      values: existingObject.values
+      values: this.createCompareEnumValueList_From_SEP({ sepValueList: existingObject.values })
     };
     const requestedCompareObject: TCliEnumVersionTask_CompareObject = this.createObjectSettings();
     isUpdateRequired = !_.isEqual(existingCompareObject, requestedCompareObject);
@@ -137,7 +151,8 @@ export class CliEnumVersionTask extends CliTask {
       requestedCompareObject: requestedCompareObject,
       isUpdateRequired: isUpdateRequired
     }}));
-    if(isUpdateRequired) throw new Error(`${logName}: check updates requiired`);
+    // if(isUpdateRequired) throw new Error(`${logName}: check updates requiired`);
+    // throw new Error(`${logName}: check updates required result, isUpdateRequired=${isUpdateRequired}`);
     return isUpdateRequired;
   }
 
