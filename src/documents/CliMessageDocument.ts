@@ -1,4 +1,5 @@
 import { Message, Schema } from '@asyncapi/parser';
+import { E_ASYNC_API_SPEC_CONTENNT_TYPES } from './CliAsyncApiDocument';
 
 enum E_EP_Message_Extensions {
 };
@@ -12,8 +13,9 @@ export class CliMessageDocument {
 
   public getMessage(): Message { return this.asyncApiMessage; }
 
-  public getContentType(): string {
-    return this.asyncApiMessage.contentType();
+  public getContentType(): E_ASYNC_API_SPEC_CONTENNT_TYPES {
+    const contentType: string = this.asyncApiMessage.contentType();
+    return  contentType as E_ASYNC_API_SPEC_CONTENNT_TYPES;
   }
 
   public getPayloadSchema(): Schema {
@@ -36,5 +38,22 @@ export class CliMessageDocument {
   public getDisplayName(): string {
     return this.asyncApiMessage.name();
   }
+
+  public getSchemaFileName(): string {
+    if(this.getContentType() === E_ASYNC_API_SPEC_CONTENNT_TYPES.APPLICATION_JSON) return `${this.getDisplayName()}.${"json"}`;
+    return `${this.getDisplayName()}.${"xxx"}`
+  }
+
+  public getSchemaAsSanitizedJson(): any {
+    const schema: Schema = this.asyncApiMessage.payload();
+    const sanitized = JSON.parse(JSON.stringify(schema.json(), (k,v) => {
+      if(k.startsWith("x-parser")) return undefined;
+      return v;
+    }));
+
+    return sanitized;
+  }
+
+
 
 }

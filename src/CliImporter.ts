@@ -1,11 +1,11 @@
 import { CliLogger, ECliStatusCodes } from './CliLogger';
 import CliConfig, { ECliAssetsTargetState, TCliAppConfig } from './CliConfig';
-import { CliAsyncApiDocument, CliChannelDocumentMap, CliChannelParameterDocumentMap } from './documents/CliAsyncApiDocument';
+import { CliAsyncApiDocument, CliChannelDocumentMap, CliChannelParameterDocumentMap, E_ASYNC_API_SPEC_CONTENNT_TYPES } from './documents/CliAsyncApiDocument';
 import { ECliTaskState } from './tasks/CliTask';
 import { CliApplicationDomainTask, ICliApplicationDomainTask_ExecuteReturn } from './tasks/CliApplicationDomainTask';
 import CliEPStatesService from './services/CliEPStatesService';
 import { CliUtils } from './CliUtils';
-import { AsyncApiSpecBestPracticesError, CliEPApiContentError, CliError, CliErrorFromError } from './CliError';
+import { AsyncApiSpecBestPracticesError, AsyncApiSpecNotSupportedError, CliEPApiContentError, CliError, CliErrorFromError } from './CliError';
 import { CliSchemaTask, EPSchemaType, ICliSchemaTask_ExecuteReturn } from './tasks/CliSchemaTask';
 import { 
   SchemaObject, 
@@ -515,9 +515,44 @@ export class CliImporter {
       content: cliAsyncApiDocument.getSpecAsSanitizedYamlString()
     });
     // save all channel message schemas to files
+    const cliChannelDocumentMap: CliChannelDocumentMap = cliAsyncApiDocument.getChannelDocuments();
+    for(let [topic, channelDocument] of cliChannelDocumentMap) {
+      const cliChannelPublishOperation: CliChannelPublishOperation | undefined = channelDocument.getChannelPublishOperation();
+      if(cliChannelPublishOperation !== undefined) {
+        const cliMessageDocument: CliMessageDocument = cliChannelPublishOperation.getCliMessageDocument();
+        if(cliMessageDocument.getContentType() !== E_ASYNC_API_SPEC_CONTENNT_TYPES.APPLICATION_JSON) throw new AsyncApiSpecNotSupportedError(logName, undefined, { message: "unsupported message schema content type" }, {
+          messageName: cliMessageDocument.getDisplayName(),
+          contentType: cliMessageDocument.getContentType(),
+          supportedContentTypes: cliAsyncApiDocument.getSupportedContentTypes()
+        });
 
-    // TODOxxxx
+        const schemaFilePath = schemasDir + "/" + cliMessageDocument.getSchemaFileName();
+        CliUtils.saveContents2File({ 
+          filePath: schemaFilePath,
+          content: JSON.stringify(cliMessageDocument.getSchemaAsSanitizedJson(), null, 2)
+        });
+    
+      }
+      const cliChannelSubscribeOperation: CliChannelSubscribeOperation | undefined = channelDocument.getChannelSubscribeOperation();
+      if(cliChannelSubscribeOperation !== undefined) {
+        const cliMessageDocument: CliMessageDocument = cliChannelSubscribeOperation.getCliMessageDocument();
+        if(cliMessageDocument.getContentType() !== E_ASYNC_API_SPEC_CONTENNT_TYPES.APPLICATION_JSON) throw new AsyncApiSpecNotSupportedError(logName, undefined, { message: "unsupported message schema content type" }, {
+          messageName: cliMessageDocument.getDisplayName(),
+          contentType: cliMessageDocument.getContentType(),
+          supportedContentTypes: cliAsyncApiDocument.getSupportedContentTypes()
+        });
 
+        const schemaFilePath = schemasDir + "/" + cliMessageDocument.getSchemaFileName();
+        CliUtils.saveContents2File({ 
+          filePath: schemaFilePath,
+          content: JSON.stringify(cliMessageDocument.getSchemaAsSanitizedJson(), null, 2)
+        });
+    
+      }
+
+    }
+
+   
   }
 
   private run_present = async({ cliAsyncApiDocument }:{
@@ -556,14 +591,14 @@ export class CliImporter {
 
     // present all channels
     const channelDocumentMap: CliChannelDocumentMap = cliAsyncApiDocument.getChannelDocuments();
-    for(let [key, channelDocument] of channelDocumentMap) {
+    for(let [topic, channelDocument] of channelDocumentMap) {
       CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
-        key: key,
+        topic: topic,
         channelDocument: channelDocument
       }}));
       xvoid = await this.run_present_channel({
         applicationDomainId: applicationDomainId,
-        channelTopic: key,
+        channelTopic: topic,
         channelDocument: channelDocument,
         specVersion: cliAsyncApiDocument.getVersion(),
       });

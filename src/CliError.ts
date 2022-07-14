@@ -134,6 +134,18 @@ export class AsyncApiSpecEPValidationError extends CliError {
   }
 }
 
+export class AsyncApiSpecNotSupportedError extends CliError {
+  protected static defaultDescription = 'Async API Spec - Feature not supported';
+  private error: any;
+  private featureDescription: any;
+  constructor(internalLogName: string, internalMessage: string = AsyncApiSpecNotSupportedError.defaultDescription, error: any, featureDescription: any, ) {
+    super(internalLogName, internalMessage);
+    this.error = error;
+    this.featureDescription = featureDescription;
+  }
+
+}
+
 export class AsyncApiSpecXtensionError extends CliError {
   private xtension: any;
   constructor(internalLogName: string, internalMessage: string, xtension: string) {

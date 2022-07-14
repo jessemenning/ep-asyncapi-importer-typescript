@@ -13,6 +13,10 @@ enum E_EP_Extensions {
   X_APPLICATION_DOMAIN_NAME = "x-sep-application-domain-name",
 };
 
+export enum E_ASYNC_API_SPEC_CONTENNT_TYPES {
+  APPLICATION_JSON = "application/json"
+}
+
 export type CliMessageDocumentMap = Map<string, CliMessageDocument>;
 export type CliChannelDocumentMap = Map<string, CliChannelDocument>;
 export type CliChannelParameterDocumentMap = Map<string, CliChannelParameterDocument>;
@@ -68,44 +72,7 @@ export class CliAsyncApiDocument {
     // TODO
   }
 
-  public validate(): void {
-    this.validate_BestPractices();
-    this.validate_EP();
-  }
-  // /**
-  //  * Factory method
-  //  */
-  // public static createFromFile = async({ filePath, appConfig }:{
-  //   filePath: string;
-  //   appConfig: TCliAppConfig;
-  // }): Promise<CliAsyncApiDocument> => {
-  //   const apiSpecString: string = fs.readFileSync(filePath).toString();
-  //   const asyncApiDocument: AsyncAPIDocument = await parse(apiSpecString);
-  //   const cliAsyncApiDocument: CliAsyncApiDocument = new CliAsyncApiDocument(asyncApiDocument, appConfig);
-  //   // validate
-  //   cliAsyncApiDocument.validate();
-  //   return cliAsyncApiDocument;
-
-  //   // try {
-  //   // } catch(e: any) {
-  //   //   const errors = e.validationErrors ? `, Errors: ${JSON.stringify(e.validationErrors)}` : '';
-
-  //   //   return `${e.title}${errors}`;
-  //   // }
-
-
-  // }
-
-  // public static createFromAny = async({ anySpec, appConfig }:{
-  //   anySpec: any;
-  //   appConfig: TCliAppConfig;
-  // }): Promise<CliAsyncApiDocument> => {
-  //   const asyncApiDocument: AsyncAPIDocument = await parse(anySpec);
-  //   const cliAsyncApiDocument: CliAsyncApiDocument = new CliAsyncApiDocument(asyncApiDocument, appConfig);
-  //   cliAsyncApiDocument.validate();
-  //   return cliAsyncApiDocument;
-  // }
-
+  
   constructor(asyncApiDocument: AsyncAPIDocument, appConfig: TCliAppConfig) {
     this.asyncApiDocument = asyncApiDocument;
     this.asyncApiDocumentJson = this.getJSON(asyncApiDocument);
@@ -188,6 +155,15 @@ export class CliAsyncApiDocument {
     return allCliMessageDocumentMap;
   }
 
+  public getSupportedContentTypes(): Array<string> {
+    return Object.values(E_ASYNC_API_SPEC_CONTENNT_TYPES);
+  }
+
+  public validate(): void {
+    this.validate_BestPractices();
+    this.validate_EP();
+  }
+  
   public getLogInfo(): any {
     return {
       title: this.getTitle(),
