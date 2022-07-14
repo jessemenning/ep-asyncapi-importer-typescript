@@ -66,6 +66,15 @@ export class CliErrorFromError extends CliError {
   }
 }
 
+export class CliErrorFromSEPApiError extends CliError {
+  protected static defaultDescription = 'SEP Api Error';
+  private apiError: ApiError;
+  constructor(internalLogName: string, internalMessage: string = CliErrorFromSEPApiError.defaultDescription, apiError: ApiError) {
+    super(internalLogName, internalMessage);
+    this.apiError = apiError;
+  }
+}
+
 export class ConfigMissingEnvVarError extends CliError {
   private envVarName: string;
   constructor(internalLogName: string, internalMessage: string, envVarName: string) {

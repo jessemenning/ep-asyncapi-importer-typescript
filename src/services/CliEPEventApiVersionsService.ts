@@ -168,15 +168,15 @@ class CliEPEventApiVersionsService {
     const logName = `${CliEPEventApiVersionsService.name}.${funcName}()`;
 
     applicationDomainId;
-    const newVersion: string = cliAsyncApiDocument.getVersion();
-    const latestExistingVersion: string | undefined = await this.getLastestVersionString({ eventApiId: eventApiId });
-    if(latestExistingVersion !== undefined) {
+    const newVersionString: string = cliAsyncApiDocument.getVersion();
+    const latestExistingVersionString: string | undefined = await this.getLastestVersionString({ eventApiId: eventApiId });
+    if(latestExistingVersionString !== undefined) {
       // ensure new Version is greater
-      if(!CliSemVerUtils.is_NewVersion_GreaterThan_OldVersion({ newVersion: newVersion, oldVersion: latestExistingVersion })) {
+      if(!CliSemVerUtils.is_NewVersion_GreaterThan_OldVersion({ newVersion: newVersionString, oldVersion: latestExistingVersionString })) {
         throw new CliImporterError(logName, 'new version is not greater than existing version', {
           title: cliAsyncApiDocument.getTitle(),
-          newVersion: newVersion,
-          latestExistingVersion: latestExistingVersion,
+          newVersion: newVersionString,
+          latestExistingVersion: latestExistingVersionString,
         });
       }
     }
@@ -222,35 +222,32 @@ class CliEPEventApiVersionsService {
         subscribeEventVersionIds.push(eventVersion.id);
       }
     }
-    throw new Error(`${logName}: continue here once EP API is complete`);
-    stateId;
-    // // create the version object
-    // const create: EventApiVersion = {
-    //   description: cliAsyncApiDocument.getDescription(),
-    //   version: cliAsyncApiDocument.getVersion(),
-    //   displayName: cliAsyncApiDocument.getTitle(),
-    //   stateId: stateId,
-    //   // TODO: wait for API
-    //   // producedEventVersionIds: publishEventVersionIds,
-    //   // consumedEventVersionIds: subscribeEventVersionIds,
-    // }
-    // const eventApiVersionResponse: EventApiVersionResponse = await EventApIsService.create5({
-    //   eventApiId: eventApiId,
-    //   requestBody: create
-    // });
-    // CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.SERVICE_CREATE, details: {
-    //   eventApiVersionResponse: eventApiVersionResponse
-    // }}));
+    // create the version object
+    const create: EventApiVersion = {
+      description: cliAsyncApiDocument.getDescription(),
+      version: cliAsyncApiDocument.getVersion(),
+      displayName: cliAsyncApiDocument.getTitle(),
+      stateId: stateId,
+      producedEventVersionIds: (publishEventVersionIds as unknown) as EventApiVersion.producedEventVersionIds,
+      consumedEventVersionIds: (subscribeEventVersionIds as unknown) as EventApiVersion.consumedEventVersionIds,
+    }
+    const eventApiVersionResponse: EventApiVersionResponse = await EventApIsService.create5({
+      eventApiId: eventApiId,
+      requestBody: create
+    });
+    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.SERVICE_CREATE, details: {
+      eventApiVersionResponse: eventApiVersionResponse
+    }}));
 
-    // if(eventApiVersionResponse.data === undefined) throw new CliEPApiContentError(logName, 'eventApiVersionResponse.data === undefined', {
-    //   eventApiVersionResponse: eventApiVersionResponse
-    // });
+    if(eventApiVersionResponse.data === undefined) throw new CliEPApiContentError(logName, 'eventApiVersionResponse.data === undefined', {
+      eventApiVersionResponse: eventApiVersionResponse
+    });
 
-    // const created: EventApiVersion = eventApiVersionResponse.data;
-    // CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.SERVICE_CREATE, details: {
-    //   created: created
-    // }}));
-    // return created;
+    const created: EventApiVersion = eventApiVersionResponse.data;
+    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.SERVICE_CREATE, details: {
+      created: created
+    }}));
+    return created;
   }
 }
 
