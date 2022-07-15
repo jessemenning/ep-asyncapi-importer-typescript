@@ -415,8 +415,12 @@ export class CliImporter {
         description: cliAsyncApiDocument.getDescription(),
         displayName: cliAsyncApiDocument.getTitle(),
         stateId: CliEPStatesService.getTargetLifecycleState({assetImportTargetLifecycleState: CliConfig.getCliAppConfig().assetImportTargetLifecycleState}),
-        consumedEventVersionIds: subscribeEventVersionIds,
-        producedEventVersionIds: publishEventVersionIds
+
+        producedEventVersionIds: (publishEventVersionIds as unknown) as EventApiVersion.producedEventVersionIds,
+        consumedEventVersionIds: (subscribeEventVersionIds as unknown) as EventApiVersion.consumedEventVersionIds,
+  
+        // consumedEventVersionIds: subscribeEventVersionIds,
+        // producedEventVersionIds: publishEventVersionIds
       }
     });
     const cliEventApiVersionTask_ExecuteReturn: ICliEventApiVersionTask_ExecuteReturn = await cliEventApiVersionTask.execute();
@@ -506,8 +510,12 @@ export class CliImporter {
             description: cliAsyncApiDocument.getDescription(),
             displayName: cliAsyncApiDocument.getTitle(),
             stateId: CliEPStatesService.getTargetLifecycleState({assetImportTargetLifecycleState: CliConfig.getCliAppConfig().assetImportTargetLifecycleState}),
-            consumedEventVersionIds: subscribeEventVersionIds,
-            producedEventVersionIds: publishEventVersionIds
+
+            producedEventVersionIds: (publishEventVersionIds as unknown) as EventApiVersion.producedEventVersionIds,
+            consumedEventVersionIds: (subscribeEventVersionIds as unknown) as EventApiVersion.consumedEventVersionIds,
+
+            // consumedEventVersionIds: subscribeEventVersionIds,
+            // producedEventVersionIds: publishEventVersionIds
           }
         });
         const cliEventApiVersionTask_ExecuteReturn: ICliEventApiVersionTask_ExecuteReturn = await cliEventApiVersionTask.execute();

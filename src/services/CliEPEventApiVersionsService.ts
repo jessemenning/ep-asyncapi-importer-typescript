@@ -228,10 +228,10 @@ class CliEPEventApiVersionsService {
       version: cliAsyncApiDocument.getVersion(),
       displayName: cliAsyncApiDocument.getTitle(),
       stateId: stateId,
-      // producedEventVersionIds: (publishEventVersionIds as unknown) as EventApiVersion.producedEventVersionIds,
-      // consumedEventVersionIds: (subscribeEventVersionIds as unknown) as EventApiVersion.consumedEventVersionIds,
-      producedEventVersionIds: publishEventVersionIds,
-      consumedEventVersionIds: subscribeEventVersionIds
+      producedEventVersionIds: (publishEventVersionIds as unknown) as EventApiVersion.producedEventVersionIds,
+      consumedEventVersionIds: (subscribeEventVersionIds as unknown) as EventApiVersion.consumedEventVersionIds,
+      // producedEventVersionIds: publishEventVersionIds,
+      // consumedEventVersionIds: subscribeEventVersionIds
     }
     const eventApiVersionResponse: EventApiVersionResponse = await EventApIsService.create5({
       eventApiId: eventApiId,

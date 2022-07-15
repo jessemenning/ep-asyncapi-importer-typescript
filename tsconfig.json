@@ -26,8 +26,8 @@
     ]
   },
   "include": [
-    "src/**/*.ts", 
-    "dev-build-open-apis.ts", 
+    "src/**/*.ts",
+    "dev-build-open-apis.ts"
   ],
   "exclude": [
     "node_modules",

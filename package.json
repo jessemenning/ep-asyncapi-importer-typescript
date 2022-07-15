@@ -5,7 +5,7 @@
   "main": "./src/index.js",
   "type": "commonjs",
   "bin": {
-    "a2sep": "./src/index.js"
+    "a2sep": "./dist/src/index.js"
   },
   "repository": {
     "type": "git",
@@ -29,11 +29,21 @@
     "url": "https://github.com/solace-iot-team/sep-async-api-importer/issues"
   },
   "scripts": {
+    "compile": "tsc",
     "dev:build": "ts-node dev-build-open-apis.ts",
-    "build": "tsc",
+    "build": "npm run compile && npm run dev:build && ts-node build.ts",
     "dev:start": "ts-node src/index.ts",
     "start": "npm run build && node dist/src/index.js",
-    "bin:start": "sudo npm i -g && a2sep"
+    "bin:start": "sudo npm i -g && a2sep",
+    "package": "npm run build && pkg . --output ./dist/a2sep"
+  },
+  "pkg": {
+    "scripts": "dist/**/*.js",
+    "assets": "node_modules/figlet/fonts/Standard.flf",
+    "targets": [
+      "node16-macos-x64",
+      "node16-linux"
+    ]
   },
   "devDependencies": {
     "@types/clear": "^0.1.2",
@@ -46,6 +56,7 @@
     "@types/shelljs": "^0.8.9",
     "openapi-typescript-codegen": "^0.19.0",
     "pino-pretty": "^8.1.0",
+    "pkg": "^5.8.0",
     "shelljs": "^0.8.4",
     "ts-node": "^10.8.1",
     "typescript": "^4.3.5"

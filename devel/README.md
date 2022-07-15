@@ -16,7 +16,7 @@ npm run dev:build
 
 ## Run
 ```bash
-npm run dev:start -- -f ./data/acme-retail/central-it/till-system/AcmeRetail-Central-IT-Provider-TillSystem-v1.yml | npx pino-pretty
+npm run dev:start -- -f ./data/acme-retail/central-it/till-system/AcmeRetail-Central-IT-Provider-TillSystem-v1.spec.yml | npx pino-pretty
 ```
 
 ---
