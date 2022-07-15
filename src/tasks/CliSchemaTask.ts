@@ -211,7 +211,7 @@ export class CliSchemaTask extends CliTask {
     if(cliTaskExecuteReturn.apiObject === undefined) throw new CliError(logName, 'cliTaskExecuteReturn.apiObject === undefined');
 
     const cliSchemaTask_ExecuteReturn: ICliSchemaTask_ExecuteReturn = {
-      cliTaskState: cliTaskExecuteReturn.cliTaskState,
+      ...cliTaskExecuteReturn,
       apiObject: undefined,
       schemaObject: cliTaskExecuteReturn.apiObject
     };

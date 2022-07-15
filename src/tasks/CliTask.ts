@@ -1,5 +1,5 @@
 
-import { AbstractMethodError, EPApiResponseApiError } from '../CliError';
+import { AbstractMethodError, CliError, EPApiResponseApiError } from '../CliError';
 import { CliLogger, ECliStatusCodes } from '../CliLogger';
 import { CliUtils } from '../CliUtils';
 import { ApiError } from '../_generated/@solace-iot-team/sep-openapi-node';
@@ -8,8 +8,17 @@ export enum ECliTaskState {
   PRESENT = "PRESENT",
   ABSENT = "ABSENT"
 }
+export enum  ECliTaskAction {
+  CREATE = "CREATE",
+  CREATE_FIRST_VERSION = "CREATE_FIRST_VERSION",
+  CREATE_NEW_VERSION = "CREATE_NEW_VERSION",
+  UPDATE = "UPDATE",
+  DELETE = "DELETE",
+  NOTHING_TO_DO = "NOTHING_TO_DO"
+}
 export interface ICliTaskConfig {
   cliTaskState: ECliTaskState;
+  checkmode?: boolean;
 }
 export interface ICliTaskKeys {}
 export interface ICliGetFuncReturn {
@@ -22,8 +31,14 @@ export interface ICliCreateFuncReturn {
 export interface ICliUpdateFuncReturn {
   apiObject: any;
 }
+export interface ICliTaskActionLog {
+  action: ECliTaskAction,
+  info: any;
+}
 export interface ICliTaskExecuteReturn {
   cliTaskState: ECliTaskState;
+  checkmode: boolean;
+  actionLog: ICliTaskActionLog;
   apiObject: any;
 }
 export interface ICliTaskDeepCompareResult {
@@ -34,6 +49,10 @@ export interface ICliTaskDeepCompareResult {
 export abstract class CliTask {
   protected cliTaskConfig: ICliTaskConfig;
 
+  protected isCheckmode(): boolean {
+    if(this.cliTaskConfig.checkmode === undefined) return false;
+    return this.cliTaskConfig.checkmode;
+  }
   private createCleanCompareObject(obj: any): any {
     return JSON.parse(JSON.stringify(obj, (_k, v) => {
       if(v === null) return undefined;
@@ -65,9 +84,8 @@ export abstract class CliTask {
 
   constructor(taskConfig: ICliTaskConfig) {
     this.cliTaskConfig = taskConfig;
+    if(taskConfig.checkmode === undefined) this.cliTaskConfig.checkmode = false;
   }
-
-  // protected get_CliAsyncApiDocument(): CliAsyncApiDocument { return this.cliTaskConfig.cliAsyncApiDocument; }
 
   protected abstract getTaskKeys(): ICliTaskKeys;
 
@@ -95,11 +113,44 @@ export abstract class CliTask {
     cliGetFuncReturn: ICliGetFuncReturn
   }): boolean;
 
+  private async createFuncWrapper(): Promise<ICliCreateFuncReturn> {
+    if(!this.isCheckmode()) return await this.createFunc();
+    return {
+      apiObject: {},
+    };
+  }
+
+  private async updateFuncWrapper(cliGetFuncReturn: ICliGetFuncReturn): Promise<ICliUpdateFuncReturn> {
+    if(!this.isCheckmode()) return await this.updateFunc(cliGetFuncReturn);
+    return {
+      apiObject: {},
+    }
+  }
+
+  protected create_CreateFuncActionLog(): ICliTaskActionLog {
+    return {
+      action: ECliTaskAction.CREATE,
+      info: "TBD"
+    };
+  }
+
+  protected create_UpdateFuncActionLog(): ICliTaskActionLog {
+    return {
+      action: ECliTaskAction.UPDATE,
+      info: "TBD"
+    };
+  }
+
   private async executePresent(cliGetFuncReturn: ICliGetFuncReturn): Promise<ICliTaskExecuteReturn> {
+    const funcName = 'executePresent';
+    const logName = `${CliTask.name}.${funcName}()`;
+
     if(!cliGetFuncReturn.documentExists) {
-      const createFuncReturn: ICliCreateFuncReturn = await this.createFunc();
+      const createFuncReturn: ICliCreateFuncReturn = await this.createFuncWrapper();
       return {
         cliTaskState: ECliTaskState.PRESENT,
+        checkmode: this.isCheckmode(),
+        actionLog: this.create_CreateFuncActionLog(),
         apiObject: createFuncReturn.apiObject,
       };
     } else {
@@ -108,15 +159,23 @@ export abstract class CliTask {
         cliGetFuncReturn: cliGetFuncReturn,
       });
       if(isUpdateRequired) {
-        const updateFuncReturn: ICliUpdateFuncReturn = await this.updateFunc(cliGetFuncReturn);
+        const updateFuncReturn: ICliUpdateFuncReturn = await this.updateFuncWrapper(cliGetFuncReturn);
         return {
           cliTaskState: ECliTaskState.PRESENT,
+          checkmode: this.isCheckmode(),
+          actionLog: this.create_UpdateFuncActionLog(),
           apiObject: updateFuncReturn.apiObject,  
         }
       }
     }
+    // nothing to do
     return {
       cliTaskState: ECliTaskState.PRESENT,
+      checkmode: this.isCheckmode(),
+      actionLog: {
+        action: ECliTaskAction.NOTHING_TO_DO,
+        info: "TBD"
+      },  
       apiObject: cliGetFuncReturn.apiObject,
     };
   }
@@ -142,10 +201,12 @@ export abstract class CliTask {
         cliGetFuncReturn: cliGetFuncReturn
       }}));
 
-      let taskExecuteReturn: ICliTaskExecuteReturn = {
-        cliTaskState: this.cliTaskConfig.cliTaskState,
-        apiObject: cliGetFuncReturn.apiObject,
-      }
+      // let taskExecuteReturn: ICliTaskExecuteReturn = {
+      //   cliTaskState: this.cliTaskConfig.cliTaskState,
+      //   checkmode: this.isCheckmode(),
+      //   apiObject: cliGetFuncReturn.apiObject,
+      // }
+      let taskExecuteReturn: ICliTaskExecuteReturn | undefined;
       switch(this.cliTaskConfig.cliTaskState) {
         case ECliTaskState.PRESENT:
           taskExecuteReturn = await this.executePresent(cliGetFuncReturn);
@@ -156,8 +217,8 @@ export abstract class CliTask {
         default:
           CliUtils.assertNever(logName, this.cliTaskConfig.cliTaskState);
       }
-
       CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTED_TASK, details: "done." }));
+      if(taskExecuteReturn === undefined) throw new CliError(logName, 'taskExecuteReturn === undefined');
       return taskExecuteReturn;
     } catch(e: any) {
       if(e instanceof ApiError) {

@@ -243,7 +243,7 @@ export class CliSchemaVersionTask extends CliTask {
     if(cliTaskExecuteReturn.apiObject === undefined) throw new CliError(logName, 'cliTaskExecuteReturn.apiObject === undefined');
 
     const cliSchemaVersionTask_ExecuteReturn: ICliSchemaVersionTask_ExecuteReturn = {
-      cliTaskState: cliTaskExecuteReturn.cliTaskState,
+      ...cliTaskExecuteReturn,
       apiObject: undefined,
       schemaVersionObject: cliTaskExecuteReturn.apiObject,
     };

@@ -183,7 +183,7 @@ export class CliApplicationDomainTask extends CliTask {
     const cliTaskExecuteReturn: ICliTaskExecuteReturn = await super.execute();
     if(cliTaskExecuteReturn.apiObject === undefined) throw new CliError(logName, 'cliTaskExecuteReturn.apiObject === undefined');
     const cliApplicationDomainTask_ExecuteReturn: ICliApplicationDomainTask_ExecuteReturn = {
-      cliTaskState: cliTaskExecuteReturn.cliTaskState,
+      ...cliTaskExecuteReturn,
       applicationDomainObject: cliTaskExecuteReturn.apiObject,
       apiObject: undefined
     };

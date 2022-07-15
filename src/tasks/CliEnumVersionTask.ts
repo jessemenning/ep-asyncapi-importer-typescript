@@ -277,7 +277,7 @@ export class CliEnumVersionTask extends CliTask {
     if(cliTaskExecuteReturn.apiObject === undefined) throw new CliError(logName, 'cliTaskExecuteReturn.apiObject === undefined');
 
     const cliEnumVersionTask_ExecuteReturn: ICliEnumVersionTask_ExecuteReturn = {
-      cliTaskState: cliTaskExecuteReturn.cliTaskState,
+      ...cliTaskExecuteReturn,
       apiObject: undefined,
       enumVersionObject: cliTaskExecuteReturn.apiObject,
     };

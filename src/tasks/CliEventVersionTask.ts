@@ -8,7 +8,6 @@ import {
   EventsService, 
   EventVersion, 
   EventVersionResponse, 
-  SchemaVersion, 
   VersionedObjectStateChangeRequest 
 } from "../_generated/@solace-iot-team/sep-openapi-node";
 import CliConfig from "../CliConfig";
@@ -156,7 +155,6 @@ export class CliEventVersionTask extends CliTask {
     if(cliGetFuncReturn.eventVersionObject === undefined) throw new CliError(logName, 'cliGetFuncReturn.eventVersionObject === undefined');
 
     const existingObject: EventVersion = cliGetFuncReturn.eventVersionObject;
-    // const existingObjectDeliveryDescriptor = existingObject.deliveryDescriptor;
 
     const existingCompareObject: TCliEventVersionTask_CompareObject = {
       description: existingObject.description,
@@ -175,7 +173,7 @@ export class CliEventVersionTask extends CliTask {
       isUpdateRequired: !cliTaskDeepCompareResult.isEqual,
       difference: cliTaskDeepCompareResult.difference
     }}));
-    if(!cliTaskDeepCompareResult.isEqual) throw new Error(`${logName}: check updates requiired`);
+    // if(!cliTaskDeepCompareResult.isEqual) throw new Error(`${logName}: check updates requiired`);
     return !cliTaskDeepCompareResult.isEqual;
   }
 
@@ -184,7 +182,7 @@ export class CliEventVersionTask extends CliTask {
     eventVersion: EventVersion;
     code: ECliStatusCodes;
     targetLifecycleStateId: string;
-  }): Promise<SchemaVersion> {
+  }): Promise<EventVersion> {
     const funcName = 'createEventVersion';
     const logName = `${CliEventVersionTask.name}.${funcName}()`;
 
@@ -300,7 +298,7 @@ export class CliEventVersionTask extends CliTask {
     if(cliTaskExecuteReturn.apiObject === undefined) throw new CliError(logName, 'cliTaskExecuteReturn.apiObject === undefined');
 
     const cliEventVersionTask_ExecuteReturn: ICliEventVersionTask_ExecuteReturn = {
-      cliTaskState: cliTaskExecuteReturn.cliTaskState,
+      ...cliTaskExecuteReturn,
       apiObject: undefined,
       eventVersionObject: cliTaskExecuteReturn.apiObject,
     };

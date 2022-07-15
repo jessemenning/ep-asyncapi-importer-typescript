@@ -194,7 +194,7 @@ export class CliEventTask extends CliTask {
     if(cliTaskExecuteReturn.apiObject === undefined) throw new CliError(logName, 'cliTaskExecuteReturn.apiObject === undefined');
 
     const cliEventTask_ExecuteReturn: ICliEventTask_ExecuteReturn = {
-      cliTaskState: cliTaskExecuteReturn.cliTaskState,
+      ...cliTaskExecuteReturn,
       apiObject: undefined,
       eventObject: cliTaskExecuteReturn.apiObject
     };

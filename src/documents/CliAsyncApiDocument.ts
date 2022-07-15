@@ -6,7 +6,7 @@ import { TCliAppConfig } from '../CliConfig';
 import { AsyncApiSpecBestPracticesError, AsyncApiSpecError, AsyncApiSpecXtensionError } from '../CliError';
 import CliSemVerUtils from '../CliSemVerUtils';
 import { CliMessageDocument } from './CliMessageDocument';
-import { CliChannelDocument, CliChannelParameterDocument } from './CliChannelDocument';
+import { CliChannelDocument, CliChannelParameterDocument, CliChannelPublishOperation, CliChannelSubscribeOperation } from './CliChannelDocument';
 import CliEPEventApiVersionsService from '../services/CliEPEventApiVersionsService';
 
 enum E_EP_Extensions {
@@ -20,7 +20,10 @@ export enum E_ASYNC_API_SPEC_CONTENNT_TYPES {
 export type CliMessageDocumentMap = Map<string, CliMessageDocument>;
 export type CliChannelDocumentMap = Map<string, CliChannelDocument>;
 export type CliChannelParameterDocumentMap = Map<string, CliChannelParameterDocument>;
-
+export type CliEventNames = {
+  publishEventNames: Array<string>;
+  subscribeEventNames: Array<string>;
+}
 
 export class CliAsyncApiDocument {
   private appConfig: TCliAppConfig;
@@ -123,6 +126,27 @@ export class CliAsyncApiDocument {
   public getSpecAsSanitizedYamlString(): string {
     const json = this.getSpecAsSanitizedJson();
     return yaml.dump(json);
+  }
+
+  public getEventNames(): CliEventNames {
+    const cliEventNames: CliEventNames = {
+      publishEventNames: [],
+      subscribeEventNames: [],
+    };
+    const cliChannelDocumentMap: CliChannelDocumentMap = this.getChannelDocuments();
+    for(const [topic, cliChannelDocument] of cliChannelDocumentMap) {
+      const cliChannelPublishOperation: CliChannelPublishOperation | undefined = cliChannelDocument.getChannelPublishOperation();
+      if(cliChannelPublishOperation !== undefined) {
+        const cliMessageDocument: CliMessageDocument = cliChannelPublishOperation.getCliMessageDocument()
+        cliEventNames.publishEventNames.push(cliMessageDocument.getDisplayName());
+      }
+      const cliChannelSubscribeOperation: CliChannelSubscribeOperation | undefined = cliChannelDocument.getChannelSubscribeOperation();
+      if(cliChannelSubscribeOperation !== undefined) {
+        const cliMessageDocument: CliMessageDocument = cliChannelSubscribeOperation.getCliMessageDocument()
+        cliEventNames.subscribeEventNames.push(cliMessageDocument.getDisplayName());
+      }
+    }
+    return cliEventNames;
   }
 
   public getChannelDocuments(): CliChannelDocumentMap {
