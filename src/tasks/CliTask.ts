@@ -26,9 +26,42 @@ export interface ICliTaskExecuteReturn {
   cliTaskState: ECliTaskState;
   apiObject: any;
 }
+export interface ICliTaskDeepCompareResult {
+  isEqual: boolean;
+  difference: any;
+}
 
 export abstract class CliTask {
   protected cliTaskConfig: ICliTaskConfig;
+
+  private createCleanCompareObject(obj: any): any {
+    return JSON.parse(JSON.stringify(obj, (_k, v) => {
+      if(v === null) return undefined;
+      return v;
+    }));
+  }
+  protected prepareCompareObject4Output(obj: any): any {
+    return JSON.parse(JSON.stringify(obj, (_k,v) => {
+      if(v === undefined) return 'undefined';
+      return v;
+    }));
+  }
+  protected deepCompareObjects({ existingObject, requestedObject }:{
+    existingObject: any;
+    requestedObject: any;
+  }): ICliTaskDeepCompareResult {
+    const cleanExistingObject = this.createCleanCompareObject(existingObject);
+    const cleanRequestedObject = this.createCleanCompareObject(requestedObject);
+    const isEqual = CliUtils.isEqualDeep(cleanExistingObject, cleanRequestedObject);
+    let deepDiffResult: any = undefined;
+    if(!isEqual) {
+      deepDiffResult = CliUtils.deepDiff(cleanExistingObject, cleanRequestedObject);
+    }
+    return {
+      isEqual: isEqual,
+      difference: deepDiffResult
+    };
+  }
 
   constructor(taskConfig: ICliTaskConfig) {
     this.cliTaskConfig = taskConfig;

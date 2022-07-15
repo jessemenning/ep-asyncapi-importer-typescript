@@ -83,12 +83,14 @@ class CliEPEventVersionsService {
     return latest;
   }
 
-  public getLastestVersion = async({ eventId }:{
+  public getLastestVersion = async({ eventId, applicationDomainId }:{
     eventId: string;
+    applicationDomainId: string;
   }): Promise<EventVersion | undefined> => {
     const funcName = 'getLastestVersion';
     const logName = `${CliEPEventVersionsService.name}.${funcName}()`;
 
+    applicationDomainId;
     const eventVersionList: Array<EventVersion> = await this.getEventVersions({ eventId: eventId });
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.SERVICE, details: {
       eventVersionList: eventVersionList

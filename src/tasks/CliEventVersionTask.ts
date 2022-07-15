@@ -1,8 +1,6 @@
-import _ from "lodash";
-
 import { CliEPApiContentError, CliError } from "../CliError";
 import { CliLogger, ECliStatusCodes } from "../CliLogger";
-import { CliTask, ICliTaskKeys, ICliGetFuncReturn, ICliTaskConfig, ICliCreateFuncReturn, ICliTaskExecuteReturn, ICliUpdateFuncReturn } from "./CliTask";
+import { CliTask, ICliTaskKeys, ICliGetFuncReturn, ICliTaskConfig, ICliCreateFuncReturn, ICliTaskExecuteReturn, ICliUpdateFuncReturn, ICliTaskDeepCompareResult } from "./CliTask";
 import { 
   Address, 
   AddressLevel, 
@@ -30,6 +28,7 @@ export interface ICliEventVersionTask_Config extends ICliTaskConfig {
 }
 export interface ICliEventVersionTask_Keys extends ICliTaskKeys {
   eventId: string;
+  applicationDomainId: string;
 }
 export interface ICliEventVersionTask_GetFuncReturn extends ICliGetFuncReturn {
   eventVersionObject: EventVersion | undefined;
@@ -116,6 +115,7 @@ export class CliEventVersionTask extends CliTask {
   protected getTaskKeys(): ICliEventVersionTask_Keys {
     return {
       eventId: this.getCliTaskConfig().eventId,
+      applicationDomainId: this.getCliTaskConfig().applicationDomainId
     };
   }
 
@@ -127,19 +127,14 @@ export class CliEventVersionTask extends CliTask {
     const logName = `${CliEventVersionTask.name}.${funcName}()`;
 
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_GET, details: {
-      params: {
-        eventId: cliTaskKeys.eventId,
-      }
+      params: cliTaskKeys,
     }}));
 
-    // get the latest event version
-    const latestEventVersionString: string | undefined = await CliEPEventVersionsService.getLastestEventVersionString({ eventId: cliTaskKeys.eventId });
-    if(latestEventVersionString === undefined) return this.Empty_ICliEventVersionTask_GetFuncReturn;
-
-    const eventVersion: EventVersion | undefined = await CliEPEventVersionsService.getEventVersion({ 
+    const eventVersion: EventVersion | undefined = await CliEPEventVersionsService.getLastestVersion({
       eventId: cliTaskKeys.eventId,
-      eventVersionString: latestEventVersionString
+      applicationDomainId: cliTaskKeys.applicationDomainId,
     });
+
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_GET, details: {
       eventVersion: eventVersion ? eventVersion : 'undefined'
     }}));
@@ -159,29 +154,29 @@ export class CliEventVersionTask extends CliTask {
     const funcName = 'isUpdateRequired';
     const logName = `${CliEventVersionTask.name}.${funcName}()`;
     if(cliGetFuncReturn.eventVersionObject === undefined) throw new CliError(logName, 'cliGetFuncReturn.eventVersionObject === undefined');
-    let isUpdateRequired: boolean = false;
 
     const existingObject: EventVersion = cliGetFuncReturn.eventVersionObject;
-    const existingObjectDeliveryDescriptor = existingObject.deliveryDescriptor;
-    delete existingObjectDeliveryDescriptor?.keySchemaPrimitiveType;
-    delete existingObjectDeliveryDescriptor?.keySchemaVersionId;
+    // const existingObjectDeliveryDescriptor = existingObject.deliveryDescriptor;
 
     const existingCompareObject: TCliEventVersionTask_CompareObject = {
       description: existingObject.description,
       displayName: existingObject.displayName,
       stateId: existingObject.stateId,
       schemaVersionId: existingObject.schemaVersionId,
-      deliveryDescriptor: existingObjectDeliveryDescriptor,
+      deliveryDescriptor: existingObject.deliveryDescriptor,
     };
     const requestedCompareObject: TCliEventVersionTask_CompareObject = this.createObjectSettings();
-    isUpdateRequired = !_.isEqual(existingCompareObject, requestedCompareObject);
+
+    const cliTaskDeepCompareResult: ICliTaskDeepCompareResult = this.deepCompareObjects({ existingObject: existingCompareObject, requestedObject: requestedCompareObject });
+
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_IS_UPDATE_REQUIRED, details: {
-      existingCompareObject: existingCompareObject,
-      requestedCompareObject: requestedCompareObject,
-      isUpdateRequired: isUpdateRequired
+      existingCompareObject: this.prepareCompareObject4Output(existingCompareObject),
+      requestedCompareObject: this.prepareCompareObject4Output(requestedCompareObject),
+      isUpdateRequired: !cliTaskDeepCompareResult.isEqual,
+      difference: cliTaskDeepCompareResult.difference
     }}));
-    // if(isUpdateRequired) throw new Error(`${logName}: check updates requiired`);
-    return isUpdateRequired;
+    if(!cliTaskDeepCompareResult.isEqual) throw new Error(`${logName}: check updates requiired`);
+    return !cliTaskDeepCompareResult.isEqual;
   }
 
   private async createEventVersion({ eventId, eventVersion, code, targetLifecycleStateId }:{
