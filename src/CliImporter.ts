@@ -442,39 +442,65 @@ export class CliImporter {
           });
         }
 
-        // versions are either the same or spec version is greater than ep version
-        // get the async api document
-        const epCliAsyncApiDocument: CliAsyncApiDocument = await CliEPEventApiVersionsService.getAsyncApiDocument( {
-          eventApiId: eventApi.id,
-          eventApiVersionId: latestEventApiVersion.id,
-          asyncApiSpecVersion: cliAsyncApiDocument.getAsyncApiVersion()
-        });
+        // versions are either the same or import spec version is greater than ep spec version
+        CliLogger.warn(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
+          message: 'versions are either the same or import spec version is greater than ep spec version. ',
+          TODO: 'run check mode to see what the action list would be',
+          result: 'import may fail if changes to be made but version number is the same, will result in inconsistent EP assets'
+        }}));
+        // throw new Error(`${logName}: check warning message`);
+        return;
 
-        throw new Error(`${logName}: check here`);
+      //   // get the async api document
+      //   const epCliAsyncApiDocument: CliAsyncApiDocument = await CliEPEventApiVersionsService.getAsyncApiDocument( {
+      //     eventApiId: eventApi.id,
+      //     eventApiVersionId: latestEventApiVersion.id,
+      //     asyncApiSpecVersion: cliAsyncApiDocument.getAsyncApiVersion()
+      //   });
+
+      //   if(CliLogger.isLevelTrace()) {
+      //     const applicationDomainName: string = cliAsyncApiDocument.getApplicationDomainName();
+      //     const logsOutputRootDir: string = CliConfig.getCliLoggerConfig().logsDir + "/" + applicationDomainName + "/ep";
+      //     const asyncApiSpecDir = logsOutputRootDir + "/" + epCliAsyncApiDocument.getTitleAsFilePath();
+      //     CliUtils.ensurePathExists(asyncApiSpecDir);
+      //     const asyncApiSpecFileNameYaml = asyncApiSpecDir + "/" + epCliAsyncApiDocument.getTitleAsFileName("yml");
+      //     CliUtils.saveContents2File({ 
+      //       filePath: asyncApiSpecFileNameYaml,
+      //       content: epCliAsyncApiDocument.getSpecAsSanitizedYamlString()
+      //     });  
+      //   }
+    
+      //   // throw new Error(`${logName}: check ep api spec - how does it look like`);
 
 
-        // // create list of actions by comparing the two, if they are the same, do nothing
-        // const cliImportActionList: TCliImportActionList = CliAsyncApiDocumentsService.createDiffActionList({
-        //   existingAsyncApiDocument: epCliAsyncApiDocument,
-        //   newAsyncApiDocument: cliAsyncApiDocument 
-        // });
-        // // if same version and action list not empty ==> abort
-        // if(epCliAsyncApiDocument.getVersion() === cliAsyncApiDocument.getVersion() && cliImportActionList.length > 0) {
-        //   throw new AsyncApiSpecBestPracticesError(logName, undefined, "Event Portal Event API Version equals Api Spec version, but they are not the same. Aborting import...", {
-        //     epEventApiName: eventApi.name ? eventApi.name : 'undefined',
-        //     epEventApiVersionName: latestEventApiVersion.displayName ? latestEventApiVersion.displayName : 'undefined',
-        //     epEventApiVersion: latestEventApiVersion.version,
-        //     asyncApiSpecVersion: cliAsyncApiDocument.getVersion(),
-        //     cliImportActionList: cliImportActionList
-        //   });
-        // }
+      //   // create list of actions by comparing the two, if they are the same, do nothing
+      //   const cliImportActionList: TCliImportActionList = CliAsyncApiDocumentsService.createDiffActionList({
+      //     existingAsyncApiDocument: epCliAsyncApiDocument,
+      //     newAsyncApiDocument: cliAsyncApiDocument 
+      //   });
+      //   // if same version and action list not empty ==> abort
+      //   if(epCliAsyncApiDocument.getVersion() === cliAsyncApiDocument.getVersion() && cliImportActionList.length > 0) {
+      //     throw new AsyncApiSpecBestPracticesError(logName, undefined, "Event Portal Event API Version equals Api Spec version, but they are not the same. Aborting import...", {
+      //       epEventApiName: eventApi.name ? eventApi.name : 'undefined',
+      //       epEventApiVersionName: latestEventApiVersion.displayName ? latestEventApiVersion.displayName : 'undefined',
+      //       epEventApiVersion: latestEventApiVersion.version,
+      //       asyncApiSpecVersion: cliAsyncApiDocument.getVersion(),
+      //       cliImportActionList: cliImportActionList
+      //     });
+      //   }
 
-        // CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
-        //   cliImportActionList: cliImportActionList
-        // }}));
+      //   CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
+      //     cliImportActionList: cliImportActionList
+      //   }}));
 
-        // throw new Error(`${logName}: check action list`);
+      //   throw new Error(`${logName}: check action list`);
 
+      // } else {
+      //   // eventApi exists but has no version
+      //   CliLogger.warn(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, message: "eventApi does not have any versions, possible inconsistency. importing ...", details: {
+      //     applicationDomainId: applicationDomainId,
+      //     eventApiName: cliAsyncApiDocument.getTitle()  
+      //   }}));
       }
     }
   }
@@ -651,6 +677,10 @@ export class CliImporter {
       filePath: this.cliAppConfig.asyncApiSpecFileName,
       appConfig: this.cliAppConfig,
     });
+
+    // TODO: run best practice checks separately here
+    // with options
+
 
     CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.VALIDATED_SPEC, details: {
       title: asyncApiDocument.getTitle(),

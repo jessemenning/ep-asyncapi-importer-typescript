@@ -1,5 +1,5 @@
 import pino from 'pino';
-import { CliConfig, EEnvVars, TCliLoggerConfig } from './CliConfig';
+import { TCliLoggerConfig } from './CliConfig';
 
 
 // level: 'fatal', 'error', 'warn', 'info', 'debug', 'trace' or 'silent'
@@ -60,6 +60,7 @@ export type TCliLogEntry = {
 } & TCliStatus;
 
 export class CliLogger {
+  private static level: string;
 
   public static L = pino({
     name: process.env.CLI_APP_ID || "sep-async-api-importer",
@@ -67,10 +68,15 @@ export class CliLogger {
   });
 
   public static initialize = (config: TCliLoggerConfig): void => {
+    CliLogger.level = config.level;
     CliLogger.L = pino({
       name: config.appId,
       level: config.level
     });
+  }
+
+  public static isLevelTrace = (): boolean => {
+    return CliLogger.level === 'trace';
   }
 
   public static createLogEntry = (componentName: string, cliStatus: TCliStatus): TCliLogEntry => {

@@ -68,7 +68,9 @@ export class CliAsyncApiDocument {
     if(!CliSemVerUtils.isSemVerFormat({ versionString: versionStr })) {
       throw new AsyncApiSpecBestPracticesError(logName, undefined, "Please use semantic versioning format for API version.", { versionString: versionStr });
     }
+    // check that all channels have a message - must not be inline
     // validate channel param schemas - must be unique
+
     // TODO
   }
 
