@@ -410,7 +410,7 @@ export class CliImporter {
       // checkmode: true,
       applicationDomainId: applicationDomainId,
       eventApiId: eventApiId,
-      baseVersionString: '',
+      baseVersionString: cliAsyncApiDocument.getVersion(),
       eventApiVersionSettings: {
         description: cliAsyncApiDocument.getDescription(),
         displayName: cliAsyncApiDocument.getTitle(),
@@ -505,7 +505,7 @@ export class CliImporter {
           checkmode: true,
           applicationDomainId: applicationDomainId,
           eventApiId: eventApi.id,
-          baseVersionString: '',
+          baseVersionString: cliAsyncApiDocument.getVersion(),
           eventApiVersionSettings: {
             description: cliAsyncApiDocument.getDescription(),
             displayName: cliAsyncApiDocument.getTitle(),

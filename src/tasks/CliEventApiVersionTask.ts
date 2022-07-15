@@ -91,7 +91,7 @@ export class CliEventApiVersionTask extends CliVersionTask {
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_GET, details: {
       eventApiVersion: eventApiVersion ? eventApiVersion : 'undefined'
     }}));
-    if(eventApiVersion === undefined) throw new CliError(logName, 'eventApiVersion === undefined');
+    if(eventApiVersion === undefined) return this.Empty_ICliEventApiVersionTask_GetFuncReturn;
 
     const cliEventApiVersionTask_GetFuncReturn: ICliEventApiVersionTask_GetFuncReturn = {
       apiObject: eventApiVersion,
