@@ -2,6 +2,6 @@
 
 > :warning: UNDER CONSTRUCTION
 
-Import Async Api Specs into Solace Event Portal
+[Import Async Api Specs into Solace Event Portal](./importer-cli)
 
 ---
