@@ -12,7 +12,7 @@ const OpenAPI = require('openapi-typescript-codegen');
 const scriptName: string = path.basename(__filename);
 const scriptDir: string = path.dirname(__filename);
 // files & dirs
-const inputApiSpecFile = './resources/sep-openapi-spec.json';
+const inputApiSpecFile = '../resources/sep-openapi-spec.json';
 const outputOpenApiNodeClientDir = './src/_generated/@solace-iot-team/sep-openapi-node';
 
 const prepare = () => {

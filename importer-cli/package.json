@@ -1,11 +1,11 @@
 {
   "name": "@solace-iot-team/sep-async-api-importer",
-  "version": "0.1.0-alpha",
+  "version": "0.1.3-alpha",
   "description": "Solace Event Portal Async API Importer ",
   "main": "./src/index.js",
   "type": "commonjs",
   "bin": {
-    "a2sep": "./dist/src/index.js"
+    "sep-async-api-importer": "./dist/index.js"
   },
   "repository": {
     "type": "git",
@@ -31,11 +31,11 @@
   "scripts": {
     "compile": "tsc",
     "dev:build": "ts-node dev-build-open-apis.ts",
-    "build": "npm run compile && npm run dev:build && ts-node build.ts",
+    "build": "ts-node build.ts",
     "dev:start": "ts-node src/index.ts",
     "start": "npm run build && node dist/src/index.js",
     "bin:start": "sudo npm i -g && a2sep",
-    "package": "npm run build && pkg . --output ./dist/a2sep"
+    "package": "pkg . --output ./dist/sep-async-api-importer"
   },
   "pkg": {
     "scripts": "dist/**/*.js",
@@ -44,6 +44,18 @@
       "node16-macos-x64",
       "node16-linux"
     ]
+  },
+  "files": [
+    "dist/**/*.js",
+    "LICENSE",
+    "README.md",
+    "ReleaseNotes.md"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "cache": ".cache/.npm",
+    "registry": "https://registry.npmjs.org",
+    "tag": "latest"
   },
   "devDependencies": {
     "@types/clear": "^0.1.2",

@@ -26,12 +26,12 @@
     ]
   },
   "include": [
-    "src/**/*.ts",
-    "dev-build-open-apis.ts"
+    "src/**/*.ts"
   ],
   "exclude": [
     "node_modules",
     "_todo",
-    "**/_todo.*"
+    "**/_todo.*",
+    "dev-build-open-apis.ts"
   ]
 }
