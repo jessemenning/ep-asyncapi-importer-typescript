@@ -26,15 +26,6 @@ async function main() {
   await importer.run();
 
   CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.INFO, details: "done." }));
-  // check mode, standard or apim
-
-  // var asyncAPIFile = fs.readFileSync(options.file).toString()
-  // const ap = new AsyncAPI(asyncAPIFile)
-  // const ep = new EventPortal()
-
-  // // Validate and Dereference the AsyncAPI spec file
-  // let doc = await parse(asyncAPIFile)
-
 
 }
 
