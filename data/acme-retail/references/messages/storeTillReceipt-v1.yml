@@ -1,0 +1,15 @@
+name: storeTillReceipt-v1
+title: Store Till Receipt
+summary: Store Till Receipt.
+contentType: application/json
+# traits:
+#   - $ref: '#/components/messageTraits/commonHeaders'
+payload:
+  type: object
+  properties:
+    payload:
+      type: array
+      items:
+        $ref: "https://raw.githubusercontent.com/solace-iot-team/sep-async-api-importer/feat-fp/data/acme-retail/references/schemas/tillReceiptLine-v1.yml"
+    header:
+      $ref: "https://raw.githubusercontent.com/solace-iot-team/solace-apim-reference-designs/main/use-cases/acme-retail/central-it/schemas/CommonHeader.v1.yml"
