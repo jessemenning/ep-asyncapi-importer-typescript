@@ -36,7 +36,8 @@
     "start": "npm run build && node dist/src/index.js",
     "bin:start": "sudo npm i -g && a2sep",
     "package": "pkg . --output ./dist/sep-async-api-importer",
-    "test": ". ./test/source.env.sh && mocha --config test/.mocharc.yml test/**/**.spec.ts && unset_source_env"
+    "test": ". ./test/source.env.sh && mocha --config test/.mocharc.yml test/**/**.spec.ts && unset_source_env",
+    "test:pretty": ". ./test/source.env.sh && mocha --config test/.mocharc.yml test/**/**.spec.ts | pino-pretty && unset_source_env"
   },
   "pkg": {
     "scripts": "dist/**/*.js",
