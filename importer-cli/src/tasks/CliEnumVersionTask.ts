@@ -128,7 +128,6 @@ export class CliEnumVersionTask extends CliTask {
     });
   }
 
-
   protected isUpdateRequired({ cliGetFuncReturn}: { 
     cliGetFuncReturn: ICliEnumVersionTask_GetFuncReturn; 
   }): boolean {

@@ -26,18 +26,22 @@ npm install @solace-iot-team/sep-async-api-importer -g
 export CLI_SOLACE_CLOUD_TOKEN={your token}
 ````
 
-### Import 1 Async API Spec
+### Importing Async API Specs
+
+You can import a single file or specify a file pattern - all found files are imported one by one.
 
 ````bash
 # help
 sep-async-api-importer -h
 
 # standard output
-sep-async-api-importer -f {full path to async api spec} -d {event portal application domain}
+sep-async-api-importer -fp {full path to async api spec file or a glob pattern} -d {event portal application domain}
 
 # pretty output
-sep-async-api-importer -f {full path to async api spec} -d {event portal application domain} | npx pino-pretty
+sep-async-api-importer -fp {full path to async api spec file or a glob pattern} -d {event portal application domain} | npx pino-pretty
 ````
+
+
 
 ## Environment Options
 

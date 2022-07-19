@@ -317,7 +317,6 @@ export class CliImporter {
         specVersion: specVersion
       });
 
-
       // present message
       const schemaVersionObject: SchemaVersion = await this.run_present_channel_message({
         applicationDomainId: applicationDomainId,
@@ -340,6 +339,15 @@ export class CliImporter {
     const channelSubscribeOperation: CliChannelSubscribeOperation | undefined = channelDocument.getChannelSubscribeOperation();
     if(channelSubscribeOperation !== undefined) {
       const messageDocument: CliMessageDocument = channelSubscribeOperation.getCliMessageDocument();
+
+      // present parameters
+      xvoid = await this.run_present_channel_parameters({
+        applicationDomainId: applicationDomainId,
+        channelParameterDocumentMap: channelDocument.getChannelParameters(),
+        specVersion: specVersion
+      });
+      
+      // present message
       const schemaVersionObject: SchemaVersion = await this.run_present_channel_message({
         applicationDomainId: applicationDomainId,
         messageDocument: messageDocument,
