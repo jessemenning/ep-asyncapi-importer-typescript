@@ -10,6 +10,6 @@ payload:
     payload:
       type: array
       items:
-        $ref: '#/components/schemas/tillReceiptLine-v1'
+        $ref: "https://raw.githubusercontent.com/solace-iot-team/sep-async-api-importer/feat-fp/data/acme-retail/references/schemas/tillReceiptLine-v1.yml"
     header:
       $ref: "https://raw.githubusercontent.com/solace-iot-team/solace-apim-reference-designs/main/use-cases/acme-retail/central-it/schemas/CommonHeader.v1.yml"
