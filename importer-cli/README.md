@@ -1,5 +1,8 @@
 # Solace Event Portal Async API Importer
 
+[![integration-test](https://github.com/solace-iot-team/sep-async-api-importer/actions/workflows/integration-test.yml/badge.svg)](https://github.com/solace-iot-team/sep-async-api-importer/actions/workflows/integration-test.yml)
+
+
 > :warning: UNDER CONSTRUCTION
 
 Import Async Api Specs into Solace Event Portal.
