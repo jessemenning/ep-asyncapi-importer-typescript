@@ -3,7 +3,6 @@ import fs from 'fs';
 
 import { CliError, CliErrorFromError, CliInvalidDirConfigEnvVarError, ConfigMissingEnvVarError, InvalidEnvVarValueFromListError, InvalidFileConfigError } from './CliError';
 import { CliLogger, ECliStatusCodes } from './CliLogger';
-import { Command, OptionValues } from 'commander';
 import { CliUtils } from './CliUtils';
 
 export enum ECliAssetImportTargetLifecycleState_VersionStrategy {
@@ -74,7 +73,6 @@ export enum EEnvVars {
 
 
 export class CliConfig {
-  private static Program = new Command();
   private config: TCliConfig;
   private solaceCloudToken: string;
   public static DEFAULT_APP_ID = "@solace-iot-team/sep-async-api-importer";
@@ -189,25 +187,13 @@ export class CliConfig {
     return absoluteDir;
   }
 
-  public initialize = (packageJson: any): void => {
+  public initialize = ({ filePattern, globalDomainName }: {
+    filePattern?: string;
+    globalDomainName?: string;
+  }): void => {
     const funcName = 'initialize';
     const logName = `${CliConfig.name}.${funcName}()`;
 
-    // TODO: make the options typesafe
-    CliConfig.Program
-    .name(`npx ${packageJson.name}`)
-    .description(`${packageJson.description}`)
-    .version(`${packageJson.version}`, '-v, --version')
-    .usage('[OPTIONS]...')
-    .requiredOption('-f, --file <value>', 'Required: Path to AsyncAPI spec file')
-    .option('-d, --domain  <value>', 'Application Domain Name. If not passed, name extracted from x-domain-name in spec file')
-    // where would you get this from?
-    // .option('-dID, --domainId <value>', 'Application Domain ID. If not passed, ID extracted from x-domain-id in spec file')
-    .parse(process.argv);
-  
-    const options: OptionValues = CliConfig.Program.opts();    
-    // console.log(`${logName}: options=${JSON.stringify(options, null, 2)}`);
-  
     try {
 
       // handle solace cloud token separately
@@ -216,9 +202,12 @@ export class CliConfig {
       const assetOutputRootDir = this.initializeDir(EEnvVars.CLI_ASSET_OUTPUT_DIR, CliConfig.TMP_DIR);
       const logsDir = this.initializeDir(EEnvVars.CLI_LOG_DIR, CliConfig.TMP_DIR);
 
-      const asyncApiSpecFileName: string | undefined = CliUtils.validateFilePathWithReadPermission(options.file);
-      if(asyncApiSpecFileName === undefined) {
-        throw new InvalidFileConfigError(logName, 'cannot read asyncApiSpecFile', options.file);    
+      let asyncApiSpecFileName: string | undefined = undefined;
+      if(filePattern !== undefined) {
+        asyncApiSpecFileName = CliUtils.validateFilePathWithReadPermission(filePattern);
+        if(asyncApiSpecFileName === undefined) {
+          throw new InvalidFileConfigError(logName, 'cannot read asyncApiSpecFile', filePattern);    
+        }  
       }
 
       const appId: string = this.getOptionalEnvVarValueAsStringWithDefault(EEnvVars.CLI_APP_ID, CliConfig.DEFAULT_APP_ID);
@@ -232,9 +221,8 @@ export class CliConfig {
         },
         appConfig: {
           assetsTargetState: this.getOptionalEnvVarValueAsString_From_List_WithDefault(EEnvVars.CLI_ASSETS_TARGET_STATE, Object.values(ValidEnvAssetsTargetState), CliConfig.DEFAULT_ASSETS_TARGET_STATE) as ECliAssetsTargetState,
-          asyncApiSpecFileName: asyncApiSpecFileName,
-          domainName: options.domain ? options.domain : undefined,
-          // domainId: options.domainId ? options.domainId : undefined,
+          asyncApiSpecFileName: asyncApiSpecFileName ? asyncApiSpecFileName : 'undefined',
+          domainName: globalDomainName,
           assetImportTargetLifecycleState: this.initialize_AssetImportTargetLifecycleState(),
           assetOutputRootDir: assetOutputRootDir,
         }

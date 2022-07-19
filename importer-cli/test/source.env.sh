@@ -30,7 +30,9 @@ export CLI_ASSET_OUTPUT_DIR="output"
 export CLI_LOG_DIR="logs"
 
 # ENV vars for tests
-export CLI_TEST_ONE="one"
+# from project dir
+export CLI_TEST_API_SPECS_ROOT_DIR="./data"
+export CLI_TEST_API_SPECS_ROOT_DIR="./data"
 
 ######################################################
 logName='[source.env.sh]'

@@ -199,3 +199,12 @@ export class CliImporterError extends CliError {
     this.details = details;
   }
 }
+
+export class CliEPServiceError extends CliError {
+  protected static apiDefaultDescription = 'EP Service Error';
+  private details: any;
+  constructor(internalLogName: string, message: string, details: any) {
+    super(internalLogName, message);
+    this.details = details;
+  }
+}

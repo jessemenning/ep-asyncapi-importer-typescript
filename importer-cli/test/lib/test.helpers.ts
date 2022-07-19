@@ -10,6 +10,7 @@ import { customRequest } from './customOpenApiRequest';
 import { ApiResult } from "../../src/_generated/@solace-iot-team/sep-openapi-node/core/ApiResult";
 import { ApiRequestOptions } from "../../src/_generated/@solace-iot-team/sep-openapi-node/core/ApiRequestOptions";
 import { ApiError, CancelablePromise, OpenAPIConfig } from "../../src/_generated/@solace-iot-team/sep-openapi-node";
+import { CliError } from "../../src/CliError";
 
 export const testHelperSleep = async(millis = 500) => {
   if(millis > 0) await new Promise(resolve => setTimeout(resolve, millis));
@@ -113,9 +114,16 @@ export class TestLogger {
     public static createTestFailMessage = (message: string): string => {
         return `[${TestContext.getItId()}]: ${message}\napiRequestOptions=${TestLogger.getLoggingApiRequestOptions(TestContext.getApiRequestOptions())}\napiResult=${TestLogger.getLoggingApiResult(TestContext.getApiResult())}\napiError=${JSON.stringify(TestContext.getApiError(), null, 2)}\n`;
     }
+    public static createTestFailMessageWithCliError = (message: string, e: CliError): string => {
+      return `[${TestContext.getItId()}]: ${message}\napiRequestOptions=${TestLogger.getLoggingApiRequestOptions(TestContext.getApiRequestOptions())}\napiResult=${TestLogger.getLoggingApiResult(TestContext.getApiResult())}\napiError=${JSON.stringify(TestContext.getApiError(), null, 2)}\ncliError=${JSON.stringify(e, null, 2)}\n`;
+    }
     public static createNotApiErrorMesssage = (message: string): string => {
         return `[${TestContext.getItId()}]: error is not an instance of ApiError, error=${message}`;
     }
+    public static createNotCliErrorMesssage = (message: string): string => {
+      return `[${TestContext.getItId()}]: error is not an instance of CliError, error=${message}`;
+    }
+  
 }
 
 type THeaders = Array<{ key: string, value: string}>;;
@@ -233,25 +241,7 @@ export function getExpectContainedDiff(containedObject: any, object: any): Expec
 export type TTestEnv = {
   projectRootDir: string;
   enableLogging: boolean,
-  // protocol: string,
-  // host: string,
-  // port: number,
-  // apiBase: string,
-  // rootUsername: string,
-  // rootUserPassword: string;
-  // testRootDir: string;
-  // standupMongoScript: string;
-  // teardownMongoScript: string;
-  // startMongoScript: string;
-  // stopMongoScript: string;
-  // bootstrapFiles: {
-  //   // apsUserListFile: string;
-  //   apsConnectorListFile: string;
-  //   quickstart: {
-  //     apsUserListFile: string;
-  //     apsConnectorListFile: string;  
-  //   }
-  // }
+  testApiSpecsDir: string;
 }
 
 export class TestContext {
