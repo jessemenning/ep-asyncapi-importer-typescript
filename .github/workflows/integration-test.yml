@@ -91,6 +91,7 @@ jobs:
       - name: "importer-cli:test"
         run: |
           cd "${IMPORTER_CLI_DIR}"
+          export CLI_SOLACE_CLOUD_TOKEN="${{ secrets.CLI_SOLACE_CLOUD_TOKEN }}"
           test/run.sh
 
       - name: Archive Importer Cli Test Logs
