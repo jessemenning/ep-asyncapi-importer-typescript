@@ -52,7 +52,7 @@ export class CliAsyncApiDocument {
     if(appDomainName === undefined) {
       appDomainName = this.get_X_ApplicationDomainName();
     }
-    if(appDomainName === undefined) throw new AsyncApiSpecXtensionError(logName, "no application domain name defined, define either in spec or on command line", E_EP_Extensions.X_APPLICATION_DOMAIN_NAME);
+    if(appDomainName === undefined) throw new AsyncApiSpecXtensionError(logName, "no application domain name defined, define either in spec or on command line", this.appConfig.asyncApiSpecFileName, E_EP_Extensions.X_APPLICATION_DOMAIN_NAME);
     return appDomainName;
   }
 

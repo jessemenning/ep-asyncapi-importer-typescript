@@ -156,10 +156,13 @@ export class AsyncApiSpecNotSupportedError extends CliError {
 }
 
 export class AsyncApiSpecXtensionError extends CliError {
+  protected static apiDefaultDescription = 'Async API Spec Xtension Error';
   private xtension: any;
-  constructor(internalLogName: string, internalMessage: string, xtension: string) {
-    super(internalLogName, internalMessage);
+  private asyncApiSpecFile: string;
+  constructor(internalLogName: string, message: string = AsyncApiSpecXtensionError.apiDefaultDescription, asyncApiSpecFile: string, xtension: string) {
+    super(internalLogName, message);
     this.xtension = xtension;
+    this.asyncApiSpecFile = asyncApiSpecFile
   }
 }
 
@@ -202,6 +205,15 @@ export class CliImporterError extends CliError {
 
 export class CliEPServiceError extends CliError {
   protected static apiDefaultDescription = 'EP Service Error';
+  private details: any;
+  constructor(internalLogName: string, message: string, details: any) {
+    super(internalLogName, message);
+    this.details = details;
+  }
+}
+
+export class CliUsageError extends CliError {
+  protected static apiDefaultDescription = 'CLI Usage Error';
   private details: any;
   constructor(internalLogName: string, message: string, details: any) {
     super(internalLogName, message);
