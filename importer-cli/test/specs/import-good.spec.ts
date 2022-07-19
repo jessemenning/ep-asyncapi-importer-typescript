@@ -6,7 +6,7 @@ import CliConfig, { TCliAppConfig } from '../../src/CliConfig';
 import { CliImporter } from '../../src/CliImporter';
 import { CliError } from '../../src/CliError';
 import { TestEnv } from '../setup.spec';
-import G, { glob } from 'glob';
+import { glob } from 'glob';
 
 const scriptName: string = path.basename(__filename);
 TestLogger.logMessage(scriptName, ">>> starting ...");
