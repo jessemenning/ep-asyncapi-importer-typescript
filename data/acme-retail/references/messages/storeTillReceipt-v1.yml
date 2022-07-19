@@ -1,0 +1,13 @@
+name: storeTillReceipt-v1
+title: Store Till Receipt
+summary: Store Till Receipt.
+contentType: application/json
+# traits:
+#   - $ref: '#/components/messageTraits/commonHeaders'
+payload:
+  type: object
+  properties:
+    payload:
+      type: string
+    header:
+      type: string
