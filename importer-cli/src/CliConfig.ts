@@ -48,9 +48,9 @@ export type TCliLoggerConfig = {
 };
 export type TCliAppConfig = {
   assetsTargetState: ECliAssetsTargetState;
+  asyncApiSpecFileList: Array<string>;
   asyncApiSpecFileName: string;
   domainName?: string;
-  // domainId?: string;  - where would we get this from?
   assetImportTargetLifecycleState: TAssetImportTargetLifecycleState;
   assetOutputRootDir: string;
 }
@@ -187,8 +187,9 @@ export class CliConfig {
     return absoluteDir;
   }
 
-  public initialize = ({ filePattern, globalDomainName }: {
-    filePattern?: string;
+  public initialize = ({ filePath, fileList, globalDomainName }: {
+    fileList?: Array<string>;
+    filePath?: string;
     globalDomainName?: string;
   }): void => {
     const funcName = 'initialize';
@@ -203,10 +204,10 @@ export class CliConfig {
       const logsDir = this.initializeDir(EEnvVars.CLI_LOG_DIR, CliConfig.TMP_DIR);
 
       let asyncApiSpecFileName: string | undefined = undefined;
-      if(filePattern !== undefined) {
-        asyncApiSpecFileName = CliUtils.validateFilePathWithReadPermission(filePattern);
+      if(filePath !== undefined) {
+        asyncApiSpecFileName = CliUtils.validateFilePathWithReadPermission(filePath);
         if(asyncApiSpecFileName === undefined) {
-          throw new InvalidFileConfigError(logName, 'cannot read asyncApiSpecFile', filePattern);    
+          throw new InvalidFileConfigError(logName, 'cannot read asyncApiSpecFile', filePath);    
         }  
       }
 
@@ -222,6 +223,7 @@ export class CliConfig {
         appConfig: {
           assetsTargetState: this.getOptionalEnvVarValueAsString_From_List_WithDefault(EEnvVars.CLI_ASSETS_TARGET_STATE, Object.values(ValidEnvAssetsTargetState), CliConfig.DEFAULT_ASSETS_TARGET_STATE) as ECliAssetsTargetState,
           asyncApiSpecFileName: asyncApiSpecFileName ? asyncApiSpecFileName : 'undefined',
+          asyncApiSpecFileList: fileList ? fileList : [],
           domainName: globalDomainName,
           assetImportTargetLifecycleState: this.initialize_AssetImportTargetLifecycleState(),
           assetOutputRootDir: assetOutputRootDir,

@@ -17,7 +17,15 @@ npm run dev:build
 ## Run
 
 ```bash
-npm run dev:start -- -f ../data/acme-retail/central-it/till-system/AcmeRetail-Central-IT-Provider-TillSystem-v1.spec.yml | npx pino-pretty
+# single spec
+npm run dev:start -- -fp ../data/acme-retail/central-it/till-system/AcmeRetail-Central-IT-Provider-TillSystem-v1.spec.yml -d dev/test | npx pino-pretty
+
+# glob
+npm run dev:start -- -fp ../data/**/*.spec.yml | npx pino-pretty
+
+npm run dev:start -- -fp ../data/**/*.spec.yml -d dev/test | npx pino-pretty
+
+
 ```
 
 ---
