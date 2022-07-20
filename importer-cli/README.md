@@ -2,6 +2,8 @@
 
 [![integration-test](https://github.com/solace-iot-team/sep-async-api-importer/actions/workflows/integration-test.yml/badge.svg)](https://github.com/solace-iot-team/sep-async-api-importer/actions/workflows/integration-test.yml)
 
+[Issues & Feature Requests](https://github.com/solace-iot-team/sep-async-api-importer/issues) |
+[Release Notes](./ReleaseNotes.md) |
 
 > :warning: UNDER CONSTRUCTION
 
