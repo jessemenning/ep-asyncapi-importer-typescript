@@ -135,7 +135,7 @@ export class CliSchemaVersionTask extends CliTask {
       document: schemaVersion
     }}));
 
-    const schemaVersionResponse: SchemaVersionResponse = await SchemasService.postSchemaVersion({
+    const schemaVersionResponse: SchemaVersionResponse = await SchemasService.createSchemaVersionForSchema({
       schemaId: schemaId,
       requestBody: schemaVersion
     });
@@ -154,7 +154,7 @@ export class CliSchemaVersionTask extends CliTask {
     });
     // check the target lifecycle state
     if(createdSchemaVersion.stateId !== targetLifecycleStateId) {
-      const versionedObjectStateChangeRequest: VersionedObjectStateChangeRequest = await SchemasService.changeState({
+      const versionedObjectStateChangeRequest: VersionedObjectStateChangeRequest = await SchemasService.updateSchemaVersionStateForSchema({
         schemaId: schemaId,
         id: createdSchemaVersion.id,
         requestBody: {

@@ -13,27 +13,67 @@ import CliEPEventsService from './CliEPEventsService';
 
 class CliEPEventVersionsService {
 
+  private getLatestVersionFromList = ({ eventVersionList }:{
+    eventVersionList: Array<EventVersion>;
+  }): EventVersion | undefined => {
+    const funcName = 'getLatestVersionFromList';
+    const logName = `${CliEPEventVersionsService.name}.${funcName}()`;
+
+    let latestVersion: EventVersion | undefined = undefined;
+    let latestVersionString: string = '0.0.0';
+    for(const eventVersion of eventVersionList) {
+      if(eventVersion.version === undefined) throw new CliEPApiContentError(logName, 'eventVersion.version === undefined', {
+        eventVersion: eventVersion
+      });
+      const newVersion: string = eventVersion.version;
+      if(CliSemVerUtils.is_NewVersion_GreaterThan_OldVersion({
+        newVersion: newVersion,
+        oldVersion: latestVersionString,
+      })) {
+        latestVersionString = newVersion;
+        latestVersion = eventVersion;
+      }
+    }
+    return latestVersion;
+  }
+
+  public getVersionByVersion = async({ eventId, eventVersionString }:{
+    eventId: string;
+    eventVersionString: string;
+  }): Promise<EventVersion | undefined> => {
+    const funcName = 'getVersionByVersion';
+    const logName = `${CliEPEventVersionsService.name}.${funcName}()`;
+
+    const eventVersionList: Array<EventVersion> = await this.getEventVersions({ eventId: eventId });
+    const found: EventVersion | undefined = eventVersionList.find( (eventVersion: EventVersion ) => {
+      if(eventVersion.version === undefined) throw new CliEPApiContentError(logName, 'eventVersion.version === undefined', {
+        eventVersion: eventVersion
+      });
+      return eventVersion.version === eventVersionString;
+    });
+    return found;
+  }
+
   public getEventVersions = async({ eventId }:{
     eventId: string;
   }): Promise<Array<EventVersion>> => {
     const funcName = 'getEventVersions';
     const logName = `${CliEPEventVersionsService.name}.${funcName}()`;
 
-    // TODO: BUG_IN_EP_API
-    // id is not actually required, waiting for fix
-
-    // trick API into not having the id
-    const BUG_IN_EP_API_trickParams: any = {
+    // trick (api kaputt)
+    const params: any = {
       eventId: eventId
-    };
-    const eventVersionResponse: EventVersionsResponse = await EventsService.list2({
-      ...BUG_IN_EP_API_trickParams
+    }
+    const eventVersionsResponse: EventVersionsResponse = await EventsService.getEventVersionsForEvent({
+      ...params
     });
+    
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.SERVICE, details: {
-      eventVersionResponse: eventVersionResponse
+      eventVersionsResponse: eventVersionsResponse,
+      params: params
     }}));
-    if(eventVersionResponse.data === undefined || eventVersionResponse.data.length === 0) return [];
-    return eventVersionResponse.data;
+    if(eventVersionsResponse.data === undefined || eventVersionsResponse.data.length === 0) return [];
+    return eventVersionsResponse.data;
   }
 
   public getEventVersionsByName = async({ eventName, applicationDomainId }:{
@@ -43,10 +83,18 @@ class CliEPEventVersionsService {
     const funcName = 'getEventVersionsByName';
     const logName = `${CliEPEventVersionsService.name}.${funcName}()`;
 
-    const event: EPEvent | undefined = await CliEPEventsService.getEventByName({
+    const event: EPEvent | undefined = await CliEPEventsService.getByName({
       applicationDomainId: applicationDomainId,
       eventName: eventName
     });
+    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.SERVICE, details: {
+      event: event ? event : 'undefined',
+      params: {
+        eventName: eventName,
+        applicationDomainId: applicationDomainId
+      }
+    }}));
+
     if(event === undefined) return [];
     if(event.id === undefined) throw new CliEPApiContentError(logName, 'event.id === undefined', {
       event: event
@@ -65,29 +113,20 @@ class CliEPEventVersionsService {
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.SERVICE, details: {
       eventVersionList: eventVersionList
     }}));
-    if(eventVersionList.length === 0) return undefined;
 
-    let latest: string = '0.0.0';
-    for(const eventVersion of eventVersionList) {
-      if(eventVersion.version === undefined) throw new CliEPApiContentError(logName, 'eventVersion.version === undefined', {
-        eventVersion: eventVersion
-      });
-      const newVersion: string = eventVersion.version;
-      if(CliSemVerUtils.is_NewVersion_GreaterThan_OldVersion({
-        newVersion: newVersion,
-        oldVersion: latest,
-      })) {
-        latest = newVersion;
-      }
-    }
-    return latest;
+    const latestEventVersion: EventVersion | undefined = this.getLatestVersionFromList({ eventVersionList: eventVersionList });
+    if(latestEventVersion === undefined) return undefined;
+    if(latestEventVersion.version === undefined) throw new CliEPApiContentError(logName, 'latestEventVersion.version === undefined', {
+      latestEventVersion: latestEventVersion
+    });
+    return latestEventVersion.version;
   }
 
-  public getLastestVersion = async({ eventId, applicationDomainId }:{
+  public getLastestVersionById = async({ eventId, applicationDomainId }:{
     eventId: string;
     applicationDomainId: string;
   }): Promise<EventVersion | undefined> => {
-    const funcName = 'getLastestVersion';
+    const funcName = 'getLastestVersionById';
     const logName = `${CliEPEventVersionsService.name}.${funcName}()`;
 
     applicationDomainId;
@@ -95,24 +134,8 @@ class CliEPEventVersionsService {
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.SERVICE, details: {
       eventVersionList: eventVersionList
     }}));
-    if(eventVersionList.length === 0) return undefined;
-
-    let latestEventVersion: EventVersion | undefined = undefined;
-    let latestVersion: string = '0.0.0';
-    for(const eventVersion of eventVersionList) {
-      if(eventVersion.version === undefined) throw new CliEPApiContentError(logName, 'eventVersion.version === undefined', {
-        eventVersion: eventVersion
-      });
-
-      const newVersion: string = eventVersion.version;
-      if(CliSemVerUtils.is_NewVersion_GreaterThan_OldVersion({
-        newVersion: newVersion,
-        oldVersion: latestVersion,
-      })) {
-        latestVersion = newVersion;
-        latestEventVersion = eventVersion;
-      }
-    }
+    const latestEventVersion: EventVersion | undefined = this.getLatestVersionFromList({ eventVersionList: eventVersionList });
+    if(latestEventVersion === undefined) return undefined;
     return latestEventVersion;
   }
 
@@ -130,43 +153,11 @@ class CliEPEventVersionsService {
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.SERVICE, details: {
       eventVersionList: eventVersionList
     }}));
-    if(eventVersionList.length === 0) return undefined;
-
-    let latestEventVersion: EventVersion | undefined = undefined;
-    let latestVersion: string = '0.0.0';
-    for(const eventVersion of eventVersionList) {
-      if(eventVersion.version === undefined) throw new CliEPApiContentError(logName, 'eventVersion.version === undefined', {
-        eventVersion: eventVersion
-      });
-
-      const newVersion: string = eventVersion.version;
-      if(CliSemVerUtils.is_NewVersion_GreaterThan_OldVersion({
-        newVersion: newVersion,
-        oldVersion: latestVersion,
-      })) {
-        latestVersion = newVersion;
-        latestEventVersion = eventVersion;
-      }
-    }
+    const latestEventVersion: EventVersion | undefined = this.getLatestVersionFromList({ eventVersionList: eventVersionList });
+    if(latestEventVersion === undefined) return undefined;
     return latestEventVersion;
   }
 
-  public getEventVersion = async({ eventId, eventVersionString }:{
-    eventId: string;
-    eventVersionString: string;
-  }): Promise<EventVersion | undefined> => {
-    const funcName = 'getEventVersion';
-    const logName = `${CliEPEventVersionsService.name}.${funcName}()`;
-
-    const eventVersionList: Array<EventVersion> = await this.getEventVersions({ eventId: eventId });
-    const found: EventVersion | undefined = eventVersionList.find( (eventVersion: EventVersion ) => {
-      if(eventVersion.version === undefined) throw new CliEPApiContentError(logName, 'eventVersion.version === undefined', {
-        eventVersion: eventVersion
-      });
-      return eventVersion.version === eventVersionString;
-    });
-    return found;
-  }
 }
 
 export default new CliEPEventVersionsService();

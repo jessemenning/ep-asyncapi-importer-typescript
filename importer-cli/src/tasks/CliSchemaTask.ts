@@ -4,6 +4,7 @@ import { CliEPApiContentError, CliError } from "../CliError";
 import { CliLogger, ECliStatusCodes } from "../CliLogger";
 import { CliTask, ICliTaskKeys, ICliGetFuncReturn, ICliTaskConfig, ICliCreateFuncReturn, ICliTaskExecuteReturn, ICliUpdateFuncReturn } from "./CliTask";
 import { SchemaObject, SchemaResponse, SchemasResponse, SchemasService, SchemaVersion } from "../_generated/@solace-iot-team/sep-openapi-node";
+import CliEPSchemasService from "../services/CliEPSchemasService";
 
 export enum EPSchemaType {
   JSON_SCHEMA = "jsonSchema"
@@ -91,20 +92,20 @@ export class CliSchemaTask extends CliTask {
       }
     }}));
 
-    const schemasResponse: SchemasResponse = await SchemasService.listSchemas({
-      name: cliTaskKeys.schemaName,
+    const schemaObject: SchemaObject | undefined = await CliEPSchemasService.getByName({ 
+      schemaName: cliTaskKeys.schemaName,
       applicationDomainId: cliTaskKeys.applicationDomainId,
-    });
 
+    });
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_GET, details: {
-      schemasResponse: schemasResponse
+      schemaObject: schemaObject
     }}));
 
-    if(schemasResponse.data === undefined || schemasResponse.data.length === 0) return this.Empty_ICliSchemaTask_GetFuncReturn;
+    if(schemaObject === undefined) return this.Empty_ICliSchemaTask_GetFuncReturn;
 
     const cliSchemaTask_GetFuncReturn: ICliSchemaTask_GetFuncReturn = {
-      apiObject: schemasResponse.data[0],
-      schemaObject: schemasResponse.data[0],
+      apiObject: schemaObject,
+      schemaObject: schemaObject,
       documentExists: true,
     }
     return cliSchemaTask_GetFuncReturn;
@@ -148,7 +149,7 @@ export class CliSchemaTask extends CliTask {
       document: create
     }}));
 
-    const schemaResponse: SchemaResponse = await SchemasService.postSchema({
+    const schemaResponse: SchemaResponse = await SchemasService.createSchema({
       requestBody: create
     });
 
@@ -186,7 +187,7 @@ export class CliSchemaTask extends CliTask {
     if(cliGetFuncReturn.schemaObject.id === undefined) throw new CliEPApiContentError(logName, 'cliGetFuncReturn.schemaObject.id === undefined', {
       schemaObject: cliGetFuncReturn.schemaObject
     });
-    const schemaResponse: SchemaResponse = await SchemasService.patchSchema({
+    const schemaResponse: SchemaResponse = await SchemasService.updateSchema({
       id: cliGetFuncReturn.schemaObject.id,
       requestBody: update
     });

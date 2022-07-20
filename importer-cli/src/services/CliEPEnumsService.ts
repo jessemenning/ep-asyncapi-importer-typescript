@@ -8,11 +8,11 @@ import {
 
 class CliEPEnumsService {
 
-  public getEnumByName = async({ enumName, applicationDomainId }:{
+  public getByName = async({ enumName, applicationDomainId }:{
     enumName: string;
     applicationDomainId: string;
   }): Promise<Enum | undefined> => {
-    const funcName = 'getEnumByName';
+    const funcName = 'getByName';
     const logName = `${CliEPEnumsService.name}.${funcName}()`;
 
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.SERVICE, details: {
@@ -20,7 +20,7 @@ class CliEPEnumsService {
       applicationDomainId: applicationDomainId
     }}));
 
-    const enumsResponse: EnumsResponse = await EnumsService.listEnum({
+    const enumsResponse: EnumsResponse = await EnumsService.getEnums({
       applicationDomainId: applicationDomainId,
       names: [enumName]
     });

@@ -10,6 +10,7 @@ import {
   EnumsService, 
   // Event as EPEvent
 } from "../_generated/@solace-iot-team/sep-openapi-node";
+import CliEPEnumsService from "../services/CliEPEnumsService";
 
 type TCliEnumTask_Settings = Partial<Pick<Enum, "shared">>;
 type TCliEnumTask_CompareObject = TCliEnumTask_Settings;
@@ -73,21 +74,20 @@ export class CliEnumTask extends CliTask {
       cliTaskKeys: cliTaskKeys
     }}));
 
-    const enumsResponse: EnumsResponse = await EnumsService.listEnum({
-      applicationDomainIds: [cliTaskKeys.applicationDomainId],
-      names: [cliTaskKeys.enumName]
+    const enumObject: Enum | undefined = await CliEPEnumsService.getByName({ 
+      enumName: cliTaskKeys.enumName,
+      applicationDomainId: cliTaskKeys.applicationDomainId
     });
 
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_GET, details: {
-      enumsResponse: enumsResponse
+      enumObject: enumObject
     }}));
 
-    if(enumsResponse.data === undefined || enumsResponse.data.length === 0) return this.Empty_ICliEnumTask_GetFuncReturn;
-    if(enumsResponse.data.length > 1) throw new CliError(logName, 'enumsResponse.data.length > 1');
+    if(enumObject === undefined) return this.Empty_ICliEnumTask_GetFuncReturn;
 
     const cliEnumTask_GetFuncReturn: ICliEnumTask_GetFuncReturn = {
-      apiObject: enumsResponse.data[0],
-      enumObject: enumsResponse.data[0],
+      apiObject: enumObject,
+      enumObject: enumObject,
       documentExists: true,
     }
     return cliEnumTask_GetFuncReturn;
@@ -129,7 +129,7 @@ export class CliEnumTask extends CliTask {
       document: create
     }}));
 
-    const enumResponse: EnumResponse = await EnumsService.postEnum({
+    const enumResponse: EnumResponse = await EnumsService.createEnum({
       requestBody: create
     });
 

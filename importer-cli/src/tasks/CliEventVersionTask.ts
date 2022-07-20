@@ -73,7 +73,7 @@ export class CliEventVersionTask extends CliTask {
         topicLevel = topicLevel.replace('}', '').replace('{', '');
         type = AddressLevel.addressLevelType.VARIABLE;
         // get the enumVersionId if it exists
-        const enumVersion: EnumVersion | undefined = await CliEPEnumVersionsService.getLastestEnumVersionByName({ 
+        const enumVersion: EnumVersion | undefined = await CliEPEnumVersionsService.getLastestVersionByName({ 
           enumName: topicLevel, 
           applicationDomainId: this.getCliTaskConfig().applicationDomainId        
         });
@@ -129,7 +129,7 @@ export class CliEventVersionTask extends CliTask {
       params: cliTaskKeys,
     }}));
 
-    const eventVersion: EventVersion | undefined = await CliEPEventVersionsService.getLastestVersion({
+    const eventVersion: EventVersion | undefined = await CliEPEventVersionsService.getLastestVersionById({
       eventId: cliTaskKeys.eventId,
       applicationDomainId: cliTaskKeys.applicationDomainId,
     });
@@ -190,7 +190,7 @@ export class CliEventVersionTask extends CliTask {
       document: eventVersion
     }}));
 
-    const eventVersionResponse: EventVersionResponse = await EventsService.create2({
+    const eventVersionResponse: EventVersionResponse = await EventsService.createEventVersionForEvent({
       eventId: eventId,
       requestBody: eventVersion
     });
@@ -209,14 +209,14 @@ export class CliEventVersionTask extends CliTask {
     });
     // check the target lifecycle state
     if(createdEventVersion.stateId !== targetLifecycleStateId) {
-      const versionedObjectStateChangeRequest: VersionedObjectStateChangeRequest = await EventsService.updateState({
+      const versionedObjectStateChangeRequest: VersionedObjectStateChangeRequest = await EventsService.updateEventVersionStateForEvent({
         eventId: eventId,
         id: createdEventVersion.id,
         requestBody: {
           stateId: targetLifecycleStateId
         }
       });
-      const updatedEventVersion: EventVersion | undefined = await CliEPEventVersionsService.getEventVersion({
+      const updatedEventVersion: EventVersion | undefined = await CliEPEventVersionsService.getVersionByVersion({
         eventId: eventId,
         eventVersionString: this.newVersionString
       });

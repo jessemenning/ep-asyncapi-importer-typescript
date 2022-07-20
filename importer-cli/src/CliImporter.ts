@@ -208,7 +208,8 @@ export class CliImporter {
     });
   }
 
-  private run_present_enum_version = async({ enumObject, specVersion, cliChannelParameterDocument }: {
+  private run_present_enum_version = async({ applicationDomainId, enumObject, specVersion, cliChannelParameterDocument }: {
+    applicationDomainId: string;
     enumObject: Enum;
     specVersion: string;
     cliChannelParameterDocument: CliChannelParameterDocument;
@@ -228,6 +229,7 @@ export class CliImporter {
 
     const cliEnumVersionTask: CliEnumVersionTask = new CliEnumVersionTask({
       cliTaskState: ECliTaskState.PRESENT,
+      applicationDomainId: applicationDomainId,
       enumId: enumObject.id,
       baseVersionString: specVersion,
       parameterEnumValues: cliChannelParameterDocument.getParameterEnumValueList(),
@@ -283,6 +285,7 @@ export class CliImporter {
 
         // present the enum version
         const xvoid: void = await this.run_present_enum_version({
+          applicationDomainId: applicationDomainId,
           enumObject: enumObject,
           specVersion: specVersion,
           cliChannelParameterDocument: channelParameterDocument,
@@ -447,7 +450,7 @@ export class CliImporter {
     const logName = `${CliImporter.name}.${funcName}()`;
 
     // check if event api exists
-    const eventApi: EventApi | undefined = await CliEPEventApisService.getEventApiByName({ 
+    const eventApi: EventApi | undefined = await CliEPEventApisService.getByName({ 
       applicationDomainId: applicationDomainId,
       eventApiName: cliAsyncApiDocument.getTitle()
     });
@@ -463,7 +466,7 @@ export class CliImporter {
         eventApi: eventApi
       });
       // check if event api version already exists in the application domain
-      const latestEventApiVersion: EventApiVersion | undefined = await CliEPEventApiVersionsService.getLastestVersion({ 
+      const latestEventApiVersion: EventApiVersion | undefined = await CliEPEventApiVersionsService.getLastestVersionById({ 
         eventApiId: eventApi.id,
       });
       CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, message: "latest version of event api", details: {

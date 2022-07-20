@@ -12,99 +12,11 @@ import CliEPEnumsService from './CliEPEnumsService';
 
 class CliEPEnumVersionsService {
 
-  public getEnumVersions = async({ enumId }:{
-    enumId: string;
-  }): Promise<Array<EnumVersion>> => {
-    const funcName = 'getEnumVersions';
+  private getLatestVersionFromList = ({ enumVersionList }:{
+    enumVersionList: Array<EnumVersion>;
+  }): EnumVersion | undefined => {
+    const funcName = 'getLatestVersionFromList';
     const logName = `${CliEPEnumVersionsService.name}.${funcName}()`;
-
-    const enumVersionsResponse: EnumVersionsResponse = await EnumsService.listEnumVersions({
-      enumId: enumId
-    });
-    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.SERVICE, details: {
-      enumVersionsResponse: enumVersionsResponse
-    }}));
-    if(enumVersionsResponse.data === undefined || enumVersionsResponse.data.length === 0) return [];
-    return enumVersionsResponse.data;
-  }
-
-  public getLastestEnumVersionString = async({ enumId }:{
-    enumId: string;
-  }): Promise<string | undefined> => {
-    const funcName = 'getLastestEnumVersionString';
-    const logName = `${CliEPEnumVersionsService.name}.${funcName}()`;
-
-    const enumVersionList: Array<EnumVersion> = await this.getEnumVersions({ enumId: enumId });
-    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.SERVICE, details: {
-      enumVersionList: enumVersionList
-    }}));
-    if(enumVersionList.length === 0) return undefined;
-
-    let latest: string = '0.0.0';
-    for(const enumVersion of enumVersionList) {
-      if(enumVersion.version === undefined) throw new CliEPApiContentError(logName, 'enumVersion.version === undefined', {
-        enumVersion: enumVersion
-      });
-      const newVersion: string = enumVersion.version;
-      if(CliSemVerUtils.is_NewVersion_GreaterThan_OldVersion({
-        newVersion: newVersion,
-        oldVersion: latest,
-      })) {
-        latest = newVersion;
-      }
-    }
-    return latest;
-  }
-
-  public getEnumVersion = async({ enumId, enumVersionString }:{
-    enumId: string;
-    enumVersionString: string;
-  }): Promise<EnumVersion | undefined> => {
-    const funcName = 'getEnumVersion';
-    const logName = `${CliEPEnumVersionsService.name}.${funcName}()`;
-
-    const enumVersionList: Array<EnumVersion> = await this.getEnumVersions({ enumId: enumId });
-    const found: EnumVersion | undefined = enumVersionList.find( (enumVersion: EnumVersion ) => {
-      if(enumVersion.version === undefined) throw new CliEPApiContentError(logName, 'enumVersion.version === undefined', {
-        enumVersion: enumVersion
-      });
-      return enumVersion.version === enumVersionString;
-    });
-    return found;
-  }
-
-  public getEnumVersionsByName = async({ enumName, applicationDomainId }:{
-    applicationDomainId: string;
-    enumName: string;
-  }): Promise<Array<EnumVersion>> => {
-    const funcName = 'getEnumVersionsByName';
-    const logName = `${CliEPEnumVersionsService.name}.${funcName}()`;
-
-    const enumObject: Enum | undefined = await CliEPEnumsService.getEnumByName({
-      applicationDomainId: applicationDomainId,
-      enumName: enumName
-    });
-    if(enumObject === undefined) return [];
-    if(enumObject.id === undefined) throw new CliEPApiContentError(logName, 'enumObject.id === undefined', {
-      enumObject: enumObject
-    });
-    const enumVersionList: Array<EnumVersion> = await this.getEnumVersions({ enumId: enumObject.id });
-    return enumVersionList;
-  }
-
-  public getLastestEnumVersionByName = async({ applicationDomainId, enumName }:{
-    applicationDomainId: string;
-    enumName: string;
-  }): Promise<EnumVersion | undefined> => {
-    const funcName = 'getLastestEnumVersionByName';
-    const logName = `${CliEPEnumVersionsService.name}.${funcName}()`;
-
-    const enumVersionList: Array<EnumVersion> = await this.getEnumVersionsByName({ enumName: enumName, applicationDomainId: applicationDomainId });
-    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.SERVICE, details: {
-      enumVersionList: enumVersionList
-    }}));
-
-    if(enumVersionList.length === 0) return undefined;
 
     let latestEnumVersion: EnumVersion | undefined = undefined;
     let latestVersion: string = '0.0.0';
@@ -112,7 +24,6 @@ class CliEPEnumVersionsService {
       if(enumVersion.version === undefined) throw new CliEPApiContentError(logName, 'enumVersion.version === undefined', {
         enumVersion: enumVersion
       });
-
       const newVersion: string = enumVersion.version;
       if(CliSemVerUtils.is_NewVersion_GreaterThan_OldVersion({
         newVersion: newVersion,
@@ -123,6 +34,117 @@ class CliEPEnumVersionsService {
       }
     }
     return latestEnumVersion;
+  }
+
+  public getVersionByVersion = async({ enumId, enumVersionString }:{
+    enumId: string;
+    enumVersionString: string;
+  }): Promise<EnumVersion | undefined> => {
+    const funcName = 'getVersionByVersion';
+    const logName = `${CliEPEnumVersionsService.name}.${funcName}()`;
+
+    const enumVersionsResponse: EnumVersionsResponse = await EnumsService.getEnumVersionsForEnum({
+      enumId: enumId,
+      versions: [enumVersionString]
+    });
+    if(enumVersionsResponse.data === undefined || enumVersionsResponse.data.length === 0) return undefined;
+    if(enumVersionsResponse.data.length > 1) throw new CliEPApiContentError(logName, 'enumVersionsResponse.data.length > 1', {
+      enumVersionsResponse: enumVersionsResponse
+    });
+    return enumVersionsResponse.data[0];
+  }
+
+  public getVersionsById = async({ enumId }:{
+    enumId: string;
+  }): Promise<Array<EnumVersion>> => {
+    const funcName = 'getVersionsById';
+    const logName = `${CliEPEnumVersionsService.name}.${funcName}()`;
+
+    // wrong call
+    // const enumVersionsResponse: EnumVersionsResponse = await EnumsService.getEnumVersions({
+    //   ids: [enumId]
+    // });
+    const enumVersionsResponse: EnumVersionsResponse = await EnumsService.getEnumVersionsForEnum({
+      enumId: enumId,      
+    });
+    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.SERVICE, details: {
+      enumVersionsResponse: enumVersionsResponse
+    }}));
+    if(enumVersionsResponse.data === undefined || enumVersionsResponse.data.length === 0) return [];
+    return enumVersionsResponse.data;
+  }
+
+  public getLastestVersionString = async({ enumId }:{
+    enumId: string;
+  }): Promise<string | undefined> => {
+    const funcName = 'getLastestVersionString';
+    const logName = `${CliEPEnumVersionsService.name}.${funcName}()`;
+
+    const enumVersionList: Array<EnumVersion> = await this.getVersionsById({ enumId: enumId });
+    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.SERVICE, details: {
+      enumVersionList: enumVersionList
+    }}));
+    const latestEnumVersion: EnumVersion | undefined = this.getLatestVersionFromList({ enumVersionList: enumVersionList });
+    if(latestEnumVersion === undefined) return undefined;
+    if(latestEnumVersion.version === undefined) throw new CliEPApiContentError(logName, 'latestEnumVersion.version === undefined', {
+      latestEnumVersion: latestEnumVersion
+    });
+    return latestEnumVersion.version;
+  }
+
+  public getVersionsByName = async({ enumName, applicationDomainId }:{
+    applicationDomainId: string;
+    enumName: string;
+  }): Promise<Array<EnumVersion>> => {
+    const funcName = 'getVersionsByName';
+    const logName = `${CliEPEnumVersionsService.name}.${funcName}()`;
+
+    const enumObject: Enum | undefined = await CliEPEnumsService.getByName({
+      applicationDomainId: applicationDomainId,
+      enumName: enumName
+    });
+    if(enumObject === undefined) return [];
+    if(enumObject.id === undefined) throw new CliEPApiContentError(logName, 'enumObject.id === undefined', {
+      enumObject: enumObject
+    });
+    const enumVersionList: Array<EnumVersion> = await this.getVersionsById({ enumId: enumObject.id });
+    return enumVersionList;
+  }
+
+  public getLatestVersionById = async({ enumId, applicationDomainId }: {
+    applicationDomainId: string;
+    enumId: string;
+  }): Promise<EnumVersion | undefined> => {
+    const funcName = 'getLatestVersionById';
+    const logName = `${CliEPEnumVersionsService.name}.${funcName}()`;
+
+    applicationDomainId;
+    const enumVersionList: Array<EnumVersion> = await this.getVersionsById({ 
+      enumId: enumId,
+    });
+
+    const latestEnumVersion: EnumVersion | undefined = this.getLatestVersionFromList({ enumVersionList: enumVersionList });
+    return latestEnumVersion;
+  }
+
+  public getLastestVersionByName = async({ applicationDomainId, enumName }:{
+    applicationDomainId: string;
+    enumName: string;
+  }): Promise<EnumVersion | undefined> => {
+    const funcName = 'getLastestVersionByName';
+    const logName = `${CliEPEnumVersionsService.name}.${funcName}()`;
+
+    const enumVersionList: Array<EnumVersion> = await this.getVersionsByName({ 
+      enumName: enumName, 
+      applicationDomainId: applicationDomainId 
+    });
+    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.SERVICE, details: {
+      enumVersionList: enumVersionList
+    }}));
+
+    const latestEnumVersion: EnumVersion | undefined = this.getLatestVersionFromList({ enumVersionList: enumVersionList });
+    return latestEnumVersion;
+
   }
 }
 

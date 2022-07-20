@@ -4,6 +4,7 @@ import { CliLogger, ECliStatusCodes } from "../CliLogger";
 import { CliTask, ICliTaskKeys, ICliGetFuncReturn, ICliTaskConfig, ICliCreateFuncReturn, ICliTaskExecuteReturn, ICliUpdateFuncReturn } from "./CliTask";
 import { ApplicationDomain, ApplicationDomainResponse, ApplicationDomainsResponse, ApplicationDomainsService } from "../_generated/@solace-iot-team/sep-openapi-node";
 import _ from "lodash";
+import CliEPApplicationDomainsService from "../services/CliEPApplicationDomainsService";
 
 type TCliApplicationDomainTask_Settings = Partial<Pick<ApplicationDomain, "topicDomainEnforcementEnabled" | "uniqueTopicAddressEnforcementEnabled" | "description">>;
 type TCliApplicationDomainTask_CompareObject = TCliApplicationDomainTask_Settings;
@@ -70,19 +71,17 @@ export class CliApplicationDomainTask extends CliTask {
       }
     }}));
 
-    const applicationDomainsResponse: ApplicationDomainsResponse = await ApplicationDomainsService.list9({
-      name: applicationDomainName
-    });
+    const applicationDomain: ApplicationDomain | undefined = await CliEPApplicationDomainsService.getByName({ applicationDomainName: applicationDomainName });
 
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_GET, details: {
-      applicationDomainsResponse: applicationDomainsResponse
+      applicationDomain: applicationDomain ? applicationDomain : 'undefined'
     }}));
 
-    if(applicationDomainsResponse.data === undefined || applicationDomainsResponse.data.length === 0) return this.Empty_ICliApplicationDomainTask_GetFuncReturn;
+    if(applicationDomain === undefined) return this.Empty_ICliApplicationDomainTask_GetFuncReturn;
 
     const cliApplicationDomainTask_GetFuncReturn: ICliApplicationDomainTask_GetFuncReturn = {
-      apiObject: applicationDomainsResponse.data[0],
-      applicationDomainObject: applicationDomainsResponse.data[0],
+      apiObject: applicationDomain,
+      applicationDomainObject: applicationDomain,
       documentExists: true
     };
     return cliApplicationDomainTask_GetFuncReturn;
@@ -125,7 +124,7 @@ export class CliApplicationDomainTask extends CliTask {
       document: create
     }}));
 
-    const applicationDomainResponse: ApplicationDomainResponse = await ApplicationDomainsService.create9({
+    const applicationDomainResponse: ApplicationDomainResponse = await ApplicationDomainsService.createApplicationDomain({
       requestBody: create
     });
 
@@ -158,7 +157,7 @@ export class CliApplicationDomainTask extends CliTask {
     if(cliGetFuncReturn.applicationDomainObject.id === undefined) throw new CliEPApiContentError(logName, 'cliGetFuncReturn.applicationDomainObject.id === undefined', {
       applicationDomainObject: cliGetFuncReturn.applicationDomainObject
     });
-    const applicationDomainResponse: ApplicationDomainResponse = await ApplicationDomainsService.update8({
+    const applicationDomainResponse: ApplicationDomainResponse = await ApplicationDomainsService.updateApplicationDomain({
       id: cliGetFuncReturn.applicationDomainObject.id,
       requestBody: update
     });

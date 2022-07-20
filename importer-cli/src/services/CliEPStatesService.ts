@@ -22,7 +22,7 @@ class CliEPStatesService {
 
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.INITIALIZING }));
 
-    const stateResponse: StatesResponse = await StatesService.listStates();
+    const stateResponse: StatesResponse = await StatesService.getStates();
 
     // stateResponse.
     // const stateDTOList: Array<StateDTO> = await StatesService.listStates()
