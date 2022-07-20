@@ -1,7 +1,7 @@
 import path from 'path';
 import fs from 'fs';
 
-import { CliError, CliErrorFromError, CliInvalidDirConfigEnvVarError, ConfigMissingEnvVarError, InvalidEnvVarValueFromListError, InvalidFileConfigError } from './CliError';
+import { CliError, CliErrorFromError, CliInvalidDirConfigEnvVarError, CliInvalidUrlConfigEnvVarError, ConfigMissingEnvVarError, InvalidEnvVarValueFromListError, InvalidFileConfigError } from './CliError';
 import { CliLogger, ECliStatusCodes } from './CliLogger';
 import { CliUtils } from './CliUtils';
 
@@ -54,10 +54,14 @@ export type TCliAppConfig = {
   assetImportTargetLifecycleState: TAssetImportTargetLifecycleState;
   assetOutputRootDir: string;
 }
+export type TCliEpApiConfig = {
+  epApiBaseUrl: string;
+}
 export type TCliConfig = {
   appId: string;
   cliLoggerConfig: TCliLoggerConfig;
   appConfig: TCliAppConfig;
+  epApiConfig: TCliEpApiConfig;
 };
 
 export enum EEnvVars {
@@ -68,7 +72,8 @@ export enum EEnvVars {
   CLI_ASSET_IMPORT_TARGET_LIFECYLE_STATE = "CLI_ASSET_IMPORT_TARGET_LIFECYLE_STATE",
   CLI_ASSET_IMPORT_TARGET_VERSION_STRATEGY = "CLI_ASSET_IMPORT_TARGET_VERSION_STRATEGY",
   CLI_ASSET_OUTPUT_DIR = "CLI_ASSET_OUTPUT_DIR",
-  CLI_LOG_DIR = "CLI_LOG_DIR"
+  CLI_LOG_DIR = "CLI_LOG_DIR",
+  CLI_EP_API_BASE_URL = "CLI_EP_API_BASE_URL",
 };
 
 
@@ -81,6 +86,7 @@ export class CliConfig {
   private static DEFAULT_CLI_ASSET_IMPORT_TARGET_LIFECYLE_STATE = ValidEnvAssetImportTargetLifecycleState.DRAFT;
   private static DEFAULT_CLI_ASSET_IMPORT_TARGET_VERSION_STRATEGY = ValidEnvAssetImportTargetLifecycleState_VersionStrategy.BUMP_PATCH;
   private static TMP_DIR = "./tmp";
+  private static DEFAULT_CLI_EP_API_BASE_URL = "https://api.solace.cloud";
 
   private static DefaultCliLoggerConfig: TCliLoggerConfig = {
     appId: CliConfig.DEFAULT_APP_ID,
@@ -95,6 +101,20 @@ export class CliConfig {
     if(!list.includes(value.toLowerCase())) throw new InvalidEnvVarValueFromListError(logName, 'invalid value', envVarName, value, list);    
     return value.toLowerCase();
   };
+
+  private getOptionalEnvVarValueAsUrlWithDefault = (envVarName: string, defaultValue: string): string => {
+    const funcName = 'getOptionalEnvVarValueAsUrlWithDefault';
+    const logName = `${CliConfig.name}.${funcName}()`;
+    const value: string | undefined = process.env[envVarName];
+    if(!value) return defaultValue;
+    // check if value is a valid Url
+    try {
+      const valueUrl: URL = new URL(value);
+      return value;
+    } catch(e: any) {
+      throw new CliInvalidUrlConfigEnvVarError(logName, undefined, envVarName, value, e);
+    }
+  }
 
   // private getMandatoryEnvVarValueAsString_From_List = (envVarName: string, list: Array<string>): string => {
   //   const funcName = 'getMandatoryEnvVarValueAsString_From_List';
@@ -227,6 +247,9 @@ export class CliConfig {
           domainName: globalDomainName,
           assetImportTargetLifecycleState: this.initialize_AssetImportTargetLifecycleState(),
           assetOutputRootDir: assetOutputRootDir,
+        },
+        epApiConfig: {
+          epApiBaseUrl: this.getOptionalEnvVarValueAsUrlWithDefault(EEnvVars.CLI_EP_API_BASE_URL, CliConfig.DEFAULT_CLI_EP_API_BASE_URL),
         }
       };
     } catch(e) {
@@ -260,6 +283,10 @@ export class CliConfig {
 
   public getCliAppConfig = (): TCliAppConfig => {
     return this.config.appConfig;
+  }
+
+  public getCliEpApiConfig = (): TCliEpApiConfig => {
+    return this.config.epApiConfig;
   }
 
   public getSolaceCloudToken = (): string => {
