@@ -50,9 +50,13 @@ export class CliAsyncApiDocument {
 
     let appDomainName: string | undefined = this.appConfig.domainName;
     if(appDomainName === undefined) {
-      appDomainName = this.get_X_ApplicationDomainName();
+      const specAppDomainName = this.get_X_ApplicationDomainName();
+      if(specAppDomainName === undefined) appDomainName = undefined;
+      else if(this.appConfig.prefixDomainName !== undefined) appDomainName = `${this.appConfig.prefixDomainName}/${specAppDomainName}`;
+      else appDomainName = specAppDomainName;
     }
     if(appDomainName === undefined) throw new AsyncApiSpecXtensionError(logName, "no application domain name defined, define either in spec or on command line", this.appConfig.asyncApiSpecFileName, E_EP_Extensions.X_APPLICATION_DOMAIN_NAME);
+
     return appDomainName;
   }
 

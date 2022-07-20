@@ -5,6 +5,14 @@ import { CliError, CliErrorFromError, CliInvalidDirConfigEnvVarError, CliInvalid
 import { CliLogger, ECliStatusCodes } from './CliLogger';
 import { CliUtils } from './CliUtils';
 
+export enum ECliImporterMode {
+  RELEASE_MODE = "release_mode",
+  TEST_MODE = "test_mode"
+}
+const ValidEnvCliImporterMode = {
+  RELEASE_MODE: ECliImporterMode.RELEASE_MODE,
+  TEST_MODE: ECliImporterMode.TEST_MODE
+}
 export enum ECliAssetImportTargetLifecycleState_VersionStrategy {
   BUMP_MINOR = "bump_minor",
   BUMP_PATCH = "bump_patch"
@@ -47,10 +55,12 @@ export type TCliLoggerConfig = {
   logsDir?: string;
 };
 export type TCliAppConfig = {
+  importerMode: ECliImporterMode;
   assetsTargetState: ECliAssetsTargetState;
   asyncApiSpecFileList: Array<string>;
   asyncApiSpecFileName: string;
   domainName?: string;
+  prefixDomainName?: string;
   assetImportTargetLifecycleState: TAssetImportTargetLifecycleState;
   assetOutputRootDir: string;
 }
@@ -74,6 +84,7 @@ export enum EEnvVars {
   CLI_ASSET_OUTPUT_DIR = "CLI_ASSET_OUTPUT_DIR",
   CLI_LOG_DIR = "CLI_LOG_DIR",
   CLI_EP_API_BASE_URL = "CLI_EP_API_BASE_URL",
+  CLI_MODE = "CLI_MODE",
 };
 
 
@@ -82,16 +93,39 @@ export class CliConfig {
   private solaceCloudToken: string;
   public static DEFAULT_APP_ID = "@solace-iot-team/sep-async-api-importer";
   public static DEFAULT_LOGGER_LOG_LEVEL = "info";
+  private static DEFAULT_IMPORTER_MODE = ValidEnvCliImporterMode.RELEASE_MODE;
   private static DEFAULT_ASSETS_TARGET_STATE = ValidEnvAssetsTargetState.PRESENT;
   private static DEFAULT_CLI_ASSET_IMPORT_TARGET_LIFECYLE_STATE = ValidEnvAssetImportTargetLifecycleState.DRAFT;
   private static DEFAULT_CLI_ASSET_IMPORT_TARGET_VERSION_STRATEGY = ValidEnvAssetImportTargetLifecycleState_VersionStrategy.BUMP_PATCH;
   private static TMP_DIR = "./tmp";
   private static DEFAULT_CLI_EP_API_BASE_URL = "https://api.solace.cloud";
+  private static TEST_PREFIX_DOMAIN_NAME = ""
 
   private static DefaultCliLoggerConfig: TCliLoggerConfig = {
     appId: CliConfig.DEFAULT_APP_ID,
     level: CliConfig.DEFAULT_LOGGER_LOG_LEVEL,
   };
+
+  private createPrefixDomainName = ({ cliConfig }:{
+    cliConfig: TCliConfig;
+  }): string | undefined => {
+    if(cliConfig.appConfig.importerMode === ECliImporterMode.TEST_MODE) {
+      const d = new Date();
+      return `${cliConfig.appId}/${cliConfig.appConfig.importerMode}/${d.toUTCString()}`;
+    }
+    return undefined;
+  }
+
+  private createGlobalDomainName = ({ cliConfig }:{
+    cliConfig: TCliConfig;
+  }): string | undefined => {
+    if(cliConfig.appConfig.domainName !== undefined) {
+      if(cliConfig.appConfig.prefixDomainName !== undefined) return `${cliConfig.appConfig.prefixDomainName}/${cliConfig.appConfig.domainName}`;
+      else return cliConfig.appConfig.domainName;
+    }
+    return undefined;
+  }
+
 
   private getOptionalEnvVarValueAsString_From_List_WithDefault = (envVarName: string, list: Array<string>, defaultValue: string): string => {
     const funcName = 'getOptionalEnvVarValueAsString_From_List_WithDefault';
@@ -241,6 +275,7 @@ export class CliConfig {
           logsDir: logsDir
         },
         appConfig: {
+          importerMode: this.getOptionalEnvVarValueAsString_From_List_WithDefault(EEnvVars.CLI_MODE, Object.values(ValidEnvCliImporterMode), CliConfig.DEFAULT_IMPORTER_MODE) as ECliImporterMode,
           assetsTargetState: this.getOptionalEnvVarValueAsString_From_List_WithDefault(EEnvVars.CLI_ASSETS_TARGET_STATE, Object.values(ValidEnvAssetsTargetState), CliConfig.DEFAULT_ASSETS_TARGET_STATE) as ECliAssetsTargetState,
           asyncApiSpecFileName: asyncApiSpecFileName ? asyncApiSpecFileName : 'undefined',
           asyncApiSpecFileList: fileList ? fileList : [],
@@ -252,6 +287,8 @@ export class CliConfig {
           epApiBaseUrl: this.getOptionalEnvVarValueAsUrlWithDefault(EEnvVars.CLI_EP_API_BASE_URL, CliConfig.DEFAULT_CLI_EP_API_BASE_URL),
         }
       };
+      this.config.appConfig.prefixDomainName = this.createPrefixDomainName({ cliConfig: this.config });
+      this.config.appConfig.domainName = this.createGlobalDomainName({ cliConfig: this.config });
     } catch(e) {
       if(e instanceof CliError) {
         const se: CliError = e as CliError;
