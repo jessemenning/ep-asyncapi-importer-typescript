@@ -80,7 +80,10 @@ describe(`${scriptName}`, () => {
         });
         CliLogger.initialize(CliConfig.getCliLoggerConfig());
         CliConfig.logConfig();
-        EPClient.initialize(CliConfig.getSolaceCloudToken());      
+        EPClient.initialize({
+          token: CliConfig.getSolaceCloudToken(),
+          baseUrl: CliConfig.getCliEpApiConfig().epApiBaseUrl
+        });      
       } catch (e) {
         expect(e instanceof CliError, TestLogger.createNotCliErrorMesssage(e.message)).to.be.true;
         expect(false, TestLogger.createTestFailMessageWithCliError('failed', e)).to.be.true;

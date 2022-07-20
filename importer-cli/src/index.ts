@@ -73,7 +73,10 @@ function initialize(commandLineOptionValues: OptionValues) {
   });
   CliLogger.initialize(CliConfig.getCliLoggerConfig());
   CliConfig.logConfig();
-  EPClient.initialize(CliConfig.getSolaceCloudToken());  
+  EPClient.initialize({
+    token: CliConfig.getSolaceCloudToken(),
+    baseUrl: CliConfig.getCliEpApiConfig().epApiBaseUrl
+  });  
 
 }
 

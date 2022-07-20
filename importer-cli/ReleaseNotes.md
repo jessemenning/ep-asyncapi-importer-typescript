@@ -2,6 +2,13 @@
 
 Solace Event Portal Async API Importer.
 
+## Version 0.1.6-alpha
+  * [Solace Event Portal OpenAPI](https://github.com/solace-iot-team/sep-async-api-importer/blob/main/resources/sep-openapi-spec.json): 'Early Access'
+
+**Enhancements:**
+- **configurable base url for EP Api**
+  - new, optional env variable: CLI_EP_API_BASE_URL={ep-api-url}, default: 'https://api.solace.cloud'
+
 ## Version 0.1.5-alpha
   * [Solace Event Portal OpenAPI](https://github.com/solace-iot-team/sep-async-api-importer/blob/main/resources/sep-openapi-spec.json): 'Early Access'
 

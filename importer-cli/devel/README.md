@@ -17,6 +17,9 @@ npm run dev:build
 ## Run
 
 ```bash
+
+export CLI_SOLACE_CLOUD_TOKEN={token}
+
 # single spec
 npm run dev:start -- -fp ../data/acme-retail/central-it/till-system/AcmeRetail-Central-IT-Provider-TillSystem-v1.spec.yml -d dev/test | npx pino-pretty
 

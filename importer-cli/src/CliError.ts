@@ -101,6 +101,19 @@ export class CliInvalidDirConfigEnvVarError extends CliError {
   }
 }
 
+export class CliInvalidUrlConfigEnvVarError extends CliError {
+  protected static defaultDescription = 'Invalid URL format';
+  private url: string;
+  private envVar: string;
+  private error: any;
+  constructor(internalLogName: string, internalMessage: string = CliInvalidUrlConfigEnvVarError.defaultDescription, envVar: string, url: string, error: Error) {
+    super(internalLogName, `${internalMessage}: ${envVar}=${url}`);
+    this.error = error;
+    this.url = url;
+    this.envVar = envVar;
+  }
+}
+
 export class InvalidEnvVarValueFromListError extends CliError {
   private envVarName: string;
   private envVarValue: string;
