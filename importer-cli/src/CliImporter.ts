@@ -1,5 +1,5 @@
 import { CliLogger, ECliStatusCodes } from './CliLogger';
-import CliConfig, { ECliAssetsTargetState, TCliAppConfig } from './CliConfig';
+import CliConfig, { ECliAssetsTargetState, ECliImporterMode, TCliAppConfig } from './CliConfig';
 import { CliAsyncApiDocument, CliChannelDocumentMap, CliChannelParameterDocumentMap, CliEventNames, E_ASYNC_API_SPEC_CONTENNT_TYPES } from './documents/CliAsyncApiDocument';
 import { ECliTaskAction, ECliTaskState } from './tasks/CliTask';
 import { CliApplicationDomainTask, ICliApplicationDomainTask_ExecuteReturn } from './tasks/CliApplicationDomainTask';
@@ -31,6 +31,7 @@ import CliAsyncApiDocumentsService, { TCliImportActionList } from './services/Cl
 import { CliEventApiTask, ICliEventApiTask_ExecuteReturn } from './tasks/CliEventApiTask';
 import { CliEventApiVersionTask, ICliEventApiVersionTask_ExecuteReturn } from './tasks/CliEventApiVersionTask';
 import CliEPEventVersionsService from './services/CliEPEventVersionsService';
+import CliEPApplicationDomainsService from './services/CliEPApplicationDomainsService';
 
 
 export class CliImporter {
@@ -751,6 +752,13 @@ export class CliImporter {
       specFile: this.cliAppConfig.asyncApiSpecFileName,
       targetState: this.cliAppConfig.assetsTargetState,
     }}));
+
+    // if test mode then delete the application domain
+    if(CliConfig.getCliAppConfig().importerMode === ECliImporterMode.TEST_MODE) {
+      CliEPApplicationDomainsService.deleteByName( { 
+        applicationDomainName: cliAsyncApiDocument.getApplicationDomainName()
+      })
+    }
   }
 
   private run_absent = async({ cliAsyncApiDocument }:{
@@ -785,7 +793,6 @@ export class CliImporter {
       version: asyncApiDocument.getVersion(),
       applicationDomainName: asyncApiDocument.getApplicationDomainName()
     }}));
-
     return asyncApiDocument;
   }
 
