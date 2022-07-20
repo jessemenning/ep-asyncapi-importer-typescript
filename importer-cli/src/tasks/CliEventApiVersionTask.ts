@@ -84,7 +84,7 @@ export class CliEventApiVersionTask extends CliVersionTask {
       params: cliTaskKeys,
     }}));
 
-    const eventApiVersion: EventApiVersion | undefined = await CliEPEventApiVersionsService.getLastestVersion({
+    const eventApiVersion: EventApiVersion | undefined = await CliEPEventApiVersionsService.getLastestVersionById({
       eventApiId: cliTaskKeys.eventApiId,
     });
 
@@ -146,7 +146,7 @@ export class CliEventApiVersionTask extends CliVersionTask {
       document: eventApiVersion
     }}));
 
-    const eventApiVersionResponse: EventApiVersionResponse = await EventApIsService.create5({
+    const eventApiVersionResponse: EventApiVersionResponse = await EventApIsService.createEventApiVersionForEventApi({
       eventApiId: eventApiId,
       requestBody: eventApiVersion
     });
@@ -164,14 +164,14 @@ export class CliEventApiVersionTask extends CliVersionTask {
     });
     // check the target lifecycle state
     if(createdEventApiVersion.stateId !== targetLifecycleStateId) {
-      const versionedObjectStateChangeRequest: VersionedObjectStateChangeRequest = await EventApIsService.changeState1({
+      const versionedObjectStateChangeRequest: VersionedObjectStateChangeRequest = await EventApIsService.updateEventApiVersionStateForEventApi({
         eventApiId: eventApiId,
         id: createdEventApiVersion.id,
         requestBody: {
           stateId: targetLifecycleStateId
         }
       });
-      const updatedEventApiVersion: EventApiVersion | undefined = await CliEPEventApiVersionsService.getVersion({
+      const updatedEventApiVersion: EventApiVersion | undefined = await CliEPEventApiVersionsService.getVersionByVersion({
         eventApiId: eventApiId,
         versionString: this.newVersionString
       });

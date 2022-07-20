@@ -15,7 +15,7 @@ class CliEPApplicationDomainsService {
     const funcName = 'getByName';
     const logName = `${CliEPApplicationDomainsService.name}.${funcName}()`;
 
-    const applicationDomainsResponse: ApplicationDomainsResponse = await ApplicationDomainsService.list9({
+    const applicationDomainsResponse: ApplicationDomainsResponse = await ApplicationDomainsService.getApplicationDomains({
       name: applicationDomainName
     });
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.SERVICE, details: {
@@ -35,7 +35,7 @@ class CliEPApplicationDomainsService {
     const funcName = 'getById';
     const logName = `${CliEPApplicationDomainsService.name}.${funcName}()`;
 
-    const applicationDomainResponse: ApplicationDomainResponse = await ApplicationDomainsService.get9({ 
+    const applicationDomainResponse: ApplicationDomainResponse = await ApplicationDomainsService.getApplicationDomain({ 
       id: applicationDomainId,
     });
     if(applicationDomainResponse.data === undefined) {
@@ -53,7 +53,7 @@ class CliEPApplicationDomainsService {
 
     const applicationDomain: ApplicationDomain = await this.getById({ applicationDomainId: applicationDomainId });
 
-    const xvoid: void = await ApplicationDomainsService.delete9({ 
+    const xvoid: void = await ApplicationDomainsService.deleteApplicationDomain({ 
       id: applicationDomainId,
     });
 

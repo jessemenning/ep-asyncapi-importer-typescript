@@ -9,6 +9,7 @@ import {
   EventApisResponse,
   EventApIsService, 
 } from "../_generated/@solace-iot-team/sep-openapi-node";
+import CliEPEventApisService from "../services/CliEPEventApisService";
 
 type TCliEventApiTask_Settings = Partial<Pick<EventApi, "shared">>;
 type TCliEventApiTask_CompareObject = TCliEventApiTask_Settings;
@@ -72,21 +73,20 @@ export class CliEventApiTask extends CliTask {
       cliTaskKeys: cliTaskKeys
     }}));
 
-    const eventApisResponse: EventApisResponse = await EventApIsService.list4({
+    const eventApiObject: EventApi | undefined = await CliEPEventApisService.getByName({
       applicationDomainId: cliTaskKeys.applicationDomainId,
-      name: cliTaskKeys.eventApiName
+      eventApiName: cliTaskKeys.eventApiName
     });
 
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_GET, details: {
-      eventApisResponse: eventApisResponse
+      eventApiObject: eventApiObject
     }}));
 
-    if(eventApisResponse.data === undefined || eventApisResponse.data.length === 0) return this.Empty_ICliEventApiTask_GetFuncReturn;
-    if(eventApisResponse.data.length > 1) throw new CliError(logName, 'eventApisResponse.data.length > 1');
+    if(eventApiObject === undefined) return this.Empty_ICliEventApiTask_GetFuncReturn;
 
     const cliEventApiTask_GetFuncReturn: ICliEventApiTask_GetFuncReturn = {
-      apiObject: eventApisResponse.data[0],
-      eventApiObject: eventApisResponse.data[0],
+      apiObject: eventApiObject,
+      eventApiObject: eventApiObject,
       documentExists: true,
     }
     return cliEventApiTask_GetFuncReturn;
@@ -128,7 +128,7 @@ export class CliEventApiTask extends CliTask {
       document: create
     }}));
 
-    const eventApiResponse: EventApiResponse = await EventApIsService.create4({
+    const eventApiResponse: EventApiResponse = await EventApIsService.createEventApi({
       requestBody: create
     });
 
@@ -166,7 +166,7 @@ export class CliEventApiTask extends CliTask {
     if(cliGetFuncReturn.eventApiObject.id === undefined) throw new CliEPApiContentError(logName, 'cliGetFuncReturn.eventApiObject.id === undefined', {
       eventApiObject: cliGetFuncReturn.eventApiObject
     });
-    const eventApiResponse: EventApiResponse = await EventApIsService.update3({
+    const eventApiResponse: EventApiResponse = await EventApIsService.updateEventApi({
       id: cliGetFuncReturn.eventApiObject.id,
       requestBody: update
     });

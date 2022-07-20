@@ -4,6 +4,7 @@ import { CliEPApiContentError, CliError } from "../CliError";
 import { CliLogger, ECliStatusCodes } from "../CliLogger";
 import { CliTask, ICliTaskKeys, ICliGetFuncReturn, ICliTaskConfig, ICliCreateFuncReturn, ICliTaskExecuteReturn, ICliUpdateFuncReturn } from "./CliTask";
 import { Event as EPEvent, EventResponse, EventsResponse, EventsService} from "../_generated/@solace-iot-team/sep-openapi-node";
+import CliEPEventsService from "../services/CliEPEventsService";
 
 // export enum EPSchemaType {
 //   JSON_SCHEMA = "jsonSchema"
@@ -75,21 +76,20 @@ export class CliEventTask extends CliTask {
       }
     }}));
 
-    const eventsResponse: EventsResponse = await EventsService.list1({
-      name: cliTaskKeys.eventName,
+    const epEventObject: EPEvent | undefined = await CliEPEventsService.getByName({
+      eventName: cliTaskKeys.eventName,
       applicationDomainId: cliTaskKeys.applicationDomainId,
     });
 
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_GET, details: {
-      eventsResponse: eventsResponse
+      epEventObject: epEventObject
     }}));
 
-    if(eventsResponse.data === undefined || eventsResponse.data.length === 0) return this.Empty_ICliEventTask_GetFuncReturn;
-    if(eventsResponse.data.length > 1) throw new CliError(logName, 'eventsResponse.data.length > 1');
+    if(epEventObject === undefined) return this.Empty_ICliEventTask_GetFuncReturn;
 
     const cliEventTask_GetFuncReturn: ICliEventTask_GetFuncReturn = {
-      apiObject: eventsResponse.data[0],
-      eventObject: eventsResponse.data[0],
+      apiObject: epEventObject,
+      eventObject: epEventObject,
       documentExists: true,
     }
     return cliEventTask_GetFuncReturn;
@@ -131,7 +131,7 @@ export class CliEventTask extends CliTask {
       document: create
     }}));
 
-    const eventResponse: EventResponse = await EventsService.create1({
+    const eventResponse: EventResponse = await EventsService.createEvent({
       requestBody: create
     });
 
@@ -169,7 +169,7 @@ export class CliEventTask extends CliTask {
     if(cliGetFuncReturn.eventObject.id === undefined) throw new CliEPApiContentError(logName, 'cliGetFuncReturn.eventObject.id === undefined', {
       eventObject: cliGetFuncReturn.eventObject
     });
-    const eventResponse: EventResponse = await EventsService.update({
+    const eventResponse: EventResponse = await EventsService.updateEvent({
       id: cliGetFuncReturn.eventObject.id,
       requestBody: update
     });

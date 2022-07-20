@@ -1,7 +1,7 @@
 import { Validator, ValidatorResult } from 'jsonschema';
 import CliConfig from '../CliConfig';
 
-import { AsyncApiSpecEPValidationError, CliEPApiContentError, CliError, CliImporterError } from '../CliError';
+import { AsyncApiSpecEPValidationError, CliEPApiContentError, CliImporterError } from '../CliError';
 import { CliLogger, ECliStatusCodes } from '../CliLogger';
 import CliSemVerUtils from '../CliSemVerUtils';
 import { CliAsyncApiDocument, CliChannelDocumentMap } from '../documents/CliAsyncApiDocument';
@@ -13,7 +13,7 @@ import {
   eventApiVersion as EventApiVersion, 
   EventApiVersionResponse, 
   EventApiVersionsResponse,
-  EventVersion
+  EventVersion,
 } from '../_generated/@solace-iot-team/sep-openapi-node';
 import CliAsyncApiDocumentsService from './CliAsyncApiDocumentsService';
 import CliEPEventVersionsService from './CliEPEventVersionsService';
@@ -33,7 +33,30 @@ class CliEPEventApiVersionsService {
     if(!validateResult.valid) throw new AsyncApiSpecEPValidationError(logName, undefined, validateResult.errors, {
       title: title
     });
+  }
 
+  private getLatestVersionFromList = ({ eventApiVersionList }:{
+    eventApiVersionList: Array<EventApiVersion>;
+  }): EventApiVersion | undefined => {
+    const funcName = 'getLatestVersionFromList';
+    const logName = `${CliEPEventApiVersionsService.name}.${funcName}()`;
+
+    let latestVersion: EventApiVersion | undefined = undefined;
+    let latestVersionString: string = '0.0.0';
+    for(const eventApiVersion of eventApiVersionList) {
+      if(eventApiVersion.version === undefined) throw new CliEPApiContentError(logName, 'eventApiVersion.version === undefined', {
+        eventApiVersion: eventApiVersion
+      });
+      const newVersion: string = eventApiVersion.version;
+      if(CliSemVerUtils.is_NewVersion_GreaterThan_OldVersion({
+        newVersion: newVersion,
+        oldVersion: latestVersionString,
+      })) {
+        latestVersionString = newVersion;
+        latestVersion = eventApiVersion;
+      }
+    }
+    return latestVersion;
   }
 
   public getVersions = async({ eventApiId }:{
@@ -42,19 +65,16 @@ class CliEPEventApiVersionsService {
     const funcName = 'getVersions';
     const logName = `${CliEPEventApiVersionsService.name}.${funcName}()`;
 
-    // TODO: BUG_IN_EP_API
-    // id is not actually required, waiting for fix
-
-    // trick API into not having the id
-    const BUG_IN_EP_API_trickParams: any = {
+    // trick (api kaputt)
+    const params: any = {
       eventApiId: eventApiId
-    };
-
-    const eventApiVersionsResponse: EventApiVersionsResponse = await EventApIsService.list5({
-      ...BUG_IN_EP_API_trickParams
+    }
+    const eventApiVersionsResponse: EventApiVersionsResponse = await EventApIsService.getEventApiVersionsForEventApi({
+      ...params
     });
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.SERVICE, details: {
-      eventApiVersionsResponse: eventApiVersionsResponse
+      eventApiVersionsResponse: eventApiVersionsResponse,
+      params: params
     }}));
     if(eventApiVersionsResponse.data === undefined || eventApiVersionsResponse.data.length === 0) return [];
     return eventApiVersionsResponse.data;
@@ -70,60 +90,34 @@ class CliEPEventApiVersionsService {
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.SERVICE, details: {
       eventApiVersionList: eventApiVersionList
     }}));
-    if(eventApiVersionList.length === 0) return undefined;
-
-    let latest: string = '0.0.0';
-    for(const eventApiVersion of eventApiVersionList) {
-      if(eventApiVersion.version === undefined) throw new CliEPApiContentError(logName, 'eventApiVersion.version === undefined', {
-        eventApiVersion: eventApiVersion
-      });
-      const newVersion: string = eventApiVersion.version;
-      if(CliSemVerUtils.is_NewVersion_GreaterThan_OldVersion({
-        newVersion: newVersion,
-        oldVersion: latest,
-      })) {
-        latest = newVersion;
-      }
-    }
-    return latest;
+    const latestEventApiVersion: EventApiVersion | undefined = this.getLatestVersionFromList({ eventApiVersionList: eventApiVersionList });
+    if(latestEventApiVersion === undefined) return undefined;
+    if(latestEventApiVersion.version === undefined) throw new CliEPApiContentError(logName, 'latestEventApiVersion.version === undefined', {
+      latestEventApiVersion: latestEventApiVersion
+    });
+    return latestEventApiVersion.version;
   }
 
-  public getLastestVersion = async({ eventApiId }:{
+  public getLastestVersionById = async({ eventApiId }:{
     eventApiId: string;
   }): Promise<EventApiVersion | undefined> => {
-    const funcName = 'getLastestVersion';
+    const funcName = 'getLastestVersionById';
     const logName = `${CliEPEventApiVersionsService.name}.${funcName}()`;
 
     const eventApiVersionList: Array<EventApiVersion> = await this.getVersions({ eventApiId: eventApiId });
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.SERVICE, details: {
       eventApiVersionList: eventApiVersionList
     }}));
-    if(eventApiVersionList.length === 0) return undefined;
-
-    let latestEventApiVersion: EventApiVersion | undefined = undefined;
-    let latestVersion: string = '0.0.0';
-    for(const eventApiVersion of eventApiVersionList) {
-      if(eventApiVersion.version === undefined) throw new CliEPApiContentError(logName, 'eventApiVersion.version === undefined', {
-        eventApiVersion: eventApiVersion
-      });
-
-      const newVersion: string = eventApiVersion.version;
-      if(CliSemVerUtils.is_NewVersion_GreaterThan_OldVersion({
-        newVersion: newVersion,
-        oldVersion: latestVersion,
-      })) {
-        latestVersion = newVersion;
-        latestEventApiVersion = eventApiVersion;
-      }
-    }
+    const latestEventApiVersion: EventApiVersion | undefined = this.getLatestVersionFromList({ eventApiVersionList: eventApiVersionList });
+    if(latestEventApiVersion === undefined) return undefined;
     return latestEventApiVersion;
   }
 
-  public getVersion = async({ eventApiId, versionString }:{
+  public getVersionByVersion = async({ eventApiId, versionString }:{
     eventApiId: string;
     versionString: string;
   }): Promise<EventApiVersion | undefined> => {
-    const funcName = 'getVersion';
+    const funcName = 'getVersionByVersion';
     const logName = `${CliEPEventApiVersionsService.name}.${funcName}()`;
 
     const eventApiVersionList: Array<EventApiVersion> = await this.getVersions({ eventApiId: eventApiId });
@@ -144,9 +138,9 @@ class CliEPEventApiVersionsService {
     // const funcName = 'getAsyncApiDocument';
     // const logName = `${CliEPEventApiVersionsService.name}.${funcName}()`;
 
-    const anySpec: any = await EventApIsService.generateAsyncApi({
-      eventApiId: eventApiId,
-      id: eventApiVersionId,
+    eventApiId;
+    const anySpec: any = await EventApIsService.getAsyncApiForEventApiVersion({
+      eventApiVersionId: eventApiVersionId,
       format: 'json',
       version: asyncApiSpecVersion
     });
@@ -233,7 +227,7 @@ class CliEPEventApiVersionsService {
       // producedEventVersionIds: publishEventVersionIds,
       // consumedEventVersionIds: subscribeEventVersionIds
     }
-    const eventApiVersionResponse: EventApiVersionResponse = await EventApIsService.create5({
+    const eventApiVersionResponse: EventApiVersionResponse = await EventApIsService.createEventApiVersionForEventApi({
       eventApiId: eventApiId,
       requestBody: create
     });

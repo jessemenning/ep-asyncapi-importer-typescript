@@ -18,12 +18,14 @@ type TCliEnumVersionTask_Settings = Required<Pick<EnumVersion, "description" | "
 type TCliEnumVersionTask_CompareObject = Partial<TCliEnumVersionTask_Settings> & Pick<EnumVersion, "values">;
 
 export interface ICliEnumVersionTask_Config extends ICliTaskConfig {
+  applicationDomainId: string;
   enumId: string;
   baseVersionString: string;
   enumVersionSettings: TCliEnumVersionTask_Settings;
   parameterEnumValues: Array<string>;
 }
 export interface ICliEnumVersionTask_Keys extends ICliTaskKeys {
+  applicationDomainId: string;
   enumId: string;
 }
 export interface ICliEnumVersionTask_GetFuncReturn extends ICliGetFuncReturn {
@@ -81,6 +83,7 @@ export class CliEnumVersionTask extends CliTask {
   protected getTaskKeys(): ICliEnumVersionTask_Keys {
     return {
       enumId: this.getCliTaskConfig().enumId,
+      applicationDomainId: this.getCliTaskConfig().applicationDomainId
     };
   }
 
@@ -96,18 +99,14 @@ export class CliEnumVersionTask extends CliTask {
     }}));
 
     // get the latest enum version
-    const latestEnumVersionString: string | undefined = await CliEPEnumVersionsService.getLastestEnumVersionString({ enumId: cliTaskKeys.enumId });
-    if(latestEnumVersionString === undefined) return this.Empty_ICliEnumVersionTask_GetFuncReturn;
-
-    const enumVersion: EnumVersion | undefined = await CliEPEnumVersionsService.getEnumVersion({ 
+    const enumVersion: EnumVersion | undefined = await CliEPEnumVersionsService.getLatestVersionById({
+      applicationDomainId: cliTaskKeys.applicationDomainId,
       enumId: cliTaskKeys.enumId,
-      enumVersionString: latestEnumVersionString
     });
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_GET, details: {
       enumVersion: enumVersion ? enumVersion : 'undefined'
     }}));
-    if(enumVersion === undefined) throw new CliError(logName, 'enumVersion === undefined');
-
+    if(enumVersion === undefined) return this.Empty_ICliEnumVersionTask_GetFuncReturn;
     const cliEnumVersionTask_GetFuncReturn: ICliEnumVersionTask_GetFuncReturn = {
       apiObject: enumVersion,
       enumVersionObject: enumVersion,
@@ -168,7 +167,7 @@ export class CliEnumVersionTask extends CliTask {
       document: enumVersion
     }}));
 
-    const enumVersionResponse: EnumVersionResponse = await EnumsService.postVersion({
+    const enumVersionResponse: EnumVersionResponse = await EnumsService.createEnumVersionForEnum({
       enumId: enumId,
       requestBody: enumVersion
     });
@@ -187,14 +186,14 @@ export class CliEnumVersionTask extends CliTask {
     });
     // check the target lifecycle state
     if(createdEnumVersion.stateId !== targetLifecycleStateId) {
-      const versionedObjectStateChangeRequest: VersionedObjectStateChangeRequest = await EnumsService.changeState2({
+      const versionedObjectStateChangeRequest: VersionedObjectStateChangeRequest = await EnumsService.updateEnumVersionStateForEnum({
         enumId: enumId,
         id: createdEnumVersion.id,
         requestBody: {
           stateId: targetLifecycleStateId
         }
       });
-      const updatedEnumVersion: EnumVersion | undefined = await CliEPEnumVersionsService.getEnumVersion({
+      const updatedEnumVersion: EnumVersion | undefined = await CliEPEnumVersionsService.getVersionByVersion({
         enumId: enumId,
         enumVersionString: this.newVersionString
       });
@@ -241,7 +240,7 @@ export class CliEnumVersionTask extends CliTask {
     cliGetFuncReturn;
     const enumId: string = this.getCliTaskConfig().enumId;
 
-    const latestEnumVersionString: string | undefined = await CliEPEnumVersionsService.getLastestEnumVersionString({ enumId: this.getCliTaskConfig().enumId });
+    const latestEnumVersionString: string | undefined = await CliEPEnumVersionsService.getLastestVersionString({ enumId: this.getCliTaskConfig().enumId });
     if(latestEnumVersionString === undefined) throw new CliError(logName, 'latestEnumVersionString === undefined');
     // bump version according to strategy
     const newEnumVersionString = CliSemVerUtils.createNextVersion({

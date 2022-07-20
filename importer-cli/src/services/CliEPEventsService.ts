@@ -8,14 +8,14 @@ import {
 
 class CliEPEventsService {
 
-  public getEventByName = async({ eventName, applicationDomainId }:{
+  public getByName = async({ eventName, applicationDomainId }:{
     applicationDomainId: string;
     eventName: string;
   }): Promise<EPEvent | undefined> => {
-    const funcName = 'getEventByName';
+    const funcName = 'getByName';
     const logName = `${CliEPEventsService.name}.${funcName}()`;
 
-    const eventsResponse: EventsResponse = await EventsService.list1({
+    const eventsResponse: EventsResponse = await EventsService.getEvents({
       applicationDomainId: applicationDomainId,
       name: eventName
     });

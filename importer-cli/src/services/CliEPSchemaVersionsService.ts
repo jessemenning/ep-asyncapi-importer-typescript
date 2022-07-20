@@ -1,13 +1,8 @@
 import { CliEPApiContentError } from '../CliError';
 import { CliLogger, ECliStatusCodes } from '../CliLogger';
 import CliSemVerUtils from '../CliSemVerUtils';
-import { SchemasService, SchemaVersion, SchemaVersionResponse, StatesResponse, StatesService } from '../_generated/@solace-iot-team/sep-openapi-node';
+import { SchemasService, SchemaVersion, SchemaVersionResponse } from '../_generated/@solace-iot-team/sep-openapi-node';
 
-
-/**
- * EP Asset States.
- * Hard-coded, needs to check at initialize.
- */
 class CliEPSchemaVersionsService {
 
   public getSchemaVersions = async({ schemaId }:{
@@ -16,7 +11,7 @@ class CliEPSchemaVersionsService {
     const funcName = 'getSchemaVersions';
     const logName = `${CliEPSchemaVersionsService.name}.${funcName}()`;
 
-    const schemaVersionResponse: SchemaVersionResponse = await SchemasService.listVersions({
+    const schemaVersionResponse: SchemaVersionResponse = await SchemasService.getSchemaVersionsForSchema({
       schemaId: schemaId
     });
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.SERVICE, details: {

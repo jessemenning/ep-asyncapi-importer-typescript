@@ -8,11 +8,11 @@ import {
 
 class CliEPEventApisService {
 
-  public getEventApiByName = async({ eventApiName, applicationDomainId }:{
+  public getByName = async({ eventApiName, applicationDomainId }:{
     eventApiName: string;
     applicationDomainId: string;
   }): Promise<EventApi | undefined> => {
-    const funcName = 'getEventApiByName';
+    const funcName = 'getByName';
     const logName = `${CliEPEventApisService.name}.${funcName}()`;
 
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.SERVICE, details: {
@@ -20,7 +20,7 @@ class CliEPEventApisService {
       applicationDomainId: applicationDomainId
     }}));
 
-    const eventApisResponse: EventApisResponse = await EventApIsService.list4({
+    const eventApisResponse: EventApisResponse = await EventApIsService.getEventApis({
       applicationDomainId: applicationDomainId,
       name: eventApiName
     });
