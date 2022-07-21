@@ -4,14 +4,16 @@ import chalk from 'chalk';
 import clear from 'clear';
 import figlet from 'figlet';
 import path from 'path';
-import CliConfig, { TCliAppConfig } from './CliConfig';
+import CliConfig, { ECliImporterMode, TCliAppConfig } from './CliConfig';
 import { CliLogger, ECliStatusCodes } from './CliLogger';
 import dotenv from 'dotenv';
-import { CliImporter } from './CliImporter';
+import { CliImporter, ICliImporterRunReturn } from './CliImporter';
 import { EPClient } from './EPClient';
 import { Command, OptionValues } from 'commander';
 import { glob } from 'glob';
 import { CliUsageError } from './CliError';
+import CliEPApplicationDomainsService from './services/CliEPApplicationDomainsService';
+import { ApplicationDomain } from './_generated/@solace-iot-team/sep-openapi-node';
 
 dotenv.config();
 const packageJson = require('../package.json');
@@ -23,28 +25,71 @@ const createApiSpecFileList = (filePattern: string): Array<string> => {
   return files;
 }
 
+async function cleanup({ applicationDomainNameList }:{
+  applicationDomainNameList: Array<string>;
+}): Promise<void> {
+  const funcName = 'cleanup';
+  const logName = `${ComponentName}.${funcName}()`;
+
+  // if test mode then delete the application domains
+  if(CliConfig.getCliAppConfig().importerMode !== ECliImporterMode.TEST_MODE) return;
+
+  for(const applicationDomainName of applicationDomainNameList) {
+    try {
+      const applicationDomain: ApplicationDomain = await CliEPApplicationDomainsService.deleteByName( { 
+        applicationDomainName: applicationDomainName
+      });
+      CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.INFO, message: 'application domain deleted', details: {
+        importerMode: CliConfig.getCliAppConfig().importerMode,
+        applicationDomain: applicationDomain
+      }}));
+    } catch(e) {
+      // may already have been deleted, do nothing
+    }
+  }
+}
+
 async function main() {
   const funcName = 'main';
   const logName = `${ComponentName}.${funcName}()`;
 
-  for(const asyncApiSpecFile of CliConfig.getCliAppConfig().asyncApiSpecFileList) {
+  CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.INFO, message: 'starting...', details: {
+    cliAppConfig: CliConfig.getCliAppConfig()
+  }}));
 
-    CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.INFO, message: 'starting...', details: {
-      asyncApiSpecFile: asyncApiSpecFile
-    }}));
+  // keep track of applicationDomains 
+  const applicationDomainNameList: Array<string> = [];
 
-    const cliAppConfig: TCliAppConfig = {
-      ...CliConfig.getCliAppConfig(),
-      asyncApiSpecFileName: asyncApiSpecFile,
-    };
-    const importer = new CliImporter(cliAppConfig);
-    await importer.run();  
+  try {
+    for(const asyncApiSpecFile of CliConfig.getCliAppConfig().asyncApiSpecFileList) {
 
-    CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.INFO, message: 'done.', details: {
-      asyncApiSpecFile: asyncApiSpecFile,
-    }}));
+      CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.INFO, message: 'starting...', details: {
+        asyncApiSpecFile: asyncApiSpecFile
+      }}));
 
+      const cliAppConfig: TCliAppConfig = {
+        ...CliConfig.getCliAppConfig(),
+        asyncApiSpecFileName: asyncApiSpecFile,
+      };
+      const importer = new CliImporter(cliAppConfig);
+      const cliImporterRunReturn: ICliImporterRunReturn = await importer.run();  
+      if(cliImporterRunReturn.applicationDomainName !== undefined) applicationDomainNameList.push(cliImporterRunReturn.applicationDomainName);
+      if(cliImporterRunReturn.error !== undefined) throw cliImporterRunReturn.error;
+
+      CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.INFO, message: 'done.', details: {
+        asyncApiSpecFile: asyncApiSpecFile,
+      }}));
+
+      const xvoid: void = await cleanup({ applicationDomainNameList: applicationDomainNameList });
+
+    }
+  } catch(e) {
+
+    const xvoid: void = await cleanup({ applicationDomainNameList: applicationDomainNameList });
+
+    throw e;
   }
+
 }
 
 function initialize(commandLineOptionValues: OptionValues) {
