@@ -1,5 +1,5 @@
 import { CliLogger, ECliStatusCodes } from './CliLogger';
-import CliConfig, { ECliAssetsTargetState, ECliImporterMode, TCliAppConfig } from './CliConfig';
+import CliConfig, { ECliAssetsTargetState, TCliAppConfig } from './CliConfig';
 import { CliAsyncApiDocument, CliChannelDocumentMap, CliChannelParameterDocumentMap, CliEventNames, E_ASYNC_API_SPEC_CONTENNT_TYPES } from './documents/CliAsyncApiDocument';
 import { ECliTaskAction, ECliTaskState } from './tasks/CliTask';
 import { CliApplicationDomainTask, ICliApplicationDomainTask_ExecuteReturn } from './tasks/CliApplicationDomainTask';
@@ -27,12 +27,15 @@ import { CliEnumVersionTask, ICliEnumVersionTask_ExecuteReturn } from './tasks/C
 import CliEPEventApisService from './services/CliEPEventApisService';
 import CliEPEventApiVersionsService from './services/CliEPEventApiVersionsService';
 import CliSemVerUtils from './CliSemVerUtils';
-import CliAsyncApiDocumentsService, { TCliImportActionList } from './services/CliAsyncApiDocumentsService';
+import CliAsyncApiDocumentsService from './services/CliAsyncApiDocumentsService';
 import { CliEventApiTask, ICliEventApiTask_ExecuteReturn } from './tasks/CliEventApiTask';
 import { CliEventApiVersionTask, ICliEventApiVersionTask_ExecuteReturn } from './tasks/CliEventApiVersionTask';
 import CliEPEventVersionsService from './services/CliEPEventVersionsService';
-import CliEPApplicationDomainsService from './services/CliEPApplicationDomainsService';
 
+export interface ICliImporterRunReturn {
+  applicationDomainName: string | undefined;
+  error: any;
+}
 
 export class CliImporter {
   private cliAppConfig: TCliAppConfig;
@@ -681,10 +684,7 @@ export class CliImporter {
         });
     
       }
-
     }
-
-   
   }
 
   private run_present = async({ cliAsyncApiDocument }:{
@@ -710,6 +710,10 @@ export class CliImporter {
       }
     });
     const cliApplicationDomainTask_ExecuteReturn: ICliApplicationDomainTask_ExecuteReturn = await applicationDomainsTask.execute();
+    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, message: 'created application domain', details: {
+      cliApplicationDomainTask_ExecuteReturn: cliApplicationDomainTask_ExecuteReturn
+    }}));
+
     // we need the id in subsequent calls
     if(cliApplicationDomainTask_ExecuteReturn.applicationDomainObject.id === undefined) throw new CliEPApiContentError(logName, 'cliApplicationDomainTask_ExecuteReturn.applicationDomainObject.id === undefined', {
       applicationDomainObject: cliApplicationDomainTask_ExecuteReturn.applicationDomainObject,
@@ -736,9 +740,7 @@ export class CliImporter {
       });
     }
 
-    // present eventApi & eventApiVersion
-    // CliLogger.warn(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_EVENT_API, message: "switch on when EP API supports it" }));
-    
+    // present event api
     xvoid = await this.run_present_event_api({
       applicationDomainId: applicationDomainId,
       cliAsyncApiDocument: cliAsyncApiDocument
@@ -756,12 +758,8 @@ export class CliImporter {
       targetState: this.cliAppConfig.assetsTargetState,
     }}));
 
-    // if test mode then delete the application domain
-    if(CliConfig.getCliAppConfig().importerMode === ECliImporterMode.TEST_MODE) {
-      CliEPApplicationDomainsService.deleteByName( { 
-        applicationDomainName: cliAsyncApiDocument.getApplicationDomainName()
-      })
-    }
+    // throw new Error(`${logName}: test error handling in test_mode`);
+
   }
 
   private run_absent = async({ cliAsyncApiDocument }:{
@@ -799,7 +797,7 @@ export class CliImporter {
     return asyncApiDocument;
   }
 
-  public run = async(): Promise<void> => {
+  public run = async(): Promise<ICliImporterRunReturn> => {
     const funcName = 'run';
     const logName = `${CliImporter.name}.${funcName}()`;
     
@@ -808,9 +806,15 @@ export class CliImporter {
       targetState: this.cliAppConfig.assetsTargetState,
     }}));
 
+    const cliImporterRunReturn: ICliImporterRunReturn = {
+      applicationDomainName: undefined,
+      error: undefined
+    }
+
     try {
 
       const cliAsyncApiDocument: CliAsyncApiDocument = await this.parse_and_run_validations();
+      cliImporterRunReturn.applicationDomainName = cliAsyncApiDocument.getApplicationDomainName();
 
       let xvoid: void;
 
@@ -848,8 +852,11 @@ export class CliImporter {
           error: new CliErrorFromError(e, logName)
         }}));  
       }
-      throw e;
+      cliImporterRunReturn.error = e;
+    } finally {
+      return cliImporterRunReturn;
     }
+
   }
 
 }

@@ -66,14 +66,13 @@ export class CliApplicationDomainTask extends CliTask {
     const applicationDomainName = cliTaskKeys.applicationDomainName;
 
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_GET, details: {
-      params: {
-        name: applicationDomainName
-      }
+      cliTaskKeys: cliTaskKeys
     }}));
 
     const applicationDomain: ApplicationDomain | undefined = await CliEPApplicationDomainsService.getByName({ applicationDomainName: applicationDomainName });
 
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_GET, details: {
+      cliTaskKeys: cliTaskKeys,
       applicationDomain: applicationDomain ? applicationDomain : 'undefined'
     }}));
 

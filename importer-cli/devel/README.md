@@ -29,6 +29,11 @@ npm run dev:start -- -fp ../data/**/*.spec.yml | npx pino-pretty
 npm run dev:start -- -fp ../data/**/*.spec.yml -d dev/test | npx pino-pretty
 
 
+# redirect to log file
+
+npm run dev:start -- -fp ../data/**/*.spec.yml | npx pino-pretty > ./devel/logs/log.log 2>&1
+
+
 ```
 
 ---

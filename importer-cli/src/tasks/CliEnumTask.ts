@@ -71,7 +71,8 @@ export class CliEnumTask extends CliTask {
     const logName = `${CliEnumTask.name}.${funcName}()`;
 
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_GET, details: {
-      cliTaskKeys: cliTaskKeys
+      cliTaskConfig: this.getCliTaskConfig(),
+      cliTaskKeys: cliTaskKeys,
     }}));
 
     const enumObject: Enum | undefined = await CliEPEnumsService.getByName({ 
@@ -80,7 +81,9 @@ export class CliEnumTask extends CliTask {
     });
 
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_GET, details: {
-      enumObject: enumObject
+      cliTaskConfig: this.getCliTaskConfig(),
+      cliTaskKeys: cliTaskKeys,
+      enumObject: enumObject ? enumObject : 'undefined'
     }}));
 
     if(enumObject === undefined) return this.Empty_ICliEnumTask_GetFuncReturn;
