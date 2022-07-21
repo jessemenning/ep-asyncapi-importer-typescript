@@ -88,6 +88,7 @@ async function main() {
     const xvoid: void = await cleanup({ applicationDomainNameList: applicationDomainNameList });
 
     throw e;
+
   }
 
 }

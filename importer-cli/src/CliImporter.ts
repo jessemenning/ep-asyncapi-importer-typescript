@@ -93,15 +93,21 @@ export class CliImporter {
     return cliSchemaVersionTask_ExecuteReturn;
   }
 
-  private run_present_channel_message = async({ applicationDomainId, messageDocument, specVersion }:{
+  private run_present_channel_message = async({ applicationDomainId, messageDocument, specVersion, context }:{
     applicationDomainId: string;
     messageDocument: CliMessageDocument;
     specVersion: string;
+    context: {
+      channelTopic: string;
+    }
   }): Promise<SchemaVersion> => {
     const funcName = 'run_present_channel_message';
     const logName = `${CliImporter.name}.${funcName}()`;
 
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
+      context: {
+        channelTopic: context.channelTopic
+      },
       messageDocument: messageDocument
     }}));
 
@@ -114,6 +120,9 @@ export class CliImporter {
         contentType: messageDocument.getContentType(),
         schemaType: EPSchemaType.JSON_SCHEMA,
         shared: true,
+      },
+      context: {
+        channelTopic: context.channelTopic
       }
     });
     const cliSchemaTask_ExecuteReturn: ICliSchemaTask_ExecuteReturn = await cliSchemaTask.execute();
@@ -328,7 +337,10 @@ export class CliImporter {
       const schemaVersionObject: SchemaVersion = await this.run_present_channel_message({
         applicationDomainId: applicationDomainId,
         messageDocument: messageDocument,
-        specVersion: specVersion
+        specVersion: specVersion,
+        context: {
+          channelTopic: channelTopic
+        }
       });
       if(schemaVersionObject.id === undefined) throw new CliEPApiContentError(logName, 'schemaVersionObject.id === undefined', {
         schemaVersionObject: schemaVersionObject,
@@ -359,6 +371,9 @@ export class CliImporter {
         applicationDomainId: applicationDomainId,
         messageDocument: messageDocument,
         specVersion: specVersion,
+        context: {
+          channelTopic: channelTopic
+        }
       });
       if(schemaVersionObject.id === undefined) throw new CliEPApiContentError(logName, 'schemaVersionObject.id === undefined', {
         schemaVersionObject: schemaVersionObject,

@@ -17,6 +17,7 @@ export class CliError extends Error {
   private internalLogName: string;
   private internalMessage: string;
   protected appId: string;
+  private readonly baseName: string = CliError.name;
 
   private createArrayFromStack = (stack: any): Array<string> => {
     return stack.split('\n');
