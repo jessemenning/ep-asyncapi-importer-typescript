@@ -5,7 +5,16 @@ import { ECliTaskAction, ECliTaskState } from './tasks/CliTask';
 import { CliApplicationDomainTask, ICliApplicationDomainTask_ExecuteReturn } from './tasks/CliApplicationDomainTask';
 import CliEPStatesService from './services/CliEPStatesService';
 import { CliUtils } from './CliUtils';
-import { AsyncApiSpecBestPracticesError, AsyncApiSpecNotSupportedError, CliEPApiContentError, CliError, CliErrorFromError, CliErrorFromSEPApiError, CliImporterError } from './CliError';
+import { 
+  CliAsyncApiSpecBestPracticesError, 
+  CliAsyncApiSpecNotSupportedError, 
+  CliAsyncApiParserError, 
+  CliEPApiContentError, 
+  CliError, 
+  CliErrorFromError, 
+  CliErrorFromSEPApiError, 
+  CliImporterError 
+} from './CliError';
 import { CliSchemaTask, EPSchemaType, ICliSchemaTask_ExecuteReturn } from './tasks/CliSchemaTask';
 import { 
   SchemaObject, 
@@ -31,6 +40,19 @@ import CliAsyncApiDocumentsService from './services/CliAsyncApiDocumentsService'
 import { CliEventApiTask, ICliEventApiTask_ExecuteReturn } from './tasks/CliEventApiTask';
 import { CliEventApiVersionTask, ICliEventApiVersionTask_ExecuteReturn } from './tasks/CliEventApiVersionTask';
 import CliEPEventVersionsService from './services/CliEPEventVersionsService';
+import CliRunContext, { 
+  ECliChannelOperation, 
+  ICliRunContext_Channel, 
+  ICliRunContext_Channel_Event, 
+  ICliRunContext_Channel_Operation, 
+  ICliRunContext_Channel_Operation_Message, 
+  ICliRunContext_Channel_Parameter, 
+  ICliRunContext_EventApi, 
+  ICliRunContext_EventApiVersion, 
+  ICliRunContext_State 
+} from './CliRunContext';
+import { ParserError } from '@asyncapi/parser';
+import CliEPEventsService from './services/CliEPEventsService';
 
 export interface ICliImporterRunReturn {
   applicationDomainName: string | undefined;
@@ -82,7 +104,7 @@ export class CliImporter {
       schemaVersionSettings: {
         content: cliMessageDocument.getPayloadSchemaAsString(),
         description: cliMessageDocument.getDescription(),
-        displayName: cliMessageDocument.getDisplayName(),
+        displayName: cliMessageDocument.getMessageName(),
         stateId: CliEPStatesService.getTargetLifecycleState({assetImportTargetLifecycleState: CliConfig.getCliAppConfig().assetImportTargetLifecycleState}),
       }
     });
@@ -93,21 +115,23 @@ export class CliImporter {
     return cliSchemaVersionTask_ExecuteReturn;
   }
 
-  private run_present_channel_message = async({ applicationDomainId, messageDocument, specVersion, context }:{
+  private run_present_channel_message = async({ applicationDomainId, messageDocument, specVersion }:{
     applicationDomainId: string;
     messageDocument: CliMessageDocument;
     specVersion: string;
-    context: {
-      channelTopic: string;
-    }
   }): Promise<SchemaVersion> => {
     const funcName = 'run_present_channel_message';
     const logName = `${CliImporter.name}.${funcName}()`;
 
+    const rctxt: ICliRunContext_Channel_Operation_Message = {
+      messageName: messageDocument.getMessageName()
+    };
+    CliRunContext.updateContext({ 
+      runContext: rctxt
+    });  
+    CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
+    }}));
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
-      context: {
-        channelTopic: context.channelTopic
-      },
       messageDocument: messageDocument
     }}));
 
@@ -115,15 +139,12 @@ export class CliImporter {
     const cliSchemaTask = new CliSchemaTask({
       cliTaskState: ECliTaskState.PRESENT,
       applicationDomainId: applicationDomainId,
-      schemaName: messageDocument.getMessage().name(),
+      schemaName: messageDocument.getMessageName(),
       schemaObjectSettings: {
         contentType: messageDocument.getContentType(),
         schemaType: EPSchemaType.JSON_SCHEMA,
         shared: true,
       },
-      context: {
-        channelTopic: context.channelTopic
-      }
     });
     const cliSchemaTask_ExecuteReturn: ICliSchemaTask_ExecuteReturn = await cliSchemaTask.execute();
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
@@ -170,7 +191,7 @@ export class CliImporter {
       channelTopic: channelTopic,
       eventVersionSettings: {
         description: cliMessageDocument.getDescription(),
-        displayName: cliMessageDocument.getDisplayName(),
+        displayName: cliMessageDocument.getMessageName(),
         stateId: CliEPStatesService.getTargetLifecycleState({assetImportTargetLifecycleState: CliConfig.getCliAppConfig().assetImportTargetLifecycleState}),
         schemaVersionId: schemaVersionId,
       }
@@ -191,6 +212,15 @@ export class CliImporter {
     const funcName = 'run_present_channel_event';
     const logName = `${CliImporter.name}.${funcName}()`;
 
+    const rctxt: ICliRunContext_Channel_Event = {
+      messageName: messageDocument.getMessageName()
+    };
+    CliRunContext.updateContext({ 
+      runContext: rctxt
+    });  
+    CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
+    }}));
+
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
       messageDocument: messageDocument
     }}));
@@ -199,7 +229,7 @@ export class CliImporter {
     const cliEventTask = new CliEventTask({
       cliTaskState: ECliTaskState.PRESENT,
       applicationDomainId: applicationDomainId,
-      eventName: messageDocument.getMessage().name(),
+      eventName: messageDocument.getMessageName(),
       eventObjectSettings: {
         shared: true,
       }
@@ -265,15 +295,29 @@ export class CliImporter {
     const funcName = 'run_present_channel_parameters';
     const logName = `${CliImporter.name}.${funcName}()`;
 
-    if(channelParameterDocumentMap === undefined) return;
+    if(channelParameterDocumentMap === undefined) {
+      CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
+        channelParameters: []
+      }}));
+      return;
+    }
 
-    for(const [enumName, channelParameterDocument] of channelParameterDocumentMap) {
-      
-      const parameterEnumList: Array<any> = channelParameterDocument.getParameterEnumValueList();
+    for(const [parameterName, channelParameterDocument] of channelParameterDocumentMap) {
+
+      const parameterEnumList: Array<string> = channelParameterDocument.getParameterEnumValueList();
+
+      const rctxt: ICliRunContext_Channel_Parameter = {
+        parameter: parameterName,
+        parameterEnumList: parameterEnumList.length > 0 ? parameterEnumList : undefined
+      };
+      CliRunContext.updateContext({ 
+        runContext: rctxt
+      });
+      CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
+      }}));
+  
       CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_CHANNEL_PARAMETERS, details: {
-        enumName: enumName,
         channelParameterDocument: channelParameterDocument,
-        parameterEnumList: parameterEnumList
       }}));
       // only create the enum if there are any values in the list
       if(parameterEnumList.length > 0) {
@@ -281,7 +325,7 @@ export class CliImporter {
         const cliEnumTask = new CliEnumTask({
           cliTaskState: ECliTaskState.PRESENT,
           applicationDomainId: applicationDomainId,
-          enumName: enumName,
+          enumName: parameterName,
           enumObjectSettings: {
             shared: true,
           }
@@ -315,32 +359,47 @@ export class CliImporter {
     const funcName = 'run_present_channel';
     const logName = `${CliImporter.name}.${funcName}()`;
 
+    const rctxt: ICliRunContext_Channel = {
+      channelTopic: channelTopic
+    };
+    CliRunContext.updateContext({ 
+      runContext: rctxt
+    });
+
+    CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
+    }}));
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
-      channelTopic: channelTopic,
       channelDocument: channelDocument,
     }}));
 
     let xvoid: void;
 
+    // present channel parameters
+    xvoid = await this.run_present_channel_parameters({
+      applicationDomainId: applicationDomainId,
+      channelParameterDocumentMap: channelDocument.getChannelParameters(),
+      specVersion: specVersion
+    });
+    
     const channelPublishOperation: CliChannelPublishOperation | undefined = channelDocument.getChannelPublishOperation();
     if(channelPublishOperation !== undefined) {
-      const messageDocument: CliMessageDocument = channelPublishOperation.getCliMessageDocument();
 
-      // present parameters
-      xvoid = await this.run_present_channel_parameters({
-        applicationDomainId: applicationDomainId,
-        channelParameterDocumentMap: channelDocument.getChannelParameters(),
-        specVersion: specVersion
-      });
+      const rctxt: ICliRunContext_Channel_Operation = {
+        type: ECliChannelOperation.Publish,
+      };
+      CliRunContext.updateContext({ 
+        runContext: rctxt
+      });  
+      CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
+      }}));
+  
+      const messageDocument: CliMessageDocument = channelPublishOperation.getCliMessageDocument();
 
       // present message
       const schemaVersionObject: SchemaVersion = await this.run_present_channel_message({
         applicationDomainId: applicationDomainId,
         messageDocument: messageDocument,
         specVersion: specVersion,
-        context: {
-          channelTopic: channelTopic
-        }
       });
       if(schemaVersionObject.id === undefined) throw new CliEPApiContentError(logName, 'schemaVersionObject.id === undefined', {
         schemaVersionObject: schemaVersionObject,
@@ -357,23 +416,23 @@ export class CliImporter {
 
     const channelSubscribeOperation: CliChannelSubscribeOperation | undefined = channelDocument.getChannelSubscribeOperation();
     if(channelSubscribeOperation !== undefined) {
+
+      const rctxt: ICliRunContext_Channel_Operation = {
+        type: ECliChannelOperation.Subscribe
+      };
+      CliRunContext.updateContext({ 
+        runContext: rctxt
+      });  
+      CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
+      }}));
+
       const messageDocument: CliMessageDocument = channelSubscribeOperation.getCliMessageDocument();
 
-      // present parameters
-      xvoid = await this.run_present_channel_parameters({
-        applicationDomainId: applicationDomainId,
-        channelParameterDocumentMap: channelDocument.getChannelParameters(),
-        specVersion: specVersion
-      });
-      
       // present message
       const schemaVersionObject: SchemaVersion = await this.run_present_channel_message({
         applicationDomainId: applicationDomainId,
         messageDocument: messageDocument,
         specVersion: specVersion,
-        context: {
-          channelTopic: channelTopic
-        }
       });
       if(schemaVersionObject.id === undefined) throw new CliEPApiContentError(logName, 'schemaVersionObject.id === undefined', {
         schemaVersionObject: schemaVersionObject,
@@ -396,7 +455,16 @@ export class CliImporter {
     const funcName = 'run_present_event_api';
     const logName = `${CliImporter.name}.${funcName}()`;
 
-    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_EVENT_API }));
+    const eventApiName: string = cliAsyncApiDocument.getTitle();
+
+    const rctxt: ICliRunContext_EventApi = {
+      eventApiName: eventApiName ? eventApiName : 'undefined'
+    };
+    CliRunContext.updateContext({ 
+      runContext: rctxt
+    });  
+    CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_EVENT_API, details: {
+    }}));
 
     // present event api
     const cliEventApiTask: CliEventApiTask = new CliEventApiTask({
@@ -473,7 +541,7 @@ export class CliImporter {
       eventApiName: cliAsyncApiDocument.getTitle()
     });
     if(eventApi === undefined) {
-      CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, message: "eventApi does not exist, importing ...", details: {
+      CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.CHECK_EVENT_API, message: "eventApi does not exist", details: {
         applicationDomainId: applicationDomainId,
         eventApiName: cliAsyncApiDocument.getTitle()  
       }}));
@@ -483,28 +551,44 @@ export class CliImporter {
       if(eventApi.id === undefined) throw new CliEPApiContentError(logName, 'eventApi.id === undefined', {
         eventApi: eventApi
       });
+      if(eventApi.name === undefined) throw new CliEPApiContentError(logName, 'eventApi.name === undefined', {
+        eventApi: eventApi
+      });
       // check if event api version already exists in the application domain
       const latestEventApiVersion: EventApiVersion | undefined = await CliEPEventApiVersionsService.getLastestVersionById({ 
         eventApiId: eventApi.id,
       });
-      CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, message: "latest version of event api", details: {
-        latestEventApiVersion: latestEventApiVersion
+      CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.CHECK_EVENT_API, message: "latest version of event api", details: {
+        latestEventApiVersion: latestEventApiVersion ? latestEventApiVersion : 'undefined'
       }}));
 
       if(latestEventApiVersion !== undefined) {
+
         if(latestEventApiVersion.version === undefined || latestEventApiVersion.id === undefined) throw new CliEPApiContentError(logName, 'latestEventApiVersion.version === undefined || latestEventApiVersion.id === undefined', {
           latestEventApiVersion: latestEventApiVersion
         });
+
+        const rctxt: ICliRunContext_EventApiVersion = {
+          existingEventApiName: eventApi.name,
+          eventApiVersion: cliAsyncApiDocument.getVersion(),
+          latestExistingEventApiVersion: latestEventApiVersion.version
+        };
+        CliRunContext.updateContext({ 
+          runContext: rctxt
+        });  
+        CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.CHECK_EVENT_API_VERSION, details: {
+        }}));
+    
         // if ep version is greater spec version ==> don't continue, manual versioning in EP happened
         if(CliSemVerUtils.is_NewVersion_GreaterThan_OldVersion({
           newVersion: latestEventApiVersion.version,
           oldVersion: cliAsyncApiDocument.getVersion(),
         })) {
-          throw new AsyncApiSpecBestPracticesError(logName, undefined, "Event Portal Event API Version greater than Api Spec version. Aborting import...", {
+          throw new CliAsyncApiSpecBestPracticesError(logName, undefined, "Event Portal Event API Version greater than Api Spec version. Aborting import...", {
             epEventApiName: eventApi.name ? eventApi.name : 'undefined',
             epEventApiVersionName: latestEventApiVersion.displayName ? latestEventApiVersion.displayName : 'undefined',
             epEventApiVersion: latestEventApiVersion.version,
-            asyncApiSpecVersion: cliAsyncApiDocument.getVersion()
+            asyncApiVersion: cliAsyncApiDocument.getVersion()
           });
         }
 
@@ -512,23 +596,54 @@ export class CliImporter {
 
         // check if a new version would be created
         const cliEventNames: CliEventNames = cliAsyncApiDocument.getEventNames();
+
         const publishEventVersionIds: Array<string> = [];
         for(const publishEventName of cliEventNames.publishEventNames) {
+
+          const rctxt: ICliRunContext_Channel_Event = {
+            messageName: publishEventName
+          };
+          CliRunContext.updateContext({ 
+            runContext: rctxt
+          });  
+          CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.CHECK_EVENT, details: {
+          }}));
+  
+          // check if event version exists 
           const eventVersion: EventVersion | undefined = await CliEPEventVersionsService.getLastestVersionByName({ eventName: publishEventName, applicationDomainId: applicationDomainId });
-          if(eventVersion === undefined) throw new CliImporterError(logName, 'eventVersion === undefined', {});
-          if(eventVersion.id === undefined) throw new CliEPApiContentError(logName, 'eventVersion.id === undefined', {
-            eventVersion: eventVersion
-          });
-          publishEventVersionIds.push(eventVersion.id);
+          // there may not be an event version yet
+          let eventVersionId: string = `new-event-version-for-${publishEventName}`;
+          if(eventVersion !== undefined) {
+            if(eventVersion.id === undefined) throw new CliEPApiContentError(logName, 'eventVersion.id === undefined', {
+              eventVersion: eventVersion
+            });
+            eventVersionId = eventVersion.id;
+          } 
+          publishEventVersionIds.push(eventVersionId);
         }
         const subscribeEventVersionIds: Array<string> = [];
         for(const subscribeEventName of cliEventNames.subscribeEventNames) {
+
+          const rctxt: ICliRunContext_Channel_Event = {
+            messageName: subscribeEventName
+          };
+          CliRunContext.updateContext({ 
+            runContext: rctxt
+          });  
+          CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.CHECK_EVENT, details: {
+          }}));
+
+          // check if event version exists 
           const eventVersion: EventVersion | undefined = await CliEPEventVersionsService.getLastestVersionByName({ eventName: subscribeEventName, applicationDomainId: applicationDomainId });
-          if(eventVersion === undefined) throw new CliImporterError(logName, 'eventVersion === undefined', {});
-          if(eventVersion.id === undefined) throw new CliEPApiContentError(logName, 'eventVersion.id === undefined', {
-            eventVersion: eventVersion
-          });
-          subscribeEventVersionIds.push(eventVersion.id);
+          // there may not be an event version yet
+          let eventVersionId: string = `new-event-version-for-${subscribeEventName}`;
+          if(eventVersion !== undefined) {
+            if(eventVersion.id === undefined) throw new CliEPApiContentError(logName, 'eventVersion.id === undefined', {
+              eventVersion: eventVersion
+            });
+            eventVersionId = eventVersion.id;
+          } 
+          subscribeEventVersionIds.push(eventVersionId);
         }
         const cliEventApiVersionTask: CliEventApiVersionTask = new CliEventApiVersionTask({
           cliTaskState: ECliTaskState.PRESENT,
@@ -562,11 +677,11 @@ export class CliImporter {
             newVersion: importSpecVersion,
             oldVersion: epLatestVersion,
           })) {
-            throw new AsyncApiSpecBestPracticesError(logName, undefined, "Changes made to Api Spec. Api Spec Version not greater than latest Event Portal Event API Version. Aborting import...", {
+            throw new CliAsyncApiSpecBestPracticesError(logName, undefined, "Changes made to Api. Api Version not greater than latest Event Portal Event API Version. Aborting import...", {
               epEventApiName: eventApi.name ? eventApi.name : 'undefined',
               epEventApiVersionName: latestEventApiVersion.displayName ? latestEventApiVersion.displayName : 'undefined',
               epEventApiVersion: epLatestVersion,
-              asyncApiSpecVersion: importSpecVersion
+              apiVersion: importSpecVersion
             });  
           }
         }
@@ -670,8 +785,8 @@ export class CliImporter {
       const cliChannelPublishOperation: CliChannelPublishOperation | undefined = channelDocument.getChannelPublishOperation();
       if(cliChannelPublishOperation !== undefined) {
         const cliMessageDocument: CliMessageDocument = cliChannelPublishOperation.getCliMessageDocument();
-        if(cliMessageDocument.getContentType() !== E_ASYNC_API_SPEC_CONTENNT_TYPES.APPLICATION_JSON) throw new AsyncApiSpecNotSupportedError(logName, undefined, { message: "unsupported message schema content type" }, {
-          messageName: cliMessageDocument.getDisplayName(),
+        if(cliMessageDocument.getContentType() !== E_ASYNC_API_SPEC_CONTENNT_TYPES.APPLICATION_JSON) throw new CliAsyncApiSpecNotSupportedError(logName, undefined, { message: "unsupported message schema content type" }, {
+          messageName: cliMessageDocument.getMessageName(),
           contentType: cliMessageDocument.getContentType(),
           supportedContentTypes: cliAsyncApiDocument.getSupportedContentTypes()
         });
@@ -686,8 +801,8 @@ export class CliImporter {
       const cliChannelSubscribeOperation: CliChannelSubscribeOperation | undefined = channelDocument.getChannelSubscribeOperation();
       if(cliChannelSubscribeOperation !== undefined) {
         const cliMessageDocument: CliMessageDocument = cliChannelSubscribeOperation.getCliMessageDocument();
-        if(cliMessageDocument.getContentType() !== E_ASYNC_API_SPEC_CONTENNT_TYPES.APPLICATION_JSON) throw new AsyncApiSpecNotSupportedError(logName, undefined, { message: "unsupported message schema content type" }, {
-          messageName: cliMessageDocument.getDisplayName(),
+        if(cliMessageDocument.getContentType() !== E_ASYNC_API_SPEC_CONTENNT_TYPES.APPLICATION_JSON) throw new CliAsyncApiSpecNotSupportedError(logName, undefined, { message: "unsupported message schema content type" }, {
+          messageName: cliMessageDocument.getMessageName(),
           contentType: cliMessageDocument.getContentType(),
           supportedContentTypes: cliAsyncApiDocument.getSupportedContentTypes()
         });
@@ -708,10 +823,14 @@ export class CliImporter {
     const funcName = 'run_present';
     const logName = `${CliImporter.name}.${funcName}()`;
 
-    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
-      specFile: this.cliAppConfig.asyncApiSpecFileName,
-      targetState: this.cliAppConfig.assetsTargetState,
-    }}));
+    const rctxt: ICliRunContext_State = {
+      apiTitle: cliAsyncApiDocument.getTitle(),
+      apiVersion: cliAsyncApiDocument.getVersion(),
+      epApplicationDomainName: cliAsyncApiDocument.getApplicationDomainName(),
+    };
+    CliRunContext.updateContext({ 
+      runContext: rctxt
+    });
 
     // use for type validation when calling async functions
     let xvoid: void;
@@ -743,10 +862,10 @@ export class CliImporter {
     // present all channels
     const channelDocumentMap: CliChannelDocumentMap = cliAsyncApiDocument.getChannelDocuments();
     for(let [topic, channelDocument] of channelDocumentMap) {
-      CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
-        topic: topic,
-        channelDocument: channelDocument
-      }}));
+      // CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
+      //   topic: topic,
+      //   channelDocument: channelDocument
+      // }}));
       xvoid = await this.run_present_channel({
         applicationDomainId: applicationDomainId,
         channelTopic: topic,
@@ -764,12 +883,12 @@ export class CliImporter {
     // generate the output for all assets
     this.generate_asset_ouput({
       cliAsyncApiDocument: cliAsyncApiDocument,
-      filePath: this.cliAppConfig.asyncApiSpecFileName,
+      filePath: this.cliAppConfig.asyncApiFileName,
       appConfig: this.cliAppConfig,
     });
 
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTED, details: {
-      specFile: this.cliAppConfig.asyncApiSpecFileName,
+      specFile: this.cliAppConfig.asyncApiFileName,
       targetState: this.cliAppConfig.assetsTargetState,
     }}));
 
@@ -791,12 +910,12 @@ export class CliImporter {
     const logName = `${CliImporter.name}.${funcName}()`;
 
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.VALIDATING_SPEC, details: {
-      specFile: this.cliAppConfig.asyncApiSpecFileName,
+      specFile: this.cliAppConfig.asyncApiFileName,
     }}));
 
     // parse & validate spec
     const asyncApiDocument: CliAsyncApiDocument = await CliAsyncApiDocumentsService.createFromFile({ 
-      filePath: this.cliAppConfig.asyncApiSpecFileName,
+      filePath: this.cliAppConfig.asyncApiFileName,
       appConfig: this.cliAppConfig,
     });
 
@@ -816,9 +935,14 @@ export class CliImporter {
     const funcName = 'run';
     const logName = `${CliImporter.name}.${funcName}()`;
     
+    CliRunContext.setRunContext({ 
+      runContext: {
+        apiFile: this.cliAppConfig.asyncApiFileName,
+        targetState: this.cliAppConfig.assetsTargetState,
+      }
+    });
+
     CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
-      specFile: this.cliAppConfig.asyncApiSpecFileName,
-      targetState: this.cliAppConfig.assetsTargetState,
     }}));
 
     const cliImporterRunReturn: ICliImporterRunReturn = {
@@ -849,7 +973,7 @@ export class CliImporter {
       }
 
       CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTED, details: {
-        specFile: this.cliAppConfig.asyncApiSpecFileName,
+        specFile: this.cliAppConfig.asyncApiFileName,
         targetState: this.cliAppConfig.assetsTargetState,
       }}));
 
@@ -861,7 +985,11 @@ export class CliImporter {
       } else if(e instanceof ApiError) {
         CliLogger.error(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_ERROR, details: {
           error: new CliErrorFromSEPApiError(logName, undefined, e)
-        }}));  
+        }}));
+      } else if(e instanceof ParserError) {
+        CliLogger.error(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_ERROR, details: {
+          error: new CliAsyncApiParserError(logName, undefined, e)
+        }}));
       } else {
         CliLogger.error(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_ERROR, details: {
           error: new CliErrorFromError(e, logName)

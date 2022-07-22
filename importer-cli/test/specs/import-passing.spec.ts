@@ -3,7 +3,7 @@ import { expect } from 'chai';
 import path from 'path';
 import { TestContext, TestLogger } from '../lib/test.helpers';
 import CliConfig, { TCliAppConfig } from '../../src/CliConfig';
-import { CliImporter } from '../../src/CliImporter';
+import { CliImporter, ICliImporterRunReturn } from '../../src/CliImporter';
 import { CliError } from '../../src/CliError';
 import { TestEnv } from '../setup.spec';
 import { glob } from 'glob';
@@ -14,13 +14,13 @@ TestLogger.logMessage(scriptName, ">>> starting ...");
 const createGoodApiSpecFileList = (): Array<string> => {
 
   // const x: G.IOptions = 
-  const files: Array<string> = glob.sync(`${TestEnv.testApiSpecsDir}/**/*.spec.yml`);
+  const files: Array<string> = glob.sync(`${TestEnv.testApiSpecsDir}/passing/**/*.spec.yml`);
 
   return files;
 
 }
 
-let ApiSpecFileList: Array<string> = [];
+let ApiFileList: Array<string> = [];
 
 describe(`${scriptName}`, () => {
     
@@ -29,18 +29,23 @@ describe(`${scriptName}`, () => {
     });
 
     it(`${scriptName}: should create api spec file list `, async () => {
-      ApiSpecFileList = createGoodApiSpecFileList();
+      ApiFileList = createGoodApiSpecFileList();
     });
 
-    it(`${scriptName}: should import all good specs`, async () => {
+    it(`${scriptName}: should import all passing specs`, async () => {
       try {
-        for(const specFile of ApiSpecFileList) {
+        for(const specFile of ApiFileList) {
           const cliAppConfig: TCliAppConfig = {
             ...CliConfig.getCliAppConfig(),
-            asyncApiSpecFileName: specFile,
+            asyncApiFileName: specFile,
           };
+
+          console.log(`cliAppConfig=${JSON.stringify(cliAppConfig, null, 2)}`);
+
           const importer = new CliImporter(cliAppConfig);
-          await importer.run();  
+          const cliImporterRunReturn: ICliImporterRunReturn = await importer.run();  
+          if(cliImporterRunReturn.error !== undefined) throw cliImporterRunReturn.error;
+    
         }
       } catch(e) {
         expect(e instanceof CliError, TestLogger.createNotCliErrorMesssage(e.message)).to.be.true;
@@ -48,12 +53,12 @@ describe(`${scriptName}`, () => {
       }
     });
 
-    it(`${scriptName}: idempotency: should import all good specs`, async () => {
+    xit(`${scriptName}: idempotency: should import all passing specs`, async () => {
       try {
-        for(const specFile of ApiSpecFileList) {
+        for(const specFile of ApiFileList) {
           const cliAppConfig: TCliAppConfig = {
             ...CliConfig.getCliAppConfig(),
-            asyncApiSpecFileName: specFile,
+            asyncApiFileName: specFile,
           };
           const importer = new CliImporter(cliAppConfig);
           await importer.run();  

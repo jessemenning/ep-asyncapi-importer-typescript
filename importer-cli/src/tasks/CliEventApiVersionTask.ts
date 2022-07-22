@@ -54,9 +54,18 @@ export class CliEventApiVersionTask extends CliVersionTask {
   private getCliTaskConfig(): ICliEventApiVersionTask_Config { return this.cliTaskConfig as ICliEventApiVersionTask_Config; }
   
   private createObjectSettings(): Partial<EventApiVersion> {
+    // arrays must be sorted
+    const s = this.getCliTaskConfig().eventApiVersionSettings;
+    const p: Array<string> = s.producedEventVersionIds as unknown as Array<string>;
+    const c: Array<string> = s.consumedEventVersionIds as unknown as Array<string>;
+    p.sort();
+    c.sort();
+
     return {
       ...this.Default_TCliEventApiVersionTask_Settings,
       ...this.getCliTaskConfig().eventApiVersionSettings,
+      producedEventVersionIds: p as unknown as EventApiVersion.producedEventVersionIds,
+      consumedEventVersionIds: c as unknown as EventApiVersion.consumedEventVersionIds,
     };
   }
 
@@ -110,12 +119,19 @@ export class CliEventApiVersionTask extends CliVersionTask {
 
     const existingObject: EventApiVersion = cliGetFuncReturn.eventApiVersionObject;
 
+    // arrays must be sorted
+    const s = existingObject;
+    const p: Array<string> = s.producedEventVersionIds as unknown as Array<string>;
+    const c: Array<string> = s.consumedEventVersionIds as unknown as Array<string>;
+    p.sort();
+    c.sort();
+    
     const existingCompareObject: TCliEventApiVersionTask_CompareObject = {
       description: existingObject.description,
       displayName: existingObject.displayName,
       stateId: existingObject.stateId,
-      consumedEventVersionIds: existingObject.consumedEventVersionIds,
-      producedEventVersionIds: existingObject.producedEventVersionIds
+      producedEventVersionIds: p as unknown as EventApiVersion.producedEventVersionIds,
+      consumedEventVersionIds: c as unknown as EventApiVersion.consumedEventVersionIds,
     };
     const requestedCompareObject: TCliEventApiVersionTask_CompareObject = this.createObjectSettings();
 
@@ -127,7 +143,7 @@ export class CliEventApiVersionTask extends CliVersionTask {
       isUpdateRequired: !cliTaskDeepCompareResult.isEqual,
       difference: cliTaskDeepCompareResult.difference
     }}));
-    // if(!cliTaskDeepCompareResult.isEqual) throw new Error(`${logName}: check updates requiired`);
+    if(!cliTaskDeepCompareResult.isEqual) throw new Error(`${logName}: check updates requiired`);
     return !cliTaskDeepCompareResult.isEqual;
   }
 

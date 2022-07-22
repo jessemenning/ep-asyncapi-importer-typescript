@@ -24,14 +24,14 @@ export CLI_SOLACE_CLOUD_TOKEN={token}
 npm run dev:start -- -fp ../data/acme-retail/central-it/till-system/AcmeRetail-Central-IT-Provider-TillSystem-v1.spec.yml -d dev/test | npx pino-pretty
 
 # glob
-npm run dev:start -- -fp ../data/**/*.spec.yml | npx pino-pretty
+npm run dev:start -- -fp '../data/**/*.spec.yml' | npx pino-pretty
 
-npm run dev:start -- -fp ../data/**/*.spec.yml -d dev/test | npx pino-pretty
+npm run dev:start -- -fp '../data/**/*.spec.yml' -d dev/test | npx pino-pretty
 
 
 # redirect to log file
 
-npm run dev:start -- -fp ../data/**/*.spec.yml | npx pino-pretty > ./devel/logs/log.log 2>&1
+npm run dev:start -- -fp '../data/**/*.spec.yml' | npx pino-pretty > ./devel/logs/log.log 2>&1
 
 
 ```

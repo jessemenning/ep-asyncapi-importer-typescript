@@ -61,15 +61,15 @@ async function main() {
   const applicationDomainNameList: Array<string> = [];
 
   try {
-    for(const asyncApiSpecFile of CliConfig.getCliAppConfig().asyncApiSpecFileList) {
+    for(const asyncApiFile of CliConfig.getCliAppConfig().asyncApiFileList) {
 
       CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.INFO, message: 'starting...', details: {
-        asyncApiSpecFile: asyncApiSpecFile
+        asyncApiFile: asyncApiFile
       }}));
 
       const cliAppConfig: TCliAppConfig = {
         ...CliConfig.getCliAppConfig(),
-        asyncApiSpecFileName: asyncApiSpecFile,
+        asyncApiFileName: asyncApiFile,
       };
       const importer = new CliImporter(cliAppConfig);
       const cliImporterRunReturn: ICliImporterRunReturn = await importer.run();  
@@ -77,7 +77,7 @@ async function main() {
       if(cliImporterRunReturn.error !== undefined) throw cliImporterRunReturn.error;
 
       CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.INFO, message: 'done.', details: {
-        asyncApiSpecFile: asyncApiSpecFile,
+        asyncApiFile: asyncApiFile,
       }}));
 
       const xvoid: void = await cleanup({ applicationDomainNameList: applicationDomainNameList });
@@ -127,6 +127,7 @@ function initialize(commandLineOptionValues: OptionValues) {
 }
 
 function getCommandLineOptionValues(): OptionValues {
+
   const Program = new Command();
 
   Program
@@ -135,11 +136,13 @@ function getCommandLineOptionValues(): OptionValues {
   .version(`${packageJson.version}`, '-v, --version')
   .usage('[OPTIONS]...')
   // .requiredOption('-f, --file <value>', 'Required: Path to AsyncAPI spec file')
-  .requiredOption('-fp, --filePattern <value>', 'Required: File pattern for AsyncAPI spec files')
-  .option('-d, --domain  <value>', 'Application Domain Name. If not passed, name extracted from x-domain-name in spec file')
+  .requiredOption('-fp, --filePattern <value>', 'Required: File pattern for Async API files')
+  .option('-d, --domain  <value>', 'Application Domain Name. If not passed, name extracted from info.x-sep-application-domain-name in api')
   .parse(process.argv);
-    
-  return Program.opts();
+  
+  const ovs = Program.opts();
+
+  return ovs;
 }
 
 clear();

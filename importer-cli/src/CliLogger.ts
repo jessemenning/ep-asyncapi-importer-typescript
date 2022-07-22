@@ -1,5 +1,6 @@
 import pino from 'pino';
 import { TCliLoggerConfig } from './CliConfig';
+import CliRunContext, { ICliRunContext } from './CliRunContext';
 
 
 // level: 'fatal', 'error', 'warn', 'info', 'debug', 'trace' or 'silent'
@@ -13,6 +14,10 @@ export enum ECliStatusCodes {
   
   VALIDATING_SPEC = "VALIDATING_SPEC",
   VALIDATED_SPEC = "VALIDATED_SPEC",
+  
+  CHECK_EVENT_API = "CHECK_EVENT_API",
+  CHECK_EVENT_API_VERSION = "CHECK_EVENT_API_VERSION",
+  CHECK_EVENT = "CHECK_EVENT",
   
   IMPORTING = 'IMPORTING',
   IMPORTING_ERROR = "IMPORTING_ERROR",
@@ -58,6 +63,7 @@ export type TCliStatus = {
 
 export type TCliLogEntry = {
   name: string;
+  runContext: ICliRunContext;
 } & TCliStatus;
 
 export class CliLogger {
@@ -83,6 +89,7 @@ export class CliLogger {
   public static createLogEntry = (componentName: string, cliStatus: TCliStatus): TCliLogEntry => {
     return {
       name: componentName,
+      runContext: CliRunContext.getContext(),
       ...cliStatus
     };
   }

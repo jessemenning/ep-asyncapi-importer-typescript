@@ -185,7 +185,7 @@ export class CliApplicationDomainTask extends CliTask {
       applicationDomainObject: cliTaskExecuteReturn.apiObject,
       apiObject: undefined
     };
-    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTED_TASK, details: {
+    CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTED_TASK, details: {
       cliApplicationDomainTask_ExecuteReturn: cliApplicationDomainTask_ExecuteReturn,
     }}));
     return cliApplicationDomainTask_ExecuteReturn;

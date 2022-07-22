@@ -61,8 +61,8 @@ before(async() => {
 
 after(async() => {
   TestContext.newItId();
-  // disable for testing
-  await CliEPApplicationDomainsService.deleteByName({ applicationDomainName: GlobalDomainName });
+  // // disable for testing
+  // await CliEPApplicationDomainsService.deleteByName({ applicationDomainName: GlobalDomainName });
 });
 
 describe(`${scriptName}`, () => {

@@ -1,5 +1,5 @@
 
-import { AbstractMethodError, CliError, EPApiResponseApiError } from '../CliError';
+import { CliAbstractMethodError, CliError, EPApiResponseApiError } from '../CliError';
 import { CliLogger, ECliStatusCodes } from '../CliLogger';
 import { CliUtils } from '../CliUtils';
 import { ApiError } from '../_generated/@solace-iot-team/sep-openapi-node';
@@ -93,20 +93,20 @@ export abstract class CliTask {
     const funcName = 'getFunc';
     const logName = `${CliTask.name}.${funcName}()`;
     cliTaskKeys;
-    throw new AbstractMethodError(logName, CliTask.name, funcName);
+    throw new CliAbstractMethodError(logName, CliTask.name, funcName);
   };
 
   protected async createFunc(): Promise<ICliCreateFuncReturn> {
     const funcName = 'createFunc';
     const logName = `${CliTask.name}.${funcName}()`;
-    throw new AbstractMethodError(logName, CliTask.name, funcName);
+    throw new CliAbstractMethodError(logName, CliTask.name, funcName);
   }
 
   protected async updateFunc(cliGetFuncReturn: ICliGetFuncReturn): Promise<ICliUpdateFuncReturn> {
     const funcName = 'updateFunc';
     const logName = `${CliTask.name}.${funcName}()`;
     cliGetFuncReturn;
-    throw new AbstractMethodError(logName, CliTask.name, funcName);
+    throw new CliAbstractMethodError(logName, CliTask.name, funcName);
   }
 
   protected abstract isUpdateRequired({ cliGetFuncReturn }:{
@@ -217,7 +217,7 @@ export abstract class CliTask {
         default:
           CliUtils.assertNever(logName, this.cliTaskConfig.cliTaskState);
       }
-      CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTED_TASK, details: "done." }));
+      CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTED_TASK, details: "done." }));
       if(taskExecuteReturn === undefined) throw new CliError(logName, 'taskExecuteReturn === undefined');
       return taskExecuteReturn;
     } catch(e: any) {

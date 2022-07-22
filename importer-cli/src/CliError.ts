@@ -127,7 +127,7 @@ export class InvalidEnvVarValueFromListError extends CliError {
   }
 }
 
-export class AsyncApiSpecError extends CliError {
+export class CliAsyncApiSpecError extends CliError {
   private error: any;
   constructor(internalLogName: string, internalMessage: string, error: any) {
     super(internalLogName, internalMessage);
@@ -135,33 +135,43 @@ export class AsyncApiSpecError extends CliError {
   }
 }
 
-export class AsyncApiSpecBestPracticesError extends CliError {
+export class CliAsyncApiParserError extends CliError {
+  protected static defaultDescription = 'Async Api Parser Error';
+  private paserError: any;
+  constructor(internalLogName: string, internalMessage: string = CliAsyncApiParserError.defaultDescription, paserError: any) {
+    super(internalLogName, internalMessage);
+    this.paserError = paserError;
+  }
+}
+
+
+export class CliAsyncApiSpecBestPracticesError extends CliError {
   protected static defaultDescription = 'Async Api Best Practices Error';
   private bestPracticesValidationError: any;
   private value: any;
-  constructor(internalLogName: string, internalMessage: string = AsyncApiSpecBestPracticesError.defaultDescription, bestPracticesValidationError: any, value: any) {
+  constructor(internalLogName: string, internalMessage: string = CliAsyncApiSpecBestPracticesError.defaultDescription, bestPracticesValidationError: any, value: any) {
     super(internalLogName, internalMessage);
     this.bestPracticesValidationError = bestPracticesValidationError;
     this.value = value;
   }
 }
 
-export class AsyncApiSpecEPValidationError extends CliError {
+export class CliAsyncApiSpecEPValidationError extends CliError {
   protected static defaultDescription = 'EP Async Api Spec Valiation Error';
   private epValidationError: any;
   private value: any;
-  constructor(internalLogName: string, internalMessage: string = AsyncApiSpecEPValidationError.defaultDescription, error: any, value: any, ) {
+  constructor(internalLogName: string, internalMessage: string = CliAsyncApiSpecEPValidationError.defaultDescription, error: any, value: any, ) {
     super(internalLogName, internalMessage);
     this.epValidationError = error;
     this.value = value;
   }
 }
 
-export class AsyncApiSpecNotSupportedError extends CliError {
+export class CliAsyncApiSpecNotSupportedError extends CliError {
   protected static defaultDescription = 'Async API Spec - Feature not supported';
   private error: any;
   private featureDescription: any;
-  constructor(internalLogName: string, internalMessage: string = AsyncApiSpecNotSupportedError.defaultDescription, error: any, featureDescription: any, ) {
+  constructor(internalLogName: string, internalMessage: string = CliAsyncApiSpecNotSupportedError.defaultDescription, error: any, featureDescription: any, ) {
     super(internalLogName, internalMessage);
     this.error = error;
     this.featureDescription = featureDescription;
@@ -169,18 +179,18 @@ export class AsyncApiSpecNotSupportedError extends CliError {
 
 }
 
-export class AsyncApiSpecXtensionError extends CliError {
+export class CliAsyncApiSpecXtensionError extends CliError {
   protected static apiDefaultDescription = 'Async API Spec Xtension Error';
   private xtension: any;
   private asyncApiSpecFile: string;
-  constructor(internalLogName: string, message: string = AsyncApiSpecXtensionError.apiDefaultDescription, asyncApiSpecFile: string, xtension: string) {
+  constructor(internalLogName: string, message: string = CliAsyncApiSpecXtensionError.apiDefaultDescription, asyncApiSpecFile: string, xtension: string) {
     super(internalLogName, message);
     this.xtension = xtension;
     this.asyncApiSpecFile = asyncApiSpecFile
   }
 }
 
-export class AbstractMethodError extends CliError {
+export class CliAbstractMethodError extends CliError {
   private className: string;
   private methodName: string;
   constructor(internalLogName: string, className: string, methodName: string) {

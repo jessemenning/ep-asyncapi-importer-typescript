@@ -3,7 +3,11 @@ import yaml from "js-yaml";
 
 import { AsyncAPIDocument, Message, Channel } from '@asyncapi/parser';
 import { TCliAppConfig } from '../CliConfig';
-import { AsyncApiSpecBestPracticesError, AsyncApiSpecError, AsyncApiSpecXtensionError } from '../CliError';
+import { 
+  CliAsyncApiSpecBestPracticesError, 
+  CliAsyncApiSpecError, 
+  CliAsyncApiSpecXtensionError
+} from '../CliError';
 import CliSemVerUtils from '../CliSemVerUtils';
 import { CliMessageDocument } from './CliMessageDocument';
 import { CliChannelDocument, CliChannelParameterDocument, CliChannelPublishOperation, CliChannelSubscribeOperation } from './CliChannelDocument';
@@ -35,7 +39,7 @@ export class CliAsyncApiDocument {
     const funcName = 'getJSON';
     const logName = `${CliAsyncApiDocument.name}.${funcName}()`;
     const anyDoc: any = asyncApiDocument;
-    if(anyDoc["_json"] === undefined) throw new AsyncApiSpecError(logName, '_json not found in parse async api spec', {});
+    if(anyDoc["_json"] === undefined) throw new CliAsyncApiSpecError(logName, '_json not found in parse async api spec', {});
     return anyDoc["_json"];
   }
 
@@ -55,7 +59,7 @@ export class CliAsyncApiDocument {
       else if(this.appConfig.prefixDomainName !== undefined) appDomainName = `${this.appConfig.prefixDomainName}/${specAppDomainName}`;
       else appDomainName = specAppDomainName;
     }
-    if(appDomainName === undefined) throw new AsyncApiSpecXtensionError(logName, "no application domain name defined, define either in spec or on command line", this.appConfig.asyncApiSpecFileName, E_EP_Extensions.X_APPLICATION_DOMAIN_NAME);
+    if(appDomainName === undefined) throw new CliAsyncApiSpecXtensionError(logName, "no application domain name defined, define either in spec or on command line", this.appConfig.asyncApiFileName, E_EP_Extensions.X_APPLICATION_DOMAIN_NAME);
 
     return appDomainName;
   }
@@ -73,7 +77,7 @@ export class CliAsyncApiDocument {
     // version must be in SemVer format
     const versionStr: string = this.getVersion();
     if(!CliSemVerUtils.isSemVerFormat({ versionString: versionStr })) {
-      throw new AsyncApiSpecBestPracticesError(logName, undefined, "Please use semantic versioning format for API version.", { versionString: versionStr });
+      throw new CliAsyncApiSpecBestPracticesError(logName, undefined, "Please use semantic versioning format for API version.", { versionString: versionStr });
     }
     // check that all channels have a message - must not be inline
     // validate channel param schemas - must be unique
@@ -142,12 +146,12 @@ export class CliAsyncApiDocument {
       const cliChannelPublishOperation: CliChannelPublishOperation | undefined = cliChannelDocument.getChannelPublishOperation();
       if(cliChannelPublishOperation !== undefined) {
         const cliMessageDocument: CliMessageDocument = cliChannelPublishOperation.getCliMessageDocument()
-        cliEventNames.publishEventNames.push(cliMessageDocument.getDisplayName());
+        cliEventNames.publishEventNames.push(cliMessageDocument.getMessageName());
       }
       const cliChannelSubscribeOperation: CliChannelSubscribeOperation | undefined = cliChannelDocument.getChannelSubscribeOperation();
       if(cliChannelSubscribeOperation !== undefined) {
         const cliMessageDocument: CliMessageDocument = cliChannelSubscribeOperation.getCliMessageDocument()
-        cliEventNames.subscribeEventNames.push(cliMessageDocument.getDisplayName());
+        cliEventNames.subscribeEventNames.push(cliMessageDocument.getMessageName());
       }
     }
     return cliEventNames;
@@ -179,7 +183,7 @@ export class CliAsyncApiDocument {
       //   key: key,
       //   message: message
       // }}));
-      const cliMessageDocument = new CliMessageDocument(message);
+      const cliMessageDocument = new CliMessageDocument(message, key);
       allCliMessageDocumentMap.set(key, cliMessageDocument);
     }
     return allCliMessageDocumentMap;
