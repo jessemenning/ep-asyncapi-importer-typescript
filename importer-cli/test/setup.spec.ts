@@ -15,6 +15,7 @@ import { CliLogger } from "../src/CliLogger";
 import { EPClient } from "../src/EPClient";
 import { CliError } from "../src/CliError";
 import CliEPApplicationDomainsService from "../src/services/CliEPApplicationDomainsService";
+import { ApplicationDomain } from "../src/_generated/@solace-iot-team/sep-openapi-node";
 
 // ensure any unhandled exception cause exit = 1
 function onUncaught(err: any){
@@ -60,10 +61,11 @@ before(async() => {
 
 after(async() => {
   TestContext.newItId();
-  // // disable for testing
-  // for(const createdDomain of TestEnv.createdAppDomainNameList) {
-  //   await CliEPApplicationDomainsService.deleteByName({ applicationDomainName: createdDomain });
-  // }
+  // disable for DEBUG
+  for(const createdDomain of TestEnv.createdAppDomainNameList) {
+    const deleted: ApplicationDomain = await CliEPApplicationDomainsService.deleteByName({ applicationDomainName: createdDomain });
+    console.log(TestLogger.createLogMessage(`deleted application domain=${JSON.stringify(deleted, null, 2)}`));
+  }
 });
 
 describe(`${scriptName}`, () => {
