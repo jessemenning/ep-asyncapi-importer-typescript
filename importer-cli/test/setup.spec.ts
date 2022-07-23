@@ -4,6 +4,7 @@ import fs from 'fs';
 import { 
   getMandatoryEnvVarValue,
   getOptionalEnvVarValueAsBoolean, 
+  getUUID, 
   TestContext, 
   TestLogger, 
   TTestEnv,
@@ -13,7 +14,7 @@ import CliConfig from "../src/CliConfig";
 import { CliLogger } from "../src/CliLogger";
 import { EPClient } from "../src/EPClient";
 import { CliError } from "../src/CliError";
-import CliEPApplicationDomainsService from '../src/services/CliEPApplicationDomainsService';
+import CliEPApplicationDomainsService from "../src/services/CliEPApplicationDomainsService";
 
 // ensure any unhandled exception cause exit = 1
 function onUncaught(err: any){
@@ -36,7 +37,9 @@ const setTestEnv = (scriptDir: string): TTestEnv => {
   const testEnv: TTestEnv = {
     enableLogging: getOptionalEnvVarValueAsBoolean(scriptName, 'APIM_TEST_SERVER_ENABLE_LOGGING', true),
     projectRootDir: projectRootDir,
-    testApiSpecsDir: path.join(projectRootDir, CLI_TEST_API_SPECS_ROOT_DIR)
+    testApiSpecsDir: path.join(projectRootDir, CLI_TEST_API_SPECS_ROOT_DIR),
+    globalDomainNamePrefix: `sep-async-api-importer/test/${getUUID()}`,
+    createdAppDomainNameList: [],
   }
   return testEnv;
 }
@@ -45,10 +48,6 @@ export const TestEnv = setTestEnv(scriptDir);
 TestLogger.logTestEnv(scriptName, TestEnv);
 TestLogger.setLogging(TestEnv.enableLogging);
 TestContext.setTestEnv(TestEnv);
-
-// set the global app domain
-const d = new Date();
-const GlobalDomainName: string = `sep-async-api-importer/test/${d.toUTCString()}`;
 
 before(async() => {
   TestContext.newItId();
@@ -62,7 +61,9 @@ before(async() => {
 after(async() => {
   TestContext.newItId();
   // // disable for testing
-  // await CliEPApplicationDomainsService.deleteByName({ applicationDomainName: GlobalDomainName });
+  // for(const createdDomain of TestEnv.createdAppDomainNameList) {
+  //   await CliEPApplicationDomainsService.deleteByName({ applicationDomainName: createdDomain });
+  // }
 });
 
 describe(`${scriptName}`, () => {
@@ -74,9 +75,8 @@ describe(`${scriptName}`, () => {
 
     it(`${scriptName}: should initialize cli`, async () => {
       try {
-        const d = new Date();
         CliConfig.initialize({ 
-          globalDomainName: GlobalDomainName
+          globalDomainName: TestEnv.globalDomainNamePrefix
         });
         CliLogger.initialize(CliConfig.getCliLoggerConfig());
         CliConfig.logConfig();

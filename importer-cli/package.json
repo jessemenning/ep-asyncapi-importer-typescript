@@ -73,6 +73,7 @@
     "@types/shelljs": "^0.8.9",
     "@types/sinon": "^10.0.12",
     "@types/supertest": "^2.0.12",
+    "@types/uuid": "^8.3.4",
     "chai": "^4.3.6",
     "mocha": "^10.0.0",
     "openapi-typescript-codegen": "^0.19.0",
@@ -100,6 +101,7 @@
     "lodash": "^4.17.21",
     "node-fetch": "^2.6.7",
     "pino": "^8.1.0",
-    "semver": "^7.3.7"
+    "semver": "^7.3.7",
+    "uuid": "^8.3.2"
   }
 }

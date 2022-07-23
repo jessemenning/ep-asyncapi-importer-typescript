@@ -128,19 +128,19 @@ export class InvalidEnvVarValueFromListError extends CliError {
 }
 
 export class CliAsyncApiSpecError extends CliError {
-  private error: any;
-  constructor(internalLogName: string, internalMessage: string, error: any) {
+  private details: any;
+  constructor(internalLogName: string, internalMessage: string, details: any) {
     super(internalLogName, internalMessage);
-    this.error = error;
+    this.details = details;
   }
 }
 
 export class CliAsyncApiParserError extends CliError {
   protected static defaultDescription = 'Async Api Parser Error';
-  private paserError: any;
-  constructor(internalLogName: string, internalMessage: string = CliAsyncApiParserError.defaultDescription, paserError: any) {
+  private parserError: any;
+  constructor(internalLogName: string, internalMessage: string = CliAsyncApiParserError.defaultDescription, parserError: any) {
     super(internalLogName, internalMessage);
-    this.paserError = paserError;
+    this.parserError = parserError;
   }
 }
 

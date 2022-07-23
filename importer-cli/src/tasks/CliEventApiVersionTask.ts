@@ -143,7 +143,8 @@ export class CliEventApiVersionTask extends CliVersionTask {
       isUpdateRequired: !cliTaskDeepCompareResult.isEqual,
       difference: cliTaskDeepCompareResult.difference
     }}));
-    if(!cliTaskDeepCompareResult.isEqual) throw new Error(`${logName}: check updates requiired`);
+    // DEBUG:
+    // if(!cliTaskDeepCompareResult.isEqual) throw new Error(`${logName}: check updates requiired`);
     return !cliTaskDeepCompareResult.isEqual;
   }
 

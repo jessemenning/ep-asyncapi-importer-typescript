@@ -27,12 +27,12 @@ scriptName=$(basename $(test -L "$0" && readlink "$0" || echo "$0"));
 # Check for errors
 
 filePattern="$LOG_DIR"
-cliErrors=$(grep -n -r -e " CliError " $filePattern )
+cliErrors=$(grep -n -r -e "CliError" $filePattern )
 errors=$(grep -n -r -e " ERROR " $filePattern )
 test_failing=$(grep -n -r -e "failing" $filePattern )
 if [ ! -z "$cliErrors" ]; then
   FAILED=1
-  echo "   found ${#cliErrors[@]} Cli Errors"
+  echo "   found ${#cliErrors[@]} CliError(s)"
   while IFS= read line; do
     echo $line >> "$LOG_DIR/$scriptName.ERROR.out"
   done < <(printf '%s\n' "$cliErrors")
@@ -41,12 +41,12 @@ else
 fi
 if [ ! -z "$errors" ]; then
   FAILED=1
-  echo "   found ${#errors[@]} ERRORS"
+  echo "   found ${#errors[@]} ERROR(s)"
   while IFS= read line; do
     echo $line >> "$LOG_DIR/$scriptName.ERROR.out"
   done < <(printf '%s\n' "$errors")
 else
-  echo "   no ERROR found"
+  echo "   no ERROR(s) found"
 fi
 if [ ! -z "$test_failing" ]; then
   FAILED=1

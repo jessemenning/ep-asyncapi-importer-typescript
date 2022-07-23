@@ -11,16 +11,25 @@ import { glob } from 'glob';
 const scriptName: string = path.basename(__filename);
 TestLogger.logMessage(scriptName, ">>> starting ...");
 
-const createGoodApiSpecFileList = (): Array<string> => {
-
+const createApiFileList = (subDir: string): Array<string> => {
   // const x: G.IOptions = 
-  const files: Array<string> = glob.sync(`${TestEnv.testApiSpecsDir}/passing/**/*.spec.yml`);
-
+  const files: Array<string> = glob.sync(`${TestEnv.testApiSpecsDir}/passing/${subDir}/**/*.spec.yml`);
   return files;
-
 }
 
-let ApiFileList: Array<string> = [];
+const DIR_LIST: Array<string> = [
+  'acme-retail',
+  'acme-rideshare',
+  // 'asynapi',
+];
+
+type TDomainFileList = {
+  domainName: string;  
+  apiFileList: Array<string>;
+}
+type TTestLists = Array<TDomainFileList>;
+const TEST_LISTS: TTestLists = [];
+
 
 describe(`${scriptName}`, () => {
     
@@ -28,24 +37,30 @@ describe(`${scriptName}`, () => {
       TestContext.newItId();
     });
 
-    it(`${scriptName}: should create api spec file list `, async () => {
-      ApiFileList = createGoodApiSpecFileList();
+    it(`${scriptName}: should setup domains and api file lists`, async () => {
+      for(const dir of DIR_LIST) {
+        const domainFileList: TDomainFileList = {
+          domainName: `${TestEnv.globalDomainNamePrefix}/${dir}`,
+          apiFileList: createApiFileList(dir)
+        }
+        TEST_LISTS.push(domainFileList);
+        TestEnv.createdAppDomainNameList.push(domainFileList.domainName);
+      }
     });
 
-    it(`${scriptName}: should import all passing specs`, async () => {
+    it(`${scriptName}: should import passing specs`, async () => {
       try {
-        for(const specFile of ApiFileList) {
-          const cliAppConfig: TCliAppConfig = {
-            ...CliConfig.getCliAppConfig(),
-            asyncApiFileName: specFile,
-          };
-
-          console.log(`cliAppConfig=${JSON.stringify(cliAppConfig, null, 2)}`);
-
-          const importer = new CliImporter(cliAppConfig);
-          const cliImporterRunReturn: ICliImporterRunReturn = await importer.run();  
-          if(cliImporterRunReturn.error !== undefined) throw cliImporterRunReturn.error;
-    
+        for(const testList of TEST_LISTS) {
+          for(const apiFile of testList.apiFileList) {
+            const cliAppConfig: TCliAppConfig = {
+              ...CliConfig.getCliAppConfig(),
+              asyncApiFileName: apiFile,
+              domainName: testList.domainName
+            };
+            const importer = new CliImporter(cliAppConfig);
+            const cliImporterRunReturn: ICliImporterRunReturn = await importer.run();  
+            if(cliImporterRunReturn.error !== undefined) throw cliImporterRunReturn.error;      
+          }
         }
       } catch(e) {
         expect(e instanceof CliError, TestLogger.createNotCliErrorMesssage(e.message)).to.be.true;
@@ -53,15 +68,19 @@ describe(`${scriptName}`, () => {
       }
     });
 
-    xit(`${scriptName}: idempotency: should import all passing specs`, async () => {
+    it(`${scriptName}: idempotency: should import passing specs`, async () => {
       try {
-        for(const specFile of ApiFileList) {
-          const cliAppConfig: TCliAppConfig = {
-            ...CliConfig.getCliAppConfig(),
-            asyncApiFileName: specFile,
-          };
-          const importer = new CliImporter(cliAppConfig);
-          await importer.run();  
+        for(const testList of TEST_LISTS) {
+          for(const apiFile of testList.apiFileList) {
+            const cliAppConfig: TCliAppConfig = {
+              ...CliConfig.getCliAppConfig(),
+              asyncApiFileName: apiFile,
+              domainName: testList.domainName
+            };
+            const importer = new CliImporter(cliAppConfig);
+            const cliImporterRunReturn: ICliImporterRunReturn = await importer.run();  
+            if(cliImporterRunReturn.error !== undefined) throw cliImporterRunReturn.error;      
+          }
         }
       } catch(e) {
         expect(e instanceof CliError, TestLogger.createNotCliErrorMesssage(e.message)).to.be.true;

@@ -1,11 +1,16 @@
 import fs from 'fs';
 import path from 'path';
 import _ from "lodash";
+import { v4 as uuidv4 } from 'uuid';
 
 
 // export type APSOptional<T, K extends keyof T> = Pick<Partial<T>, K> & Omit<T, K>;
 
 export class CliUtils {
+
+  public static getUUID = (): string => {
+    return uuidv4();
+  }
 
   public static sleep = async(millis = 500) => {
     if(millis > 0) await new Promise(resolve => setTimeout(resolve, millis));

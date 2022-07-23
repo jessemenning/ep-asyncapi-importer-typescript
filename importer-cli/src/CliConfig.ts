@@ -110,8 +110,7 @@ export class CliConfig {
     cliConfig: TCliConfig;
   }): string | undefined => {
     if(cliConfig.appConfig.importerMode === ECliImporterMode.TEST_MODE) {
-      const d = new Date();
-      return `${cliConfig.appId}/${cliConfig.appConfig.importerMode}/${d.toUTCString()}`;
+      return `${cliConfig.appId}/${cliConfig.appConfig.importerMode}/${CliUtils.getUUID()}`;
     }
     return undefined;
   }

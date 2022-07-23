@@ -1,5 +1,5 @@
 import { Message, Schema } from '@asyncapi/parser';
-import { CliError } from '../CliError';
+import { CliAsyncApiSpecError, CliError } from '../CliError';
 import { CliLogger, ECliStatusCodes } from '../CliLogger';
 import { E_ASYNC_API_SPEC_CONTENNT_TYPES } from './CliAsyncApiDocument';
 
@@ -13,10 +13,13 @@ export class CliMessageDocument {
   private extractMessageKey(asyncApiMessage: Message): string {
     const funcName = 'extractMessageKey';
     const logName = `${CliMessageDocument.name}.${funcName}()`;
-    if(asyncApiMessage.hasExt('x-parser-message-name') === false) throw new CliError(logName, "asyncApiMessage.hasExt('x-parser-message-name') === false");
-    const key: any = asyncApiMessage.ext('x-parser-message-name');
-    if(key === undefined) throw new CliError(logName, "key === undefined");
-    return key;
+    // 2.4.0
+    if(asyncApiMessage.name()) return asyncApiMessage.name();
+    // 2.0.0
+    if(asyncApiMessage.hasExt('x-parser-message-name')) return asyncApiMessage.ext('x-parser-message-name');
+    throw new CliAsyncApiSpecError(logName, 'unable to find message key', {
+      asyncApiMessage: asyncApiMessage
+    });
   }
 
   constructor(asyncApiMessage: Message, key?: string) {
@@ -30,12 +33,12 @@ export class CliMessageDocument {
     const funcName = 'getMessageName';
     const logName = `${CliMessageDocument.name}.${funcName}()`;
     
-    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.INFO, details: {
-      messageName: this.asyncApiMessage.name() ? this.asyncApiMessage.name() : 'undefined',
-      messageId: this.asyncApiMessage.id() ? this.asyncApiMessage.id() : 'undefined',
-      title: this.asyncApiMessage.title() ? this.asyncApiMessage.title() : 'undefined',
-      key: this.key
-    }}));
+    // CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.INFO, details: {
+    //   messageName: this.asyncApiMessage.name() ? this.asyncApiMessage.name() : 'undefined',
+    //   messageId: this.asyncApiMessage.id() ? this.asyncApiMessage.id() : 'undefined',
+    //   title: this.asyncApiMessage.title() ? this.asyncApiMessage.title() : 'undefined',
+    //   key: this.key
+    // }}));
 
     let name: string = this.key;
     if(this.asyncApiMessage.name() !== undefined) name = this.asyncApiMessage.name();
