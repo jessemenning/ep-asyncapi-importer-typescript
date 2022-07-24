@@ -1,5 +1,10 @@
 
-import { CliTask, ECliTaskAction, ICliTaskActionLog, ICliTaskConfig } from './CliTask';
+import { CliTask, ECliTaskAction, ICliTaskActionLog, ICliTaskConfig, ICliTaskIsUpdateRequiredReturn } from './CliTask';
+
+export interface ICliVersionTask_ActionLog extends ICliTaskActionLog {  
+}
+export interface ICliVersionTask_IsUpdateRequiredReturn extends ICliTaskIsUpdateRequiredReturn {
+}
 
 export abstract class CliVersionTask extends CliTask {
 
@@ -9,15 +14,17 @@ export abstract class CliVersionTask extends CliTask {
 
   protected create_CreateFuncActionLog(): ICliTaskActionLog {
     return {
+      ...super.create_CreateFuncActionLog(),
       action: ECliTaskAction.CREATE_FIRST_VERSION,
-      info: "TBD"
     };
   }
 
-  protected create_UpdateFuncActionLog(): ICliTaskActionLog {
+  protected create_UpdateFuncActionLog({ cliTaskIsUpdateRequiredReturn }:{
+    cliTaskIsUpdateRequiredReturn: ICliTaskIsUpdateRequiredReturn;
+  }): ICliTaskActionLog {
     return {
+      ...super.create_UpdateFuncActionLog({ cliTaskIsUpdateRequiredReturn: cliTaskIsUpdateRequiredReturn }),
       action: ECliTaskAction.CREATE_NEW_VERSION,
-      info: "TBD"
     };
   }
 

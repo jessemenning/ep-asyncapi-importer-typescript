@@ -1,6 +1,6 @@
 import { CliEPApiContentError, CliError } from "../CliError";
 import { CliLogger, ECliStatusCodes } from "../CliLogger";
-import { CliTask, ICliTaskKeys, ICliGetFuncReturn, ICliTaskConfig, ICliCreateFuncReturn, ICliTaskExecuteReturn, ICliUpdateFuncReturn, ICliTaskDeepCompareResult } from "./CliTask";
+import { CliTask, ICliTaskKeys, ICliGetFuncReturn, ICliTaskConfig, ICliCreateFuncReturn, ICliTaskExecuteReturn, ICliUpdateFuncReturn, ICliTaskDeepCompareResult, ICliTaskIsUpdateRequiredReturn } from "./CliTask";
 import { 
   Address, 
   AddressLevel, 
@@ -149,13 +149,12 @@ export class CliEventVersionTask extends CliTask {
 
   protected isUpdateRequired({ cliGetFuncReturn}: { 
     cliGetFuncReturn: ICliEventVersionTask_GetFuncReturn; 
-  }): boolean {
+  }): ICliTaskIsUpdateRequiredReturn {
     const funcName = 'isUpdateRequired';
     const logName = `${CliEventVersionTask.name}.${funcName}()`;
     if(cliGetFuncReturn.eventVersionObject === undefined) throw new CliError(logName, 'cliGetFuncReturn.eventVersionObject === undefined');
 
     const existingObject: EventVersion = cliGetFuncReturn.eventVersionObject;
-
     const existingCompareObject: TCliEventVersionTask_CompareObject = {
       description: existingObject.description,
       displayName: existingObject.displayName,
@@ -165,16 +164,13 @@ export class CliEventVersionTask extends CliTask {
     };
     const requestedCompareObject: TCliEventVersionTask_CompareObject = this.createObjectSettings();
 
-    const cliTaskDeepCompareResult: ICliTaskDeepCompareResult = this.deepCompareObjects({ existingObject: existingCompareObject, requestedObject: requestedCompareObject });
-
-    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_IS_UPDATE_REQUIRED, details: {
-      existingCompareObject: this.prepareCompareObject4Output(existingCompareObject),
-      requestedCompareObject: this.prepareCompareObject4Output(requestedCompareObject),
-      isUpdateRequired: !cliTaskDeepCompareResult.isEqual,
-      difference: cliTaskDeepCompareResult.difference
-    }}));
-    // if(!cliTaskDeepCompareResult.isEqual) throw new Error(`${logName}: check updates requiired`);
-    return !cliTaskDeepCompareResult.isEqual;
+    const cliTaskIsUpdateRequiredReturn: ICliTaskIsUpdateRequiredReturn = this.create_ICliTaskIsUpdateRequiredReturn({
+      existingObject: existingCompareObject,
+      requestedObject: requestedCompareObject
+    });
+    // DEBUG
+    // if(cliTaskIsUpdateRequiredReturn.isUpdateRequired) throw new Error(`${logName}: check updates requiired`);
+    return cliTaskIsUpdateRequiredReturn;
   }
 
   private async createEventVersion({ eventId, eventVersion, code, targetLifecycleStateId }:{

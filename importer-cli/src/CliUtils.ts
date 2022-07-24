@@ -6,7 +6,27 @@ import { v4 as uuidv4 } from 'uuid';
 
 // export type APSOptional<T, K extends keyof T> = Pick<Partial<T>, K> & Omit<T, K>;
 
+export type TDeepDiffFromTo = {
+  from: any;
+  to: any;
+}
+export interface IDeepCompareResult {
+  isEqual: boolean;
+  difference: Record<string, TDeepDiffFromTo> | undefined;
+}
+
+
+type DotPrefix<T extends string> = T extends "" ? "" : `.${T}`
+
+type DotNestedKeys<T> = (T extends object ?
+    { [K in Exclude<keyof T, symbol>]: `${K}${DotPrefix<DotNestedKeys<T[K]>>}` }[Exclude<keyof T, symbol>]
+    : "") extends infer D ? Extract<D, string> : never;
+
 export class CliUtils {
+
+  // public static nameOf = <T>(name: keyof T) => name;
+
+  public static nameOf = <T>(name: DotNestedKeys<T>) => name;
 
   public static getUUID = (): string => {
     return uuidv4();
@@ -76,7 +96,7 @@ export class CliUtils {
    * @param  {Object} toObject   the updated object
    * @return {Object}            a new object which represents the diff
    */
-  public static deepDiff(fromObject: any, toObject: any): any {
+  public static deepDiff(fromObject: any, toObject: any): Record<string, TDeepDiffFromTo> {
     const changes: any = {};
 
     const buildPath = (obj: any, key: string, path?: string) => {
@@ -114,5 +134,51 @@ export class CliUtils {
     return changes;
   }
 
-  
+  public static deepSortStringArraysInObject(obj: any): any {
+    if(typeof(obj) !== 'object') throw new TypeError('expected obj to be an object');
+    for(const key in obj) {
+      const value = obj[key];
+      if(typeof(value) === 'object') {
+        obj[key] = CliUtils.deepSortStringArraysInObject(obj[key]);
+      } else if(Array.isArray(value)) {
+        if(value.length > 0 && typeof(value[0]) === 'string') {
+          value.sort();
+        }
+        obj[key] = value;
+      }
+    }
+    return obj;
+  }
+
+  public static prepareCompareObject4Output(obj: any): any {
+    return JSON.parse(JSON.stringify(obj, (_k,v) => {
+      if(v === undefined) return 'undefined';
+      return v;
+    }));
+  }
+
+  private static createCleanCompareObject(obj: any): any {
+    return JSON.parse(JSON.stringify(obj, (_k, v) => {
+      if(v === null) return undefined;
+      return v;
+    }));
+  }
+
+  public static deepCompareObjects({ existingObject, requestedObject }:{
+    existingObject: any;
+    requestedObject: any;
+  }): IDeepCompareResult {
+    const cleanExistingObject = CliUtils.createCleanCompareObject(existingObject);
+    const cleanRequestedObject = CliUtils.createCleanCompareObject(requestedObject);
+    const isEqual = CliUtils.isEqualDeep(cleanExistingObject, cleanRequestedObject);
+    let deepDiffResult: Record<string, TDeepDiffFromTo> | undefined = undefined;
+    if(!isEqual) {
+      deepDiffResult = CliUtils.deepDiff(cleanExistingObject, cleanRequestedObject);
+    }
+    return {
+      isEqual: isEqual,
+      difference: deepDiffResult
+    };
+  }
+
 }

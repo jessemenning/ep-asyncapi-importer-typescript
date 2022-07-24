@@ -19,7 +19,7 @@ const createApiFileList = (subDir: string): Array<string> => {
 
 const DIR_LIST: Array<string> = [
   'acme-retail',
-  'acme-rideshare',
+  // 'acme-rideshare',
   // 'asynapi',
 ];
 

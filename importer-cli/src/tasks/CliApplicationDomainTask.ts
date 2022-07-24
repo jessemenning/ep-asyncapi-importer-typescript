@@ -1,7 +1,7 @@
 import CliConfig from "../CliConfig";
 import { CliEPApiContentError, CliError } from "../CliError";
 import { CliLogger, ECliStatusCodes } from "../CliLogger";
-import { CliTask, ICliTaskKeys, ICliGetFuncReturn, ICliTaskConfig, ICliCreateFuncReturn, ICliTaskExecuteReturn, ICliUpdateFuncReturn } from "./CliTask";
+import { CliTask, ICliTaskKeys, ICliGetFuncReturn, ICliTaskConfig, ICliCreateFuncReturn, ICliTaskExecuteReturn, ICliUpdateFuncReturn, ICliTaskIsUpdateRequiredReturn, ICliTaskDeepCompareResult } from "./CliTask";
 import { ApplicationDomain, ApplicationDomainResponse, ApplicationDomainsResponse, ApplicationDomainsService } from "../_generated/@solace-iot-team/sep-openapi-node";
 import _ from "lodash";
 import CliEPApplicationDomainsService from "../services/CliEPApplicationDomainsService";
@@ -88,7 +88,7 @@ export class CliApplicationDomainTask extends CliTask {
 
   protected isUpdateRequired({ cliGetFuncReturn}: { 
     cliGetFuncReturn: ICliApplicationDomainTask_GetFuncReturn; 
-  }): boolean {
+  }): ICliTaskIsUpdateRequiredReturn {
     const funcName = 'isUpdateRequired';
     const logName = `${CliApplicationDomainTask.name}.${funcName}()`;
     if(cliGetFuncReturn.applicationDomainObject === undefined) throw new CliError(logName, 'cliGetFuncReturn.applicationDomainObject === undefined');
@@ -101,13 +101,30 @@ export class CliApplicationDomainTask extends CliTask {
       uniqueTopicAddressEnforcementEnabled: existingObject.uniqueTopicAddressEnforcementEnabled,
     }
     const requestedCompareObject: TCliApplicationDomainTask_CompareObject = this.createApplicationDomainSettings();
-    isUpdateRequired = !_.isEqual(existingCompareObject, requestedCompareObject);
+
+    const cliTaskDeepCompareResult: ICliTaskDeepCompareResult = this.deepCompareObjects({ existingObject: existingCompareObject, requestedObject: requestedCompareObject });
+
+    const cliTaskIsUpdateRequiredReturn: ICliTaskIsUpdateRequiredReturn = {
+      isUpdateRequired: !cliTaskDeepCompareResult.isEqual,
+      existingCompareObject: this.prepareCompareObject4Output(existingCompareObject),
+      requestedCompareObject: this.prepareCompareObject4Output(requestedCompareObject),
+      difference: cliTaskDeepCompareResult.difference
+    }
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_IS_UPDATE_REQUIRED, details: {
-      existingCompareObject: existingCompareObject,
-      requestedCompareObject: requestedCompareObject,
-      isUpdateRequired: isUpdateRequired
+      ...cliTaskIsUpdateRequiredReturn
     }}));
-    return isUpdateRequired;
+    // DEBUG:
+    // if(!cliTaskDeepCompareResult.isEqual) throw new Error(`${logName}: check updates requiired`);
+    return cliTaskIsUpdateRequiredReturn;
+
+    // OLD: delete me
+    // isUpdateRequired = !_.isEqual(existingCompareObject, requestedCompareObject);
+    // CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_IS_UPDATE_REQUIRED, details: {
+    //   existingCompareObject: existingCompareObject,
+    //   requestedCompareObject: requestedCompareObject,
+    //   isUpdateRequired: isUpdateRequired
+    // }}));
+    // return isUpdateRequired;
   }
 
   protected async createFunc(): Promise<ICliApplicationDomainTask_CreateFuncReturn> {

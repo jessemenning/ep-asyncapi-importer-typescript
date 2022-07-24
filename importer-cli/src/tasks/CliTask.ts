@@ -1,7 +1,7 @@
 
 import { CliAbstractMethodError, CliError, EPApiResponseApiError } from '../CliError';
 import { CliLogger, ECliStatusCodes } from '../CliLogger';
-import { CliUtils } from '../CliUtils';
+import { CliUtils, IDeepCompareResult, TDeepDiffFromTo } from '../CliUtils';
 import { ApiError } from '../_generated/@solace-iot-team/sep-openapi-node';
 
 export enum ECliTaskState {
@@ -33,7 +33,7 @@ export interface ICliUpdateFuncReturn {
 }
 export interface ICliTaskActionLog {
   action: ECliTaskAction,
-  info: any;
+  details: any;
 }
 export interface ICliTaskExecuteReturn {
   cliTaskState: ECliTaskState;
@@ -41,9 +41,14 @@ export interface ICliTaskExecuteReturn {
   actionLog: ICliTaskActionLog;
   apiObject: any;
 }
-export interface ICliTaskDeepCompareResult {
-  isEqual: boolean;
-  difference: any;
+export interface ICliTaskDeepCompareResult extends IDeepCompareResult  {  
+}
+
+export interface ICliTaskIsUpdateRequiredReturn {
+  isUpdateRequired: boolean;
+  existingCompareObject: any;
+  requestedCompareObject: any;
+  difference: Record<string, TDeepDiffFromTo> | undefined;
 }
 
 export abstract class CliTask {
@@ -53,12 +58,12 @@ export abstract class CliTask {
     if(this.cliTaskConfig.checkmode === undefined) return false;
     return this.cliTaskConfig.checkmode;
   }
-  private createCleanCompareObject(obj: any): any {
-    return JSON.parse(JSON.stringify(obj, (_k, v) => {
-      if(v === null) return undefined;
-      return v;
-    }));
-  }
+  // private createCleanCompareObject(obj: any): any {
+  //   return JSON.parse(JSON.stringify(obj, (_k, v) => {
+  //     if(v === null) return undefined;
+  //     return v;
+  //   }));
+  // }
   protected prepareCompareObject4Output(obj: any): any {
     return JSON.parse(JSON.stringify(obj, (_k,v) => {
       if(v === undefined) return 'undefined';
@@ -69,17 +74,42 @@ export abstract class CliTask {
     existingObject: any;
     requestedObject: any;
   }): ICliTaskDeepCompareResult {
-    const cleanExistingObject = this.createCleanCompareObject(existingObject);
-    const cleanRequestedObject = this.createCleanCompareObject(requestedObject);
-    const isEqual = CliUtils.isEqualDeep(cleanExistingObject, cleanRequestedObject);
-    let deepDiffResult: any = undefined;
-    if(!isEqual) {
-      deepDiffResult = CliUtils.deepDiff(cleanExistingObject, cleanRequestedObject);
-    }
-    return {
-      isEqual: isEqual,
-      difference: deepDiffResult
+    return CliUtils.deepCompareObjects({
+      existingObject: existingObject,
+      requestedObject: requestedObject
+    })
+    // const cleanExistingObject = this.createCleanCompareObject(existingObject);
+    // const cleanRequestedObject = this.createCleanCompareObject(requestedObject);
+    // const isEqual = CliUtils.isEqualDeep(cleanExistingObject, cleanRequestedObject);
+    // let deepDiffResult: Record<string, TDeepDiffFromTo> | undefined = undefined;
+    // if(!isEqual) {
+    //   deepDiffResult = CliUtils.deepDiff(cleanExistingObject, cleanRequestedObject);
+    // }
+    // return {
+    //   isEqual: isEqual,
+    //   difference: deepDiffResult
+    // };
+  }
+
+  protected create_ICliTaskIsUpdateRequiredReturn({ existingObject, requestedObject }:{
+    existingObject: any;
+    requestedObject: any;
+  }): ICliTaskIsUpdateRequiredReturn {
+    const funcName = 'create_ICliTaskIsUpdateRequiredReturn';
+    const logName = `${CliTask.name}.${funcName}()`;
+
+    const cliTaskDeepCompareResult: ICliTaskDeepCompareResult = this.deepCompareObjects({ existingObject: existingObject, requestedObject: requestedObject });
+    const cliTaskIsUpdateRequiredReturn: ICliTaskIsUpdateRequiredReturn = {
+      isUpdateRequired: !cliTaskDeepCompareResult.isEqual,
+      existingCompareObject: this.prepareCompareObject4Output(existingObject),
+      requestedCompareObject: this.prepareCompareObject4Output(requestedObject),
+      difference: cliTaskDeepCompareResult.difference
     };
+    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_IS_UPDATE_REQUIRED, details: {
+      ...cliTaskIsUpdateRequiredReturn
+    }}));
+
+    return cliTaskIsUpdateRequiredReturn;
   }
 
   constructor(taskConfig: ICliTaskConfig) {
@@ -111,7 +141,7 @@ export abstract class CliTask {
 
   protected abstract isUpdateRequired({ cliGetFuncReturn }:{
     cliGetFuncReturn: ICliGetFuncReturn
-  }): boolean;
+  }): ICliTaskIsUpdateRequiredReturn;
 
   private async createFuncWrapper(): Promise<ICliCreateFuncReturn> {
     if(!this.isCheckmode()) return await this.createFunc();
@@ -130,14 +160,23 @@ export abstract class CliTask {
   protected create_CreateFuncActionLog(): ICliTaskActionLog {
     return {
       action: ECliTaskAction.CREATE,
-      info: "TBD"
+      details: undefined
     };
   }
 
-  protected create_UpdateFuncActionLog(): ICliTaskActionLog {
+  protected create_UpdateFuncActionLog({ cliTaskIsUpdateRequiredReturn }:{
+    cliTaskIsUpdateRequiredReturn: ICliTaskIsUpdateRequiredReturn;
+  }): ICliTaskActionLog {
     return {
       action: ECliTaskAction.UPDATE,
-      info: "TBD"
+      details: cliTaskIsUpdateRequiredReturn
+    };
+  }
+
+  protected create_NothingToDoActionLog(): ICliTaskActionLog {
+    return {
+      action: ECliTaskAction.NOTHING_TO_DO,
+      details: undefined
     };
   }
 
@@ -155,15 +194,15 @@ export abstract class CliTask {
       };
     } else {
       // check if update required
-      const isUpdateRequired: boolean = this.isUpdateRequired({
+      const cliTaskIsUpdateRequiredReturn: ICliTaskIsUpdateRequiredReturn = this.isUpdateRequired({
         cliGetFuncReturn: cliGetFuncReturn,
       });
-      if(isUpdateRequired) {
+      if(cliTaskIsUpdateRequiredReturn.isUpdateRequired) {
         const updateFuncReturn: ICliUpdateFuncReturn = await this.updateFuncWrapper(cliGetFuncReturn);
         return {
           cliTaskState: ECliTaskState.PRESENT,
           checkmode: this.isCheckmode(),
-          actionLog: this.create_UpdateFuncActionLog(),
+          actionLog: this.create_UpdateFuncActionLog({ cliTaskIsUpdateRequiredReturn: cliTaskIsUpdateRequiredReturn }),
           apiObject: updateFuncReturn.apiObject,  
         }
       }
@@ -172,10 +211,7 @@ export abstract class CliTask {
     return {
       cliTaskState: ECliTaskState.PRESENT,
       checkmode: this.isCheckmode(),
-      actionLog: {
-        action: ECliTaskAction.NOTHING_TO_DO,
-        info: "TBD"
-      },  
+      actionLog: this.create_NothingToDoActionLog(),
       apiObject: cliGetFuncReturn.apiObject,
     };
   }

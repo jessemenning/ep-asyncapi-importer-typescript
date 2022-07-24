@@ -4,7 +4,7 @@ import { CliAsyncApiDocument, CliChannelDocumentMap, CliChannelParameterDocument
 import { ECliTaskAction, ECliTaskState } from './tasks/CliTask';
 import { CliApplicationDomainTask, ICliApplicationDomainTask_ExecuteReturn } from './tasks/CliApplicationDomainTask';
 import CliEPStatesService from './services/CliEPStatesService';
-import { CliUtils } from './CliUtils';
+import { CliUtils, TDeepDiffFromTo } from './CliUtils';
 import { 
   CliAsyncApiSpecBestPracticesError, 
   CliAsyncApiSpecNotSupportedError, 
@@ -38,7 +38,7 @@ import CliEPEventApiVersionsService from './services/CliEPEventApiVersionsServic
 import CliSemVerUtils from './CliSemVerUtils';
 import CliAsyncApiDocumentsService from './services/CliAsyncApiDocumentsService';
 import { CliEventApiTask, ICliEventApiTask_ExecuteReturn } from './tasks/CliEventApiTask';
-import { CliEventApiVersionTask, ICliEventApiVersionTask_ExecuteReturn } from './tasks/CliEventApiVersionTask';
+import { CliEventApiVersionTask, ICliEventApiVersionTask_ActionLog, ICliEventApiVersionTask_ExecuteReturn } from './tasks/CliEventApiVersionTask';
 import CliEPEventVersionsService from './services/CliEPEventVersionsService';
 import CliRunContext, { 
   ECliChannelOperation, 
@@ -52,7 +52,18 @@ import CliRunContext, {
   ICliRunContext_State 
 } from './CliRunContext';
 import { ParserError } from '@asyncapi/parser';
-import CliEPEventsService from './services/CliEPEventsService';
+
+type TCliImporter_FromTo_EventVersionId = {
+  type: string;
+  fromEventVersionId: string;
+  toEventVersionId: string;
+}
+type TCliImporter_FromTo_EventVersion = {
+  type: string;
+  fromEventVersion: EventVersion;
+  toEventVersion: EventVersion;
+  difference: any;
+}
 
 export interface ICliImporterRunReturn {
   applicationDomainName: string | undefined;
@@ -671,56 +682,83 @@ export class CliImporter {
     }}));
 
     // check result
-    const newVesionWouldBeCreated: boolean = cliEventApiVersionTask_ExecuteReturn.actionLog.action === ECliTaskAction.CREATE_NEW_VERSION;
-    const epLatestVersion = latestEventApiVersion.version;
-    const importSpecVersion = cliAsyncApiDocument.getVersion();
-    if(newVesionWouldBeCreated) {
+    // check if new version would be created
+    if(cliEventApiVersionTask_ExecuteReturn.actionLog.action === ECliTaskAction.CREATE_NEW_VERSION) {
+      const epLatestVersion = latestEventApiVersion.version;
+      const importSpecVersion = cliAsyncApiDocument.getVersion();
       // importSpecVersion must be greater than epLatestVersion
       if(!CliSemVerUtils.is_NewVersion_GreaterThan_OldVersion({
         newVersion: importSpecVersion,
         oldVersion: epLatestVersion,
       })) {
-
         // create report of differences
+        const cliEventApiVersionTask_ActionLog: ICliEventApiVersionTask_ActionLog = cliEventApiVersionTask_ExecuteReturn.actionLog;
+        if(cliEventApiVersionTask_ActionLog.details.difference === undefined) throw new CliImporterError(logName, 'cliEventApiVersionTask_ActionLog.details.difference === undefined', {
+          cliEventApiVersionTask_ActionLog: cliEventApiVersionTask_ActionLog
+        });
+        // follow the event version ids and get the details and differences: from / to
 
-//         follow the version ids and get the details and differences: from / to
+        // const fromTo: {
+        //   from: string;
+        //   to: string;
+        // } = {
+        //   from: "03tptnff2sh",
+        //   to: "657ob2ysenj" 
+        // };
+        // const producedEventVersionIds: Array<{
+        //   from: string;
+        //   to: string;
+        // }> = [];
 
-// "isUpdateRequired": true,
-// "difference": {
-//   "producedEventVersionIds.0": {
-//     "from": "03tptnff2sh",
-//     "to": "657ob2ysenj"
-//   },
-//   "producedEventVersionIds.1": {
-//     "from": "358k8gb0nsh",
-//     "to": "69b5i4q33j1"
-//   },
-//   "producedEventVersionIds.3": {
-//     "from": "hpfoy90erra",
-//     "to": "a3z12ingrjk"
-//   },
-//   "producedEventVersionIds.4": {
-//     "from": "l0453gnpqlz",
-//     "to": "mbhyos1lagn"
-//   },
-//   "consumedEventVersionIds.0": {
-//     "from": "8dmgbzfau1w",
-//     "to": "50fx98pjxeg"
-//   },
-//   "consumedEventVersionIds.1": {
-//     "from": "9vx9anuajvd",
-//     "to": "jyvv3xjg3f3"
-//   }
-// }
-
-
-
-
+        const fromToEventVersionIdList: Array<TCliImporter_FromTo_EventVersionId> = [];
+        for(const key in cliEventApiVersionTask_ActionLog.details.difference) {
+          let _type = CliUtils.nameOf<EventApiVersion>('producedEventVersionIds');
+          if(key.includes(_type)) {
+            const fromTo: TDeepDiffFromTo = cliEventApiVersionTask_ActionLog.details.difference[key];
+            fromToEventVersionIdList.push({
+              type: _type,
+              fromEventVersionId: fromTo.from,
+              toEventVersionId: fromTo.to
+            });
+          }
+          _type = CliUtils.nameOf<EventApiVersion>('consumedEventVersionIds');
+          if(key.includes(_type)) {
+            const fromTo: TDeepDiffFromTo = cliEventApiVersionTask_ActionLog.details.difference[key];
+            fromToEventVersionIdList.push({
+              type: _type,
+              fromEventVersionId: fromTo.from,
+              toEventVersionId: fromTo.to
+            });
+          }
+        }
+        // gather the even version objects
+        const cliImporter_FromTo_EventVersion_List: Array<TCliImporter_FromTo_EventVersion> = [];
+        for(const cliImporter_FromTo_EventVersionId of fromToEventVersionIdList) {
+          // get both event versions and output details
+          const cliImporter_FromTo_EventVersion: TCliImporter_FromTo_EventVersion = {
+            type: cliImporter_FromTo_EventVersionId.type,
+            fromEventVersion: await CliEPEventVersionsService.getVersionById({ 
+              applicationDomainId: applicationDomainId,
+              eventVersionId: cliImporter_FromTo_EventVersionId.fromEventVersionId,
+            }),
+            toEventVersion: await CliEPEventVersionsService.getVersionById({ 
+              applicationDomainId: applicationDomainId,
+              eventVersionId: cliImporter_FromTo_EventVersionId.toEventVersionId,
+            }),
+            difference: undefined
+          };
+          cliImporter_FromTo_EventVersion.difference = CliEPEventVersionsService.creteVersionDifference4Reporting({ 
+            fromEventVersion: cliImporter_FromTo_EventVersion.fromEventVersion,
+            toEventVersion: cliImporter_FromTo_EventVersion.toEventVersion
+          });
+          cliImporter_FromTo_EventVersion_List.push(cliImporter_FromTo_EventVersion);
+        }
         throw new CliAsyncApiSpecBestPracticesError(logName, undefined, "Changes made to Api. Api Version not greater than latest Event Portal Event API Version. Aborting import...", {
           epEventApiName: eventApi.name ? eventApi.name : 'undefined',
           epEventApiVersionName: latestEventApiVersion.displayName ? latestEventApiVersion.displayName : 'undefined',
           epEventApiVersion: epLatestVersion,
-          apiVersion: importSpecVersion
+          apiVersion: importSpecVersion,
+          eventVersionDifferences: cliImporter_FromTo_EventVersion_List
         });  
       }
     }

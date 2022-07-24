@@ -1,12 +1,14 @@
+import { from } from 'form-data';
 import { CliEPApiContentError } from '../CliError';
 import { CliLogger, ECliStatusCodes } from '../CliLogger';
 import CliSemVerUtils from '../CliSemVerUtils';
+import { CliUtils, IDeepCompareResult } from '../CliUtils';
 import { 
-  EventsResponse, 
   EventsService, 
   EventVersion, 
   EventVersionsResponse,
   Event as EPEvent,
+  EventVersionResponse,
 } from '../_generated/@solace-iot-team/sep-openapi-node';
 import CliEPEventsService from './CliEPEventsService';
 
@@ -156,6 +158,39 @@ class CliEPEventVersionsService {
     const latestEventVersion: EventVersion | undefined = this.getLatestVersionFromList({ eventVersionList: eventVersionList });
     if(latestEventVersion === undefined) return undefined;
     return latestEventVersion;
+  }
+
+  public getVersionById = async({ applicationDomainId, eventVersionId}:{
+    applicationDomainId: string;
+    eventVersionId: string;
+  }): Promise<EventVersion> => {
+    const funcName = 'getVersionById';
+    const logName = `${CliEPEventVersionsService.name}.${funcName}()`;
+
+    applicationDomainId;
+    const eventVersionResponse: EventVersionResponse = await EventsService.getEventVersion({
+      versionId: eventVersionId
+    });
+    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.SERVICE, details: {
+      eventVersionResponse: eventVersionResponse
+    }}));
+    // assuming the EP API throws an error if not found
+    if(eventVersionResponse.data === undefined) throw new CliEPApiContentError(logName, 'eventVersionResponse.data === undefined', {
+      eventVersionResponse: eventVersionResponse
+    });
+    return eventVersionResponse.data
+  }
+
+  public creteVersionDifference4Reporting = ({ fromEventVersion, toEventVersion }:{
+    fromEventVersion: EventVersion;
+    toEventVersion: EventVersion;
+  }): any => {
+    const deepCompareResult: IDeepCompareResult = CliUtils.deepCompareObjects({
+      existingObject: CliUtils.deepSortStringArraysInObject(fromEventVersion),
+      requestedObject: CliUtils.deepSortStringArraysInObject(toEventVersion)
+    });
+    return CliUtils.prepareCompareObject4Output(deepCompareResult.difference);
+    // return deepCompareResult.difference;
   }
 
 }
