@@ -749,7 +749,7 @@ channels:
         schema:
           type: string
 asyncapi: 2.0.0
-x-sep-application-domain-name: acme-rideshare/driver
+x-sep-application-domain-name: acme-rideshare/consumer/driver
 info:
   description: >-
     <p>This is the application that a driver uses to interact with the Acme

@@ -14,11 +14,38 @@ npm install
 npm run dev:build
 ```
 
-## Run
+## Token
+
+```bash
+export CLI_SOLACE_CLOUD_TOKEN={token}
+```
+
+## Run (release_mode)
+
+```bash
+# single spec
+npm run dev:start -- -fp ../data/passing/acme-retail/central-it/till-system/AcmeRetail-Central-IT-Provider-TillSystem-v1.spec.yml -d dev/test | npx pino-pretty
+
+# glob
+# note: don't forget the quotes around the glob pattern!
+npm run dev:start -- -fp '../data/passing/**/*.spec.yml' | npx pino-pretty
+
+npm run dev:start -- -fp '../data/passing/**/*.spec.yml' -d dev/test | npx pino-pretty
+
+
+# redirect to log file
+
+npm run dev:start -- -fp '../data/passing/**/*.spec.yml' | npx pino-pretty > ./devel/logs/log.log 2>&1
+
+
+```
+
+## Run (test_mode)
+
 
 ```bash
 
-export CLI_SOLACE_CLOUD_TOKEN={token}
+export CLI_MODE=test_mode
 
 # single spec
 npm run dev:start -- -fp ../data/passing/acme-retail/central-it/till-system/AcmeRetail-Central-IT-Provider-TillSystem-v1.spec.yml -d dev/test | npx pino-pretty
@@ -36,6 +63,7 @@ npm run dev:start -- -fp '../data/passing/**/*.spec.yml' | npx pino-pretty > ./d
 
 
 ```
+
 
 ---
 

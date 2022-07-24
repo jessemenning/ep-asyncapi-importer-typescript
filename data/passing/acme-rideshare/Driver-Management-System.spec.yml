@@ -769,7 +769,7 @@ channels:
             - CA
             - MX
 asyncapi: 2.0.0
-x-sep-application-domain-name: acme-rideshare/driver-management-system
+x-sep-application-domain-name: acme-rideshare/provider/driver-management-system
 info:
   description: >-
     **Introduction to the API**

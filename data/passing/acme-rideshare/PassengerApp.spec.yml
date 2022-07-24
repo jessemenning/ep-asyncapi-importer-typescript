@@ -348,7 +348,7 @@ channels:
         schema:
           type: string
 asyncapi: 2.0.0
-x-sep-application-domain-name: acme-rideshare/passenger
+x-sep-application-domain-name: acme-rideshare/consumer/passenger
 info:
   description: >-
     This is the app that a user of acme rideshare uses in order to obtain rides
