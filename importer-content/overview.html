@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Overview &mdash; Solace Event Portal Async API Importer r0.0.2 documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/contentui.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/contentui.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Working Examples" href="working.html" />
+    <link rel="prev" title="Importer Concepts" href="../importer.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> Solace Event Portal Async API Importer
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Guides</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../install.html">Install</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../usage.html">Usage</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../importer.html">Importer Concepts</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Overview</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#application-domain">Application Domain</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#asset-mapping-naming">Asset Mapping &amp; Naming</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#asset-versioning-strategy">Asset Versioning Strategy</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#event-api">Event API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#all-other-assets">All Other Assets</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#asset-lifecycle-state">Asset Lifecycle State</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="working.html">Working Examples</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Solace Event Portal Async API Importer</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../importer.html">Importer Concepts</a> &raquo;</li>
+      <li>Overview</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/importer-content/overview.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="overview">
+<span id="importer-content-overview"></span><h1>Overview<a class="headerlink" href="#overview" title="Permalink to this heading"></a></h1>
+<ul class="simple">
+<li><p>import large number of apis in CI/CD pipeline into released state</p></li>
+<li><p>test importing apis in CI/CD pipeline before importing proper</p></li>
+</ul>
+<section id="application-domain">
+<h2>Application Domain<a class="headerlink" href="#application-domain" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p>application domain is specified in the api itself using extension</p></li>
+<li><p>global application domain overrides all api application domains</p></li>
+</ul>
+</section>
+<section id="asset-mapping-naming">
+<h2>Asset Mapping &amp; Naming<a class="headerlink" href="#asset-mapping-naming" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p>assets are identified by their name and mapped as follows:</p></li>
+</ul>
+<table class="colwidths-given docutils align-default" id="id1">
+<caption><span class="caption-text">Asset Mapping &amp; Naming</span><a class="headerlink" href="#id1" title="Permalink to this table"></a></caption>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Async Api Element</p></th>
+<th class="head"><p>Event Portal Asset</p></th>
+<th class="head"><p>Naming</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Title</p></td>
+<td><p>Event Api / Event Api Version</p></td>
+<td><p>event api name = $.info.title</p></td>
+</tr>
+<tr class="row-odd"><td><p>Version</p></td>
+<td><p>Event Api Version</p></td>
+<td><p>event api version = $.info.version</p></td>
+</tr>
+<tr class="row-even"><td><p>Channel</p></td>
+<td><p>Event / Event Version</p></td>
+<td><p>Event topic = $.channels[n]</p></td>
+</tr>
+<tr class="row-odd"><td><p>Channel Parameter</p></td>
+<td><p>Enum / Enum Version</p></td>
+<td><p>Enum name = $.channels[n].parameters[m]</p></td>
+</tr>
+<tr class="row-even"><td><p>Channel Message</p></td>
+<td><p>Schema / Schema Version</p></td>
+<td><p>Schema name = $.channels[n].[publish | subscribe].message</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="asset-versioning-strategy">
+<h2>Asset Versioning Strategy<a class="headerlink" href="#asset-versioning-strategy" title="Permalink to this heading"></a></h2>
+<section id="event-api">
+<h3>Event API<a class="headerlink" href="#event-api" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p>version of event api strictly under control of the user - i.e. the version specified in the api is exactly the version of the Event Api</p></li>
+<li><p>import fails if an existing Event Api version is different to the ‘to be imported’ api</p></li>
+</ul>
+</section>
+<section id="all-other-assets">
+<h3>All Other Assets<a class="headerlink" href="#all-other-assets" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p>Enums, Schemas, Events</p></li>
+<li><p>for each change, new version is created automatically. version number is bumped according to strategy</p></li>
+<li><p>latest version is attached to other assets
+- Enum version linked to Event Version
+- Schema version linked to Event Version
+- Event version linked to Event Api Version</p></li>
+</ul>
+</section>
+</section>
+<section id="asset-lifecycle-state">
+<h2>Asset Lifecycle State<a class="headerlink" href="#asset-lifecycle-state" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p>all assets are in state released after successful import</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../importer.html" class="btn btn-neutral float-left" title="Importer Concepts" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="working.html" class="btn btn-neutral float-right" title="Working Examples" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Solace Corporation, Ricardo Gomez-Ulmke, &lt;ricardo.gomez-ulmke@solace.com&gt;.
+      <span class="lastupdated">Last updated on 25 Jul 2022 at 10:33.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
