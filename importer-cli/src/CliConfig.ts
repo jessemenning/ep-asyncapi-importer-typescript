@@ -95,9 +95,11 @@ export class CliConfig {
   public static DEFAULT_LOGGER_LOG_LEVEL = "info";
   private static DEFAULT_IMPORTER_MODE = ValidEnvCliImporterMode.RELEASE_MODE;
   private static DEFAULT_ASSETS_TARGET_STATE = ValidEnvAssetsTargetState.PRESENT;
-  private static DEFAULT_CLI_ASSET_IMPORT_TARGET_LIFECYLE_STATE = ValidEnvAssetImportTargetLifecycleState.DRAFT;
+  private static DEFAULT_CLI_ASSET_IMPORT_TARGET_LIFECYLE_STATE = ValidEnvAssetImportTargetLifecycleState.RELEASED;
   private static DEFAULT_CLI_ASSET_IMPORT_TARGET_VERSION_STRATEGY = ValidEnvAssetImportTargetLifecycleState_VersionStrategy.BUMP_PATCH;
   private static TMP_DIR = "./tmp";
+  private static DEFAULT_CLI_ASSET_OUTPUT_DIR = "output";
+  private static DEFAULT_CLI_LOG_DIR = "logs";
   private static DEFAULT_CLI_EP_API_BASE_URL = "https://api.solace.cloud";
   private static TEST_PREFIX_DOMAIN_NAME = ""
 
@@ -226,13 +228,9 @@ export class CliConfig {
     throw new CliError(logName, "internal error");
   }
 
-  private initializeDir = (envVarName: string, from: string): string => {
+  private initializeDir = (dir: string, from: string): string => {
     const funcName = 'initializeDir';
     const logName = `${CliConfig.name}.${funcName}()`;
-
-    const dir = this.getMandatoryEnvVarValueAsString(envVarName);
-
-    if(dir.includes('..') || dir.startsWith('/')) throw new CliInvalidDirConfigEnvVarError(logName, "dir must not start with '/' nor include '..'.", envVarName, dir );
 
     const absoluteDir = path.resolve(from, dir);
     if(fs.existsSync(absoluteDir)) fs.rmSync(absoluteDir, { recursive: true, force: true });
@@ -253,8 +251,14 @@ export class CliConfig {
       // handle solace cloud token separately
       this.solaceCloudToken = this.getMandatoryEnvVarValueAsString(EEnvVars.CLI_SOLACE_CLOUD_TOKEN);
 
-      const assetOutputRootDir = this.initializeDir(EEnvVars.CLI_ASSET_OUTPUT_DIR, CliConfig.TMP_DIR);
-      const logsDir = this.initializeDir(EEnvVars.CLI_LOG_DIR, CliConfig.TMP_DIR);
+      const assetOutputDirEnvVarValue = this.getOptionalEnvVarValueAsStringWithDefault(EEnvVars.CLI_ASSET_OUTPUT_DIR, CliConfig.DEFAULT_CLI_ASSET_OUTPUT_DIR);
+      if(assetOutputDirEnvVarValue.includes('..') || assetOutputDirEnvVarValue.startsWith('/')) throw new CliInvalidDirConfigEnvVarError(logName, "dir must not start with '/' nor include '..'.", EEnvVars.CLI_ASSET_OUTPUT_DIR, assetOutputDirEnvVarValue );
+      const assetOutputRootDir = this.initializeDir(assetOutputDirEnvVarValue, CliConfig.TMP_DIR);
+
+
+      const assetLogsDirEnvVarValue = this.getOptionalEnvVarValueAsStringWithDefault(EEnvVars.CLI_LOG_DIR, CliConfig.DEFAULT_CLI_LOG_DIR);
+      if(assetLogsDirEnvVarValue.includes('..') || assetLogsDirEnvVarValue.startsWith('/')) throw new CliInvalidDirConfigEnvVarError(logName, "dir must not start with '/' nor include '..'.", EEnvVars.CLI_LOG_DIR, assetLogsDirEnvVarValue );
+      const logsDir = this.initializeDir(assetLogsDirEnvVarValue, CliConfig.TMP_DIR);
 
       let asyncApiSpecFileName: string | undefined = undefined;
       if(filePath !== undefined) {
