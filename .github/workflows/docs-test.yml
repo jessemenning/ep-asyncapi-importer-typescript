@@ -45,7 +45,7 @@ jobs:
 
       - name: Make docs
         run: |
-          cd docs
+          cd importer-cli/docs
           ./make.sh
 
 ###
