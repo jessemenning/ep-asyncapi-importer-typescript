@@ -3,6 +3,9 @@ info:
   title: eBay Notifications
   version: 1.0.0
   description: This contract defines eBay notification for event subsciptions
+
+defaultContentType: application/json
+  
 channels:
   MARKETPLACE_ACCOUNT_DELETION:
     subscribe:

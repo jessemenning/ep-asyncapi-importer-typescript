@@ -163,7 +163,7 @@ export class CliAsyncApiDocument {
 
     const cliChannelDocumentMap: CliChannelDocumentMap = new Map<string, CliChannelDocument>();
     for(const [key, value] of Object.entries(channels)) {
-      const cliChannelDocument = new CliChannelDocument(value);
+      const cliChannelDocument = new CliChannelDocument(this, value);
       cliChannelDocumentMap.set(key, cliChannelDocument);
     }
     return cliChannelDocumentMap;
@@ -183,7 +183,7 @@ export class CliAsyncApiDocument {
       //   key: key,
       //   message: message
       // }}));
-      const cliMessageDocument = new CliMessageDocument(message, key);
+      const cliMessageDocument = new CliMessageDocument(this, undefined, message, key);
       allCliMessageDocumentMap.set(key, cliMessageDocument);
     }
     return allCliMessageDocumentMap;
@@ -191,6 +191,12 @@ export class CliAsyncApiDocument {
 
   public getSupportedContentTypes(): Array<string> {
     return Object.values(E_ASYNC_API_SPEC_CONTENNT_TYPES);
+  }
+
+  public getDefaultContentType(): string | undefined {
+    const defaultContentType: string | null = this.asyncApiDocument.defaultContentType();
+    if(defaultContentType === null) return undefined;
+    return defaultContentType;
   }
 
   public validate(): void {

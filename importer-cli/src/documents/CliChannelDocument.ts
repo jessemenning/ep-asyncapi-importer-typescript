@@ -1,19 +1,24 @@
 import { Channel, ChannelParameter, Message, PublishOperation, Schema, SubscribeOperation } from '@asyncapi/parser';
 import { CliError } from '../CliError';
-import { CliChannelParameterDocumentMap, CliMessageDocumentMap } from './CliAsyncApiDocument';
+import { CliAsyncApiDocument, CliChannelParameterDocumentMap, CliMessageDocumentMap } from './CliAsyncApiDocument';
 import { CliMessageDocument } from './CliMessageDocument';
 
 enum E_EP_Channel_Extensions {
 };
 
 class CliChannelOperation {
+  protected asyncApiDocument: CliAsyncApiDocument;
+  protected asyncApiChannel: Channel | undefined;
 
-  constructor() {}
+  constructor(asyncApiDocument: CliAsyncApiDocument, asyncApiChannel: Channel | undefined) {
+    this.asyncApiDocument = asyncApiDocument;
+    this.asyncApiChannel = asyncApiChannel;
+  }
 
   protected getCliMessageDocumentMapByMessageList(messageList: Array<Message>): CliMessageDocumentMap {
     const cliMessageDocumentMap: CliMessageDocumentMap = new Map<string, CliMessageDocument>();
     for(const message of messageList) {
-      const cliMessageDocument = new CliMessageDocument(message);
+      const cliMessageDocument = new CliMessageDocument(this.asyncApiDocument, this.asyncApiChannel, message);
       cliMessageDocumentMap.set(message.name(), cliMessageDocument);
     }
     return cliMessageDocumentMap;
@@ -23,8 +28,8 @@ class CliChannelOperation {
 export class CliChannelSubscribeOperation extends CliChannelOperation {
   private subscribeOperation: SubscribeOperation;
 
-  constructor(subscribeOperation: SubscribeOperation) {
-    super();
+  constructor(asyncApiDocument: CliAsyncApiDocument, asyncApiChannel: Channel | undefined, subscribeOperation: SubscribeOperation) {
+    super(asyncApiDocument, asyncApiChannel);
     this.subscribeOperation = subscribeOperation;
   }
 
@@ -44,15 +49,15 @@ export class CliChannelSubscribeOperation extends CliChannelOperation {
     // const key: any = message.ext('x-parser-message-name');
     // if(key === undefined) throw new CliError(logName, "key === undefined");
 
-    return new CliMessageDocument(messageList[0]);
+    return new CliMessageDocument(this.asyncApiDocument, this.asyncApiChannel, messageList[0]);
   }
 }
 
 export class CliChannelPublishOperation extends CliChannelOperation {
   private publishOperation: PublishOperation;
 
-  constructor(publishOperation: PublishOperation) {
-    super();
+  constructor(asyncApiDocument: CliAsyncApiDocument, asyncApiChannel: Channel | undefined, publishOperation: PublishOperation) {
+    super(asyncApiDocument, asyncApiChannel);
     this.publishOperation = publishOperation;
   }
 
@@ -66,7 +71,7 @@ export class CliChannelPublishOperation extends CliChannelOperation {
     const logName = `${CliChannelPublishOperation.name}.${funcName}()`;
     const messageList: Array<Message>  = this.publishOperation.messages();
     if(messageList.length !== 1) throw new CliError(logName, 'messageList.length !== 1');
-    return new CliMessageDocument(messageList[0]);
+    return new CliMessageDocument(this.asyncApiDocument, this.asyncApiChannel, messageList[0]);
   }
 
 }
@@ -100,9 +105,11 @@ export class CliChannelParameterDocument {
 }
 
 export class CliChannelDocument {
+  private asyncApiDocument: CliAsyncApiDocument;
   private asyncApiChannel: Channel;
 
-  constructor(asyncApiChannel: Channel) {
+  constructor(asyncApiDocument: CliAsyncApiDocument, asyncApiChannel: Channel) {
+    this.asyncApiDocument = asyncApiDocument;
     this.asyncApiChannel = asyncApiChannel;
   }
 
@@ -122,14 +129,14 @@ export class CliChannelDocument {
 
   public getChannelPublishOperation(): CliChannelPublishOperation | undefined {
     if(this.asyncApiChannel.hasPublish()) {
-      return new CliChannelPublishOperation(this.asyncApiChannel.publish())
+      return new CliChannelPublishOperation(this.asyncApiDocument, this.asyncApiChannel, this.asyncApiChannel.publish());
     }
     return undefined;
   }
 
   public getChannelSubscribeOperation(): CliChannelSubscribeOperation | undefined {
     if(this.asyncApiChannel.hasSubscribe()) {
-      return new CliChannelSubscribeOperation(this.asyncApiChannel.subscribe())
+      return new CliChannelSubscribeOperation(this.asyncApiDocument, this.asyncApiChannel, this.asyncApiChannel.subscribe());
     }
     return undefined;
   }

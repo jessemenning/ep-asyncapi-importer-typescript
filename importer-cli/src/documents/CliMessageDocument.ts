@@ -1,12 +1,14 @@
-import { Message, Schema } from '@asyncapi/parser';
+import { Channel, Message, Schema } from '@asyncapi/parser';
 import { CliAsyncApiSpecError, CliError } from '../CliError';
 import { CliLogger, ECliStatusCodes } from '../CliLogger';
-import { E_ASYNC_API_SPEC_CONTENNT_TYPES } from './CliAsyncApiDocument';
+import { CliAsyncApiDocument, E_ASYNC_API_SPEC_CONTENNT_TYPES } from './CliAsyncApiDocument';
 
 enum E_EP_Message_Extensions {
 };
 
 export class CliMessageDocument {
+  private asyncApiDocument: CliAsyncApiDocument;
+  private asyncApiChannel: Channel | undefined;
   private key: string;
   private asyncApiMessage: Message;
 
@@ -22,7 +24,9 @@ export class CliMessageDocument {
     });
   }
 
-  constructor(asyncApiMessage: Message, key?: string) {
+  constructor(asyncApiDocument: CliAsyncApiDocument, asyncApiChannel: Channel | undefined, asyncApiMessage: Message, key?: string) {
+    this.asyncApiDocument = asyncApiDocument;
+    this.asyncApiChannel = asyncApiChannel;
     this.key = key ? key : this.extractMessageKey(asyncApiMessage);
     this.asyncApiMessage = asyncApiMessage;
   }
@@ -46,7 +50,15 @@ export class CliMessageDocument {
   }
 
   public getContentType(): E_ASYNC_API_SPEC_CONTENNT_TYPES {
-    const contentType: string = this.asyncApiMessage.contentType();
+
+    const funcName = 'getContentType';
+    const logName = `${CliMessageDocument.name}.${funcName}()`;
+
+    let contentType: string | undefined = this.asyncApiMessage.contentType();
+    if(!contentType) contentType = this.asyncApiDocument.getDefaultContentType();
+    if(contentType === undefined) throw new CliAsyncApiSpecError(logName, 'contentType === undefined, neither message has a contentType nor api has a defaultContentType', {
+      messageName: this.getMessageName(),
+    });
     return  contentType as E_ASYNC_API_SPEC_CONTENNT_TYPES;
   }
 
