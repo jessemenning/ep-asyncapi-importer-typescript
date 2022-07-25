@@ -17,8 +17,8 @@
 
 # -- Project information -----------------------------------------------------
 
-project = 'Solace Async API Management'
-copyright = '2021/2022, Solace Corporation, Ricardo Gomez-Ulmke, <ricardo.gomez-ulmke@solace.com>'
+project = 'Solace Event Portal Async API Importer'
+copyright = '2022, Solace Corporation, Ricardo Gomez-Ulmke, <ricardo.gomez-ulmke@solace.com>'
 author = 'Ricardo Gomez-Ulmke'
 
 # The full version, including alpha/beta/rc tags
@@ -68,7 +68,7 @@ html_theme = 'sphinx_rtd_theme'
 # }
 
 linkcheck_anchors = False
-linkcheck_ignore = ['http://localhost:8080']
+linkcheck_ignore = ['https://api.solace.cloud']
 # if required, add a list of regex of anchors to ignore
 # linkcheck cannot deal with solace swagger anchors like: ...config/index.html#/queue
 # linkcheck_anchors_ignore
