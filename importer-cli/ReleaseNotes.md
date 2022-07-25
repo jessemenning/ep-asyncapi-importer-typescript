@@ -2,6 +2,18 @@
 
 Solace Event Portal Async API Importer.
 
+## Version 0.1.10-alpha
+  * [Solace Event Portal OpenAPI](https://github.com/solace-iot-team/sep-async-api-importer/blob/main/resources/sep-openapi-spec.2.0.0-ea.json): '2.0.0-ea'
+
+**Enhancements:**
+- **Run Context**
+  - introduced a `runContext` for logging of issues - contains the context relevant to track down the issue faster
+- **Importing of 2.0.0 specs**
+  - support for spec version 2.0.0 added
+- **Pre-Import Check**
+  - Added more detailed output when grouped EventApiVersions define different Assets with the same name
+
+
 ## Version 0.1.9-alpha
   * [Solace Event Portal OpenAPI](https://github.com/solace-iot-team/sep-async-api-importer/blob/main/resources/sep-openapi-spec.2.0.0-ea.json): '2.0.0-ea'
 
