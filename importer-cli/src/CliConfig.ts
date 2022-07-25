@@ -57,8 +57,8 @@ export type TCliLoggerConfig = {
 export type TCliAppConfig = {
   importerMode: ECliImporterMode;
   assetsTargetState: ECliAssetsTargetState;
-  asyncApiSpecFileList: Array<string>;
-  asyncApiSpecFileName: string;
+  asyncApiFileList: Array<string>;
+  asyncApiFileName: string;
   domainName?: string;
   prefixDomainName?: string;
   assetImportTargetLifecycleState: TAssetImportTargetLifecycleState;
@@ -110,8 +110,7 @@ export class CliConfig {
     cliConfig: TCliConfig;
   }): string | undefined => {
     if(cliConfig.appConfig.importerMode === ECliImporterMode.TEST_MODE) {
-      const d = new Date();
-      return `${cliConfig.appId}/${cliConfig.appConfig.importerMode}/${d.toUTCString()}`;
+      return `${cliConfig.appId}/${cliConfig.appConfig.importerMode}/${CliUtils.getUUID()}`;
     }
     return undefined;
   }
@@ -277,8 +276,8 @@ export class CliConfig {
         appConfig: {
           importerMode: this.getOptionalEnvVarValueAsString_From_List_WithDefault(EEnvVars.CLI_MODE, Object.values(ValidEnvCliImporterMode), CliConfig.DEFAULT_IMPORTER_MODE) as ECliImporterMode,
           assetsTargetState: this.getOptionalEnvVarValueAsString_From_List_WithDefault(EEnvVars.CLI_ASSETS_TARGET_STATE, Object.values(ValidEnvAssetsTargetState), CliConfig.DEFAULT_ASSETS_TARGET_STATE) as ECliAssetsTargetState,
-          asyncApiSpecFileName: asyncApiSpecFileName ? asyncApiSpecFileName : 'undefined',
-          asyncApiSpecFileList: fileList ? fileList : [],
+          asyncApiFileName: asyncApiSpecFileName ? asyncApiSpecFileName : 'undefined',
+          asyncApiFileList: fileList ? fileList : [],
           domainName: globalDomainName,
           assetImportTargetLifecycleState: this.initialize_AssetImportTargetLifecycleState(),
           assetOutputRootDir: assetOutputRootDir,

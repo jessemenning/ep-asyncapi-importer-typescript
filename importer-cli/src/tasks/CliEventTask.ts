@@ -2,7 +2,7 @@ import _ from "lodash";
 
 import { CliEPApiContentError, CliError } from "../CliError";
 import { CliLogger, ECliStatusCodes } from "../CliLogger";
-import { CliTask, ICliTaskKeys, ICliGetFuncReturn, ICliTaskConfig, ICliCreateFuncReturn, ICliTaskExecuteReturn, ICliUpdateFuncReturn } from "./CliTask";
+import { CliTask, ICliTaskKeys, ICliGetFuncReturn, ICliTaskConfig, ICliCreateFuncReturn, ICliTaskExecuteReturn, ICliUpdateFuncReturn, ICliTaskIsUpdateRequiredReturn } from "./CliTask";
 import { Event as EPEvent, EventResponse, EventsResponse, EventsService} from "../_generated/@solace-iot-team/sep-openapi-node";
 import CliEPEventsService from "../services/CliEPEventsService";
 
@@ -97,24 +97,33 @@ export class CliEventTask extends CliTask {
 
   protected isUpdateRequired({ cliGetFuncReturn}: { 
     cliGetFuncReturn: ICliEventTask_GetFuncReturn; 
-  }): boolean {
+  }): ICliTaskIsUpdateRequiredReturn {
     const funcName = 'isUpdateRequired';
     const logName = `${CliEventTask.name}.${funcName}()`;
     if(cliGetFuncReturn.eventObject === undefined) throw new CliError(logName, 'cliGetFuncReturn.schemaObject === undefined');
-    let isUpdateRequired: boolean = false;
 
     const existingObject: EPEvent = cliGetFuncReturn.eventObject;
     const existingCompareObject: TCliEventTask_CompareObject = {
       shared: existingObject.shared,
     }
     const requestedCompareObject: TCliEventTask_CompareObject = this.createObjectSettings();
-    isUpdateRequired = !_.isEqual(existingCompareObject, requestedCompareObject);
-    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_IS_UPDATE_REQUIRED, details: {
-      existingCompareObject: existingCompareObject,
-      requestedCompareObject: requestedCompareObject,
-      isUpdateRequired: isUpdateRequired
-    }}));
-    return isUpdateRequired;
+
+    const cliTaskIsUpdateRequiredReturn: ICliTaskIsUpdateRequiredReturn = this.create_ICliTaskIsUpdateRequiredReturn({
+      existingObject: existingCompareObject,
+      requestedObject: requestedCompareObject
+    });
+    // DEBUG
+    // if(cliTaskIsUpdateRequiredReturn.isUpdateRequired) throw new Error(`${logName}: check updates requiired`);
+    return cliTaskIsUpdateRequiredReturn;
+
+    // OLD delete me
+    // isUpdateRequired = !_.isEqual(existingCompareObject, requestedCompareObject);
+    // CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_IS_UPDATE_REQUIRED, details: {
+    //   existingCompareObject: existingCompareObject,
+    //   requestedCompareObject: requestedCompareObject,
+    //   isUpdateRequired: isUpdateRequired
+    // }}));
+    // return isUpdateRequired;
   }
 
   protected async createFunc(): Promise<ICliEventTask_CreateFuncReturn> {

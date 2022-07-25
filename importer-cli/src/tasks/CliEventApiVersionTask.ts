@@ -1,6 +1,16 @@
 import { CliEPApiContentError, CliError } from "../CliError";
 import { CliLogger, ECliStatusCodes } from "../CliLogger";
-import { ICliTaskKeys, ICliGetFuncReturn, ICliTaskConfig, ICliCreateFuncReturn, ICliTaskExecuteReturn, ICliUpdateFuncReturn, ICliTaskDeepCompareResult } from "./CliTask";
+import { 
+  ICliTaskKeys, 
+  ICliGetFuncReturn, 
+  ICliTaskConfig, 
+  ICliCreateFuncReturn, 
+  ICliTaskExecuteReturn, 
+  ICliUpdateFuncReturn, 
+  ICliTaskDeepCompareResult, 
+  ICliTaskActionLog, 
+  ICliTaskIsUpdateRequiredReturn
+} from "./CliTask";
 import { 
   VersionedObjectStateChangeRequest,
   eventApiVersion as EventApiVersion,
@@ -10,7 +20,7 @@ import {
 import CliConfig from "../CliConfig";
 import CliSemVerUtils from "../CliSemVerUtils";
 import CliEPEventApiVersionsService from "../services/CliEPEventApiVersionsService";
-import { CliVersionTask } from "./CliVersionTask";
+import { CliVersionTask, ICliVersionTask_ActionLog } from "./CliVersionTask";
 
 
 type TCliEventApiVersionTask_Settings = Required<Pick<EventApiVersion, "description" | "displayName" | "stateId" | "producedEventVersionIds" | "consumedEventVersionIds" >>;
@@ -35,8 +45,12 @@ export interface ICliEventApiVersionTask_CreateFuncReturn extends ICliCreateFunc
 export interface ICliEventApiVersionTask_UpdateFuncReturn extends ICliUpdateFuncReturn {
   eventApiVersionObject: EventApiVersion;
 }
+export interface ICliEventApiVersionTask_ActionLog extends ICliVersionTask_ActionLog {
+  details: ICliTaskIsUpdateRequiredReturn;
+}
 export interface ICliEventApiVersionTask_ExecuteReturn extends ICliTaskExecuteReturn {
   eventApiVersionObject: EventApiVersion;
+  actionLog: ICliEventApiVersionTask_ActionLog;
 }
 
 export class CliEventApiVersionTask extends CliVersionTask {
@@ -54,9 +68,18 @@ export class CliEventApiVersionTask extends CliVersionTask {
   private getCliTaskConfig(): ICliEventApiVersionTask_Config { return this.cliTaskConfig as ICliEventApiVersionTask_Config; }
   
   private createObjectSettings(): Partial<EventApiVersion> {
+    // arrays must be sorted
+    const s = this.getCliTaskConfig().eventApiVersionSettings;
+    const p: Array<string> = s.producedEventVersionIds as unknown as Array<string>;
+    const c: Array<string> = s.consumedEventVersionIds as unknown as Array<string>;
+    p.sort();
+    c.sort();
+
     return {
       ...this.Default_TCliEventApiVersionTask_Settings,
       ...this.getCliTaskConfig().eventApiVersionSettings,
+      producedEventVersionIds: p as unknown as EventApiVersion.producedEventVersionIds,
+      consumedEventVersionIds: c as unknown as EventApiVersion.consumedEventVersionIds,
     };
   }
 
@@ -101,34 +124,53 @@ export class CliEventApiVersionTask extends CliVersionTask {
     return cliEventApiVersionTask_GetFuncReturn;
   };
 
+  protected create_CreateFuncActionLog(): ICliEventApiVersionTask_ActionLog {
+    return {
+      ...super.create_CreateFuncActionLog(),
+    };
+  }
+
+  protected create_UpdateFuncActionLog({ cliTaskIsUpdateRequiredReturn }:{
+    cliTaskIsUpdateRequiredReturn: ICliTaskIsUpdateRequiredReturn;
+  }): ICliTaskActionLog {
+    return {
+      ...super.create_UpdateFuncActionLog({ cliTaskIsUpdateRequiredReturn: cliTaskIsUpdateRequiredReturn }),
+      details: cliTaskIsUpdateRequiredReturn
+    };
+  }
+
   protected isUpdateRequired({ cliGetFuncReturn}: { 
     cliGetFuncReturn: ICliEventApiVersionTask_GetFuncReturn; 
-  }): boolean {
+  }): ICliTaskIsUpdateRequiredReturn {
     const funcName = 'isUpdateRequired';
     const logName = `${CliEventApiVersionTask.name}.${funcName}()`;
     if(cliGetFuncReturn.eventApiVersionObject === undefined) throw new CliError(logName, 'cliGetFuncReturn.eventApiVersionObject === undefined');
 
     const existingObject: EventApiVersion = cliGetFuncReturn.eventApiVersionObject;
 
+    // arrays must be sorted
+    const s = existingObject;
+    const p: Array<string> = s.producedEventVersionIds as unknown as Array<string>;
+    const c: Array<string> = s.consumedEventVersionIds as unknown as Array<string>;
+    p.sort();
+    c.sort();
+    
     const existingCompareObject: TCliEventApiVersionTask_CompareObject = {
       description: existingObject.description,
       displayName: existingObject.displayName,
       stateId: existingObject.stateId,
-      consumedEventVersionIds: existingObject.consumedEventVersionIds,
-      producedEventVersionIds: existingObject.producedEventVersionIds
+      producedEventVersionIds: p as unknown as EventApiVersion.producedEventVersionIds,
+      consumedEventVersionIds: c as unknown as EventApiVersion.consumedEventVersionIds,
     };
     const requestedCompareObject: TCliEventApiVersionTask_CompareObject = this.createObjectSettings();
 
-    const cliTaskDeepCompareResult: ICliTaskDeepCompareResult = this.deepCompareObjects({ existingObject: existingCompareObject, requestedObject: requestedCompareObject });
-
-    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_IS_UPDATE_REQUIRED, details: {
-      existingCompareObject: this.prepareCompareObject4Output(existingCompareObject),
-      requestedCompareObject: this.prepareCompareObject4Output(requestedCompareObject),
-      isUpdateRequired: !cliTaskDeepCompareResult.isEqual,
-      difference: cliTaskDeepCompareResult.difference
-    }}));
-    // if(!cliTaskDeepCompareResult.isEqual) throw new Error(`${logName}: check updates requiired`);
-    return !cliTaskDeepCompareResult.isEqual;
+    const cliTaskIsUpdateRequiredReturn: ICliTaskIsUpdateRequiredReturn = this.create_ICliTaskIsUpdateRequiredReturn({
+      existingObject: existingCompareObject,
+      requestedObject: requestedCompareObject
+    });
+    // DEBUG
+    // if(cliTaskIsUpdateRequiredReturn.isUpdateRequired) throw new Error(`${logName}: check updates requiired`);
+    return cliTaskIsUpdateRequiredReturn;
   }
 
   private async createEventApiVersion({ applicationDomainId, eventApiId, eventApiVersion, code, targetLifecycleStateId }:{

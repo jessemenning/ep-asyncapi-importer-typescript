@@ -2,7 +2,7 @@ import _ from "lodash";
 
 import { CliEPApiContentError, CliError } from "../CliError";
 import { CliLogger, ECliStatusCodes } from "../CliLogger";
-import { CliTask, ICliTaskKeys, ICliGetFuncReturn, ICliTaskConfig, ICliCreateFuncReturn, ICliTaskExecuteReturn, ICliUpdateFuncReturn } from "./CliTask";
+import { CliTask, ICliTaskKeys, ICliGetFuncReturn, ICliTaskConfig, ICliCreateFuncReturn, ICliTaskExecuteReturn, ICliUpdateFuncReturn, ICliTaskIsUpdateRequiredReturn } from "./CliTask";
 import { 
   Enum, 
   EnumResponse, 
@@ -98,24 +98,33 @@ export class CliEnumTask extends CliTask {
 
   protected isUpdateRequired({ cliGetFuncReturn}: { 
     cliGetFuncReturn: ICliEnumTask_GetFuncReturn; 
-  }): boolean {
+  }): ICliTaskIsUpdateRequiredReturn {
     const funcName = 'isUpdateRequired';
     const logName = `${CliEnumTask.name}.${funcName}()`;
     if(cliGetFuncReturn.enumObject === undefined) throw new CliError(logName, 'cliGetFuncReturn.enumObject === undefined');
-    let isUpdateRequired: boolean = false;
 
     const existingObject: Enum = cliGetFuncReturn.enumObject;
     const existingCompareObject: TCliEnumTask_CompareObject = {
       shared: existingObject.shared,
     }
     const requestedCompareObject: TCliEnumTask_CompareObject = this.createObjectSettings();
-    isUpdateRequired = !_.isEqual(existingCompareObject, requestedCompareObject);
-    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_IS_UPDATE_REQUIRED, details: {
-      existingCompareObject: existingCompareObject,
-      requestedCompareObject: requestedCompareObject,
-      isUpdateRequired: isUpdateRequired
-    }}));
-    return isUpdateRequired;
+
+    const cliTaskIsUpdateRequiredReturn: ICliTaskIsUpdateRequiredReturn = this.create_ICliTaskIsUpdateRequiredReturn({
+      existingObject: existingCompareObject,
+      requestedObject: requestedCompareObject
+    });
+    // DEBUG
+    // if(cliTaskIsUpdateRequiredReturn.isUpdateRequired) throw new Error(`${logName}: check updates requiired`);
+    return cliTaskIsUpdateRequiredReturn;
+
+    // OLD: delete me
+    // isUpdateRequired = !_.isEqual(existingCompareObject, requestedCompareObject);
+    // CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_IS_UPDATE_REQUIRED, details: {
+    //   existingCompareObject: existingCompareObject,
+    //   requestedCompareObject: requestedCompareObject,
+    //   isUpdateRequired: isUpdateRequired
+    // }}));
+    // return isUpdateRequired;
   }
 
   protected async createFunc(): Promise<ICliEnumTask_CreateFuncReturn> {

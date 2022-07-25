@@ -1,7 +1,7 @@
 import { Validator, ValidatorResult } from 'jsonschema';
 import CliConfig from '../CliConfig';
 
-import { AsyncApiSpecEPValidationError, CliEPApiContentError, CliImporterError } from '../CliError';
+import { CliAsyncApiSpecEPValidationError, CliEPApiContentError, CliImporterError } from '../CliError';
 import { CliLogger, ECliStatusCodes } from '../CliLogger';
 import CliSemVerUtils from '../CliSemVerUtils';
 import { CliAsyncApiDocument, CliChannelDocumentMap } from '../documents/CliAsyncApiDocument';
@@ -30,7 +30,7 @@ class CliEPEventApiVersionsService {
 
     const v: Validator = new Validator();
     const validateResult: ValidatorResult = v.validate(title, schema);
-    if(!validateResult.valid) throw new AsyncApiSpecEPValidationError(logName, undefined, validateResult.errors, {
+    if(!validateResult.valid) throw new CliAsyncApiSpecEPValidationError(logName, undefined, validateResult.errors, {
       title: title
     });
   }
@@ -183,7 +183,7 @@ class CliEPEventApiVersionsService {
       const cliChannelPublishOperation: CliChannelPublishOperation | undefined = cliChannelDocument.getChannelPublishOperation();
       if(cliChannelPublishOperation !== undefined) {
         const cliMessageDocument: CliMessageDocument = cliChannelPublishOperation.getCliMessageDocument();
-        const eventName: string = cliMessageDocument.getDisplayName();
+        const eventName: string = cliMessageDocument.getMessageName();
         const eventVersion: EventVersion | undefined = await CliEPEventVersionsService.getLastestVersionByName({
           applicationDomainId: applicationDomainId,
           eventName: eventName
@@ -201,7 +201,7 @@ class CliEPEventApiVersionsService {
       const cliChannelSubscribeOperation: CliChannelSubscribeOperation | undefined = cliChannelDocument.getChannelSubscribeOperation();
       if(cliChannelSubscribeOperation !== undefined) {
         const cliMessageDocument: CliMessageDocument = cliChannelSubscribeOperation.getCliMessageDocument();
-        const eventName: string = cliMessageDocument.getDisplayName();
+        const eventName: string = cliMessageDocument.getMessageName();
         const eventVersion: EventVersion | undefined = await CliEPEventVersionsService.getLastestVersionByName({
           applicationDomainId: applicationDomainId,
           eventName: eventName

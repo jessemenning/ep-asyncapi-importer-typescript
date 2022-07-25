@@ -38,6 +38,12 @@ export class CliChannelSubscribeOperation extends CliChannelOperation {
     const logName = `${CliChannelPublishOperation.name}.${funcName}()`;
     const messageList: Array<Message>  = this.subscribeOperation.messages();
     if(messageList.length !== 1) throw new CliError(logName, 'messageList.length !== 1');
+
+    // const message: Message = messageList[0];
+    // if(message.hasExt('x-parser-message-name') === false) throw new CliError(logName, "message.hasExt('x-parser-message-name') === false");
+    // const key: any = message.ext('x-parser-message-name');
+    // if(key === undefined) throw new CliError(logName, "key === undefined");
+
     return new CliMessageDocument(messageList[0]);
   }
 }
@@ -120,6 +126,7 @@ export class CliChannelDocument {
     }
     return undefined;
   }
+
   public getChannelSubscribeOperation(): CliChannelSubscribeOperation | undefined {
     if(this.asyncApiChannel.hasSubscribe()) {
       return new CliChannelSubscribeOperation(this.asyncApiChannel.subscribe())

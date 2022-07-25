@@ -1,7 +1,7 @@
 
 import fetch, { RequestInit, HeadersInit, Response, Headers } from "node-fetch";
 import _ from 'lodash';
-import { v4 } from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import * as sinon from 'sinon';
 
 import request from 'supertest';
@@ -11,6 +11,11 @@ import { ApiResult } from "../../src/_generated/@solace-iot-team/sep-openapi-nod
 import { ApiRequestOptions } from "../../src/_generated/@solace-iot-team/sep-openapi-node/core/ApiRequestOptions";
 import { ApiError, CancelablePromise, OpenAPIConfig } from "../../src/_generated/@solace-iot-team/sep-openapi-node";
 import { CliError } from "../../src/CliError";
+
+
+export const getUUID = (): string => {
+  return uuidv4();
+}
 
 export const testHelperSleep = async(millis = 500) => {
   if(millis > 0) await new Promise(resolve => setTimeout(resolve, millis));
@@ -242,6 +247,8 @@ export type TTestEnv = {
   projectRootDir: string;
   enableLogging: boolean,
   testApiSpecsDir: string;
+  globalDomainNamePrefix: string;
+  createdAppDomainNameList: Array<string>;
 }
 
 export class TestContext {
@@ -253,7 +260,7 @@ export class TestContext {
     private static testEnv: TTestEnv;
 
     public static newItId() {
-        TestContext.itId = v4().replace(/-/g, '_');
+        TestContext.itId = uuidv4().replace(/-/g, '_');
     }
     public static getItId(): string {
         return TestContext.itId;
