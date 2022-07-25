@@ -19,4 +19,4 @@ Repos & Links
   https://github.com/solace-iot-team/sep-async-api-importer/tree/main/importer-cli
 
 .. _Release Notes:
-  https://github.com/solace-iot-team/sep-async-api-importer/blob/main/importer-cli/ReleaseNotes.md
+  https://github.com/solace-iot-team/sep-async-api-importer/blob/main/ReleaseNotes.md
