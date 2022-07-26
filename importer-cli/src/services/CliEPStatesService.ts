@@ -2,8 +2,10 @@ import { ECliAssetImportTargetLifecycleState, TAssetImportTargetLifecycleState }
 import { CliError } from '../CliError';
 import { CliLogger, ECliStatusCodes } from '../CliLogger';
 import { CliUtils } from '../CliUtils';
-import { StatesResponse, StatesService } from '../_generated/@solace-iot-team/sep-openapi-node';
-
+import {
+  StatesResponse, 
+  StatesService 
+} from '@solace-iot-team/ep-sdk/sep-openapi-node';
 
 /**
  * EP Asset States.

@@ -25,7 +25,7 @@ import {
   eventApiVersion as EventApiVersion,
   ApiError,
   EventVersion
-} from './_generated/@solace-iot-team/sep-openapi-node';
+} from '@solace-iot-team/ep-sdk/sep-openapi-node';
 import { CliMessageDocument } from './documents/CliMessageDocument';
 import { CliChannelDocument, CliChannelParameterDocument, CliChannelPublishOperation, CliChannelSubscribeOperation } from './documents/CliChannelDocument';
 import { CliSchemaVersionTask, ICliSchemaVersionTask_ExecuteReturn } from './tasks/CliSchemaVersionTask';

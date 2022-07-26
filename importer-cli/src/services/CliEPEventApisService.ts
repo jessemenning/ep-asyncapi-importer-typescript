@@ -4,7 +4,7 @@ import {
   EventApi,
   EventApisResponse,
   EventApIsService,
-} from '../_generated/@solace-iot-team/sep-openapi-node';
+} from '@solace-iot-team/ep-sdk/sep-openapi-node';
 
 class CliEPEventApisService {
 

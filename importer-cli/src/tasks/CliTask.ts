@@ -2,7 +2,9 @@
 import { CliAbstractMethodError, CliError, EPApiResponseApiError } from '../CliError';
 import { CliLogger, ECliStatusCodes } from '../CliLogger';
 import { CliUtils, IDeepCompareResult, TDeepDiffFromTo } from '../CliUtils';
-import { ApiError } from '../_generated/@solace-iot-team/sep-openapi-node';
+import { 
+  ApiError 
+} from '@solace-iot-team/ep-sdk/sep-openapi-node';
 
 export enum ECliTaskState {
   PRESENT = "PRESENT",

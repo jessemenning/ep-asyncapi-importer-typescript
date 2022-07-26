@@ -5,11 +5,20 @@ import { v4 as uuidv4 } from 'uuid';
 import * as sinon from 'sinon';
 
 import request from 'supertest';
-import * as __requestLib from '../../src/_generated/@solace-iot-team/sep-openapi-node/core/request';
 import { customRequest } from './customOpenApiRequest';
-import { ApiResult } from "../../src/_generated/@solace-iot-team/sep-openapi-node/core/ApiResult";
-import { ApiRequestOptions } from "../../src/_generated/@solace-iot-team/sep-openapi-node/core/ApiRequestOptions";
-import { ApiError, CancelablePromise, OpenAPIConfig } from "../../src/_generated/@solace-iot-team/sep-openapi-node";
+import {
+  OpenAPIConfig,
+  ApiError,
+  CancelablePromise
+} from "@solace-iot-team/ep-sdk/sep-openapi-node";
+import {
+  ApiResult
+} from "@solace-iot-team/ep-sdk/sep-openapi-node/core/ApiResult";
+import {
+  ApiRequestOptions
+} from "@solace-iot-team/ep-sdk/sep-openapi-node/core/ApiRequestOptions";
+import * as __requestLib from '@solace-iot-team/ep-sdk/sep-openapi-node/core/request';
+
 import { CliError } from "../../src/CliError";
 
 

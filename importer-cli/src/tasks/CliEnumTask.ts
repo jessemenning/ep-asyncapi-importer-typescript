@@ -9,7 +9,7 @@ import {
   EnumsResponse, 
   EnumsService, 
   // Event as EPEvent
-} from "../_generated/@solace-iot-team/sep-openapi-node";
+} from '@solace-iot-team/ep-sdk/sep-openapi-node';
 import CliEPEnumsService from "../services/CliEPEnumsService";
 
 type TCliEnumTask_Settings = Partial<Pick<Enum, "shared">>;

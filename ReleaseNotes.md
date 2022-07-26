@@ -2,6 +2,12 @@
 
 Solace Event Portal Async API Importer.
 
+## Version 0.2.0-alpha
+  * [Solace Event Portal OpenAPI](https://github.com/solace-iot-team/sep-async-api-importer/blob/main/resources/sep-openapi-spec.2.0.0-ea.json): '2.0.0-ea'
+
+**Core:**
+- **switch to use package ep-sdk**
+
 ## Version 0.1.11-alpha
   * [Solace Event Portal OpenAPI](https://github.com/solace-iot-team/sep-async-api-importer/blob/main/resources/sep-openapi-spec.2.0.0-ea.json): '2.0.0-ea'
 

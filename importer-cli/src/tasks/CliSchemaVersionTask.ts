@@ -2,8 +2,22 @@ import _ from "lodash";
 
 import { CliEPApiContentError, CliError } from "../CliError";
 import { CliLogger, ECliStatusCodes } from "../CliLogger";
-import { CliTask, ICliTaskKeys, ICliGetFuncReturn, ICliTaskConfig, ICliCreateFuncReturn, ICliTaskExecuteReturn, ICliUpdateFuncReturn, ICliTaskIsUpdateRequiredReturn, ICliTaskDeepCompareResult } from "./CliTask";
-import { SchemasService, SchemaVersion, SchemaVersionResponse, VersionedObjectStateChangeRequest } from "../_generated/@solace-iot-team/sep-openapi-node";
+import { 
+  CliTask, 
+  ICliTaskKeys, 
+  ICliGetFuncReturn, 
+  ICliTaskConfig, 
+  ICliCreateFuncReturn, 
+  ICliTaskExecuteReturn, 
+  ICliUpdateFuncReturn, 
+  ICliTaskIsUpdateRequiredReturn, 
+} from "./CliTask";
+import { 
+  SchemasService, 
+  SchemaVersion, 
+  SchemaVersionResponse, 
+  VersionedObjectStateChangeRequest 
+} from '@solace-iot-team/ep-sdk/sep-openapi-node';
 import CliEPSchemaVersionsService from "../services/CliEPSchemaVersionsService";
 import CliConfig from "../CliConfig";
 import CliSemVerUtils from "../CliSemVerUtils";

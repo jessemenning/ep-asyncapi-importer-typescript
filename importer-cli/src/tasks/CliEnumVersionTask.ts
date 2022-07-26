@@ -17,7 +17,7 @@ import {
   EnumVersion, 
   EnumVersionResponse, 
   VersionedObjectStateChangeRequest 
-} from "../_generated/@solace-iot-team/sep-openapi-node";
+} from '@solace-iot-team/ep-sdk/sep-openapi-node';
 import CliConfig from "../CliConfig";
 import CliSemVerUtils from "../CliSemVerUtils";
 import CliEPEnumVersionsService from "../services/CliEPEnumVersionsService";
