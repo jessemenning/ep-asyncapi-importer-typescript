@@ -45,13 +45,14 @@ Example dotenv file:
    * - CLI_ASSET_IMPORT_TARGET_VERSION_STRATEGY
      - choices: [bump_minor, bump_patch], default: bump_patch
      - When a new version of an asset is created, which part of the semantic version should be bumped.
-   * - CLI_ASSET_OUTPUT_DIR
-     - default: output
-     - output root dir (under ./tmp) for generated output, deleted & created at startup.
    * - CLI_EP_API_BASE_URL
      - default: 'https://api.solace.cloud'
      - Base Url for Solace Event Portal Rest Api.
 
+
+.. * - CLI_ASSET_OUTPUT_DIR
+..   - default: output
+..   - output root dir (under ./tmp) for generated output, deleted & created at startup.
 
 .. * - CLI_LOG_DIR
 ..   - default: logs
