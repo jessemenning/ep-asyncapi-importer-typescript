@@ -1,5 +1,4 @@
 import yaml from "js-yaml";
-// import _ from 'lodash';
 
 import { AsyncAPIDocument, Message, Channel } from '@asyncapi/parser';
 import { TCliAppConfig } from '../CliConfig';

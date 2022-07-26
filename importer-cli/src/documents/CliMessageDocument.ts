@@ -1,6 +1,5 @@
 import { Channel, Message, Schema } from '@asyncapi/parser';
-import { CliAsyncApiSpecError, CliError } from '../CliError';
-import { CliLogger, ECliStatusCodes } from '../CliLogger';
+import { CliAsyncApiSpecError } from '../CliError';
 import { CliAsyncApiDocument, E_ASYNC_API_SPEC_CONTENNT_TYPES } from './CliAsyncApiDocument';
 
 enum E_EP_Message_Extensions {
@@ -97,7 +96,5 @@ export class CliMessageDocument {
 
     return sanitized;
   }
-
-
 
 }

@@ -2,6 +2,19 @@
 
 Solace Event Portal Async API Importer.
 
+## Version 0.1.11-alpha
+  * [Solace Event Portal OpenAPI](https://github.com/solace-iot-team/sep-async-api-importer/blob/main/resources/sep-openapi-spec.2.0.0-ea.json): '2.0.0-ea'
+
+**Fixes:**
+- **contentType**
+  - checks message contentType, if it doesn't exist, checks api defaultContentType
+  - if neither is found, aborts with error
+
+**Documentation:**
+- **Created Documentation**
+  - https://solace-iot-team.github.io/sep-async-api-importer/index.html
+
+
 ## Version 0.1.10-alpha
   * [Solace Event Portal OpenAPI](https://github.com/solace-iot-team/sep-async-api-importer/blob/main/resources/sep-openapi-spec.2.0.0-ea.json): '2.0.0-ea'
 
