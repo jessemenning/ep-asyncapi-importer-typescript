@@ -12,10 +12,12 @@ import {
 import { expect } from 'chai';
 import CliConfig from "../src/CliConfig";
 import { CliLogger } from "../src/CliLogger";
-import { EPClient } from "../src/EPClient";
 import { CliError } from "../src/CliError";
 import CliEPApplicationDomainsService from "../src/services/CliEPApplicationDomainsService";
-import { ApplicationDomain } from "../src/_generated/@solace-iot-team/sep-openapi-node";
+import { 
+  ApplicationDomain 
+} from '@solace-iot-team/ep-sdk/sep-openapi-node';
+import { EPClient } from "@solace-iot-team/ep-sdk/EPClient";
 
 // ensure any unhandled exception cause exit = 1
 function onUncaught(err: any){

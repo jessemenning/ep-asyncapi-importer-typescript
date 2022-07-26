@@ -3,7 +3,11 @@ import _ from "lodash";
 import { CliEPApiContentError, CliError } from "../CliError";
 import { CliLogger, ECliStatusCodes } from "../CliLogger";
 import { CliTask, ICliTaskKeys, ICliGetFuncReturn, ICliTaskConfig, ICliCreateFuncReturn, ICliTaskExecuteReturn, ICliUpdateFuncReturn, ICliTaskIsUpdateRequiredReturn } from "./CliTask";
-import { Event as EPEvent, EventResponse, EventsResponse, EventsService} from "../_generated/@solace-iot-team/sep-openapi-node";
+import { 
+  Event as EPEvent, 
+  EventResponse, 
+  EventsService
+} from '@solace-iot-team/ep-sdk/sep-openapi-node';
 import CliEPEventsService from "../services/CliEPEventsService";
 
 // export enum EPSchemaType {

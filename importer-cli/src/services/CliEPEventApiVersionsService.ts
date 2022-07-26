@@ -14,7 +14,7 @@ import {
   EventApiVersionResponse, 
   EventApiVersionsResponse,
   EventVersion,
-} from '../_generated/@solace-iot-team/sep-openapi-node';
+} from '@solace-iot-team/ep-sdk/sep-openapi-node';
 import CliAsyncApiDocumentsService from './CliAsyncApiDocumentsService';
 import CliEPEventVersionsService from './CliEPEventVersionsService';
 

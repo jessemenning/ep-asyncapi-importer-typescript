@@ -16,7 +16,7 @@ import {
   EventApi,
   EventApiResponse,
   EventApIsService, 
-} from "../_generated/@solace-iot-team/sep-openapi-node";
+} from '@solace-iot-team/ep-sdk/sep-openapi-node';
 import CliEPEventApisService from "../services/CliEPEventApisService";
 
 type TCliEventApiTask_Settings = Partial<Pick<EventApi, "shared">>;

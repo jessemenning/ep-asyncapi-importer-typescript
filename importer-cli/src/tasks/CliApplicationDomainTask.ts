@@ -2,7 +2,11 @@ import CliConfig from "../CliConfig";
 import { CliEPApiContentError, CliError } from "../CliError";
 import { CliLogger, ECliStatusCodes } from "../CliLogger";
 import { CliTask, ICliTaskKeys, ICliGetFuncReturn, ICliTaskConfig, ICliCreateFuncReturn, ICliTaskExecuteReturn, ICliUpdateFuncReturn, ICliTaskIsUpdateRequiredReturn, ICliTaskDeepCompareResult } from "./CliTask";
-import { ApplicationDomain, ApplicationDomainResponse, ApplicationDomainsResponse, ApplicationDomainsService } from "../_generated/@solace-iot-team/sep-openapi-node";
+import { 
+  ApplicationDomain, 
+  ApplicationDomainResponse, 
+  ApplicationDomainsService 
+} from '@solace-iot-team/ep-sdk/sep-openapi-node';
 import _ from "lodash";
 import CliEPApplicationDomainsService from "../services/CliEPApplicationDomainsService";
 

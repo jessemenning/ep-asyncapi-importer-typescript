@@ -1,7 +1,11 @@
 import { CliEPApiContentError } from '../CliError';
 import { CliLogger, ECliStatusCodes } from '../CliLogger';
 import CliSemVerUtils from '../CliSemVerUtils';
-import { SchemasService, SchemaVersion, SchemaVersionResponse } from '../_generated/@solace-iot-team/sep-openapi-node';
+import { 
+  SchemasService, 
+  SchemaVersion, 
+  SchemaVersionResponse 
+} from '@solace-iot-team/ep-sdk/sep-openapi-node';
 
 class CliEPSchemaVersionsService {
 

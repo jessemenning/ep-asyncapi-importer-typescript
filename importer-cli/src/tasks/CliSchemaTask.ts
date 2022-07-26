@@ -1,7 +1,20 @@
 import { CliEPApiContentError, CliError } from "../CliError";
 import { CliLogger, ECliStatusCodes } from "../CliLogger";
-import { CliTask, ICliTaskKeys, ICliGetFuncReturn, ICliTaskConfig, ICliCreateFuncReturn, ICliTaskExecuteReturn, ICliUpdateFuncReturn, ICliTaskIsUpdateRequiredReturn, ICliTaskDeepCompareResult } from "./CliTask";
-import { SchemaObject, SchemaResponse, SchemasResponse, SchemasService, SchemaVersion } from "../_generated/@solace-iot-team/sep-openapi-node";
+import { 
+  CliTask, 
+  ICliTaskKeys, 
+  ICliGetFuncReturn, 
+  ICliTaskConfig, 
+  ICliCreateFuncReturn, 
+  ICliTaskExecuteReturn, 
+  ICliUpdateFuncReturn, 
+  ICliTaskIsUpdateRequiredReturn, 
+} from "./CliTask";
+import { 
+  SchemaObject, 
+  SchemaResponse, 
+  SchemasService, 
+} from '@solace-iot-team/ep-sdk/sep-openapi-node';
 import CliEPSchemasService from "../services/CliEPSchemasService";
 
 export enum EPSchemaType {

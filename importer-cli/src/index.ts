@@ -8,12 +8,14 @@ import CliConfig, { ECliImporterMode, TCliAppConfig } from './CliConfig';
 import { CliLogger, ECliStatusCodes } from './CliLogger';
 import dotenv from 'dotenv';
 import { CliImporter, ICliImporterRunReturn } from './CliImporter';
-import { EPClient } from './EPClient';
 import { Command, OptionValues } from 'commander';
 import { glob } from 'glob';
 import { CliUsageError } from './CliError';
 import CliEPApplicationDomainsService from './services/CliEPApplicationDomainsService';
-import { ApplicationDomain } from './_generated/@solace-iot-team/sep-openapi-node';
+// import { ApplicationDomain } from './_generated/@solace-iot-team/sep-openapi-node';
+// import { EPClient } from './EPClient';
+import { ApplicationDomain } from '@solace-iot-team/ep-sdk/sep-openapi-node';
+import { EPClient } from '@solace-iot-team/ep-sdk/EPClient';
 
 dotenv.config();
 const packageJson = require('../package.json');
