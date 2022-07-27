@@ -13,11 +13,11 @@ import { expect } from 'chai';
 import CliConfig from "../src/CliConfig";
 import { CliLogger } from "../src/CliLogger";
 import { CliError } from "../src/CliError";
-import CliEPApplicationDomainsService from "../src/services/CliEPApplicationDomainsService";
+import EpSdkApplicationDomainsService from '@solace-iot-team/ep-sdk/services/EpSdkApplicationDomainsService';
 import { 
   ApplicationDomain 
 } from '@solace-iot-team/ep-sdk/sep-openapi-node';
-import { EPClient } from "@solace-iot-team/ep-sdk/EPClient";
+import { EpSdkClient } from "@solace-iot-team/ep-sdk/EpSdkClient";
 
 // ensure any unhandled exception cause exit = 1
 function onUncaught(err: any){
@@ -65,7 +65,7 @@ after(async() => {
   TestContext.newItId();
   // disable for DEBUG
   for(const createdDomain of TestEnv.createdAppDomainNameList) {
-    const deleted: ApplicationDomain = await CliEPApplicationDomainsService.deleteByName({ applicationDomainName: createdDomain });
+    const deleted: ApplicationDomain = await EpSdkApplicationDomainsService.deleteByName({ applicationDomainName: createdDomain });
     console.log(TestLogger.createLogMessage(`deleted application domain=${JSON.stringify(deleted, null, 2)}`));
   }
 });
@@ -84,7 +84,7 @@ describe(`${scriptName}`, () => {
         });
         CliLogger.initialize(CliConfig.getCliLoggerConfig());
         CliConfig.logConfig();
-        EPClient.initialize({
+        EpSdkClient.initialize({
           token: CliConfig.getSolaceCloudToken(),
           baseUrl: CliConfig.getCliEpApiConfig().epApiBaseUrl
         });      

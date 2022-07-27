@@ -1,14 +1,24 @@
+import _ from "lodash";
 import CliConfig from "../CliConfig";
 import { CliEPApiContentError, CliError } from "../CliError";
 import { CliLogger, ECliStatusCodes } from "../CliLogger";
-import { CliTask, ICliTaskKeys, ICliGetFuncReturn, ICliTaskConfig, ICliCreateFuncReturn, ICliTaskExecuteReturn, ICliUpdateFuncReturn, ICliTaskIsUpdateRequiredReturn, ICliTaskDeepCompareResult } from "./CliTask";
+import { 
+  CliTask, 
+  ICliTaskKeys, 
+  ICliGetFuncReturn, 
+  ICliTaskConfig, 
+  ICliCreateFuncReturn, 
+  ICliTaskExecuteReturn, 
+  ICliUpdateFuncReturn, 
+  ICliTaskIsUpdateRequiredReturn, 
+  ICliTaskDeepCompareResult 
+} from "./CliTask";
 import { 
   ApplicationDomain, 
   ApplicationDomainResponse, 
   ApplicationDomainsService 
 } from '@solace-iot-team/ep-sdk/sep-openapi-node';
-import _ from "lodash";
-import CliEPApplicationDomainsService from "../services/CliEPApplicationDomainsService";
+import EpSdkApplicationDomainsService from '@solace-iot-team/ep-sdk/services/EpSdkApplicationDomainsService';
 
 type TCliApplicationDomainTask_Settings = Partial<Pick<ApplicationDomain, "topicDomainEnforcementEnabled" | "uniqueTopicAddressEnforcementEnabled" | "description">>;
 type TCliApplicationDomainTask_CompareObject = TCliApplicationDomainTask_Settings;
@@ -73,7 +83,7 @@ export class CliApplicationDomainTask extends CliTask {
       cliTaskKeys: cliTaskKeys
     }}));
 
-    const applicationDomain: ApplicationDomain | undefined = await CliEPApplicationDomainsService.getByName({ applicationDomainName: applicationDomainName });
+    const applicationDomain: ApplicationDomain | undefined = await EpSdkApplicationDomainsService.getByName({ applicationDomainName: applicationDomainName });
 
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.EXECUTING_TASK_GET, details: {
       cliTaskKeys: cliTaskKeys,

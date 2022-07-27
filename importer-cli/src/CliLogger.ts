@@ -1,9 +1,7 @@
 import pino from 'pino';
 import { TCliLoggerConfig } from './CliConfig';
 import CliRunContext, { ICliRunContext } from './CliRunContext';
-
-
-// level: 'fatal', 'error', 'warn', 'info', 'debug', 'trace' or 'silent'
+import { EEpSdkLogLevel, EpSdkLogger, IEpSdkLogDetails, IEpSdkLogEntry, IEpSdkLoggerInstance } from "@solace-iot-team/ep-sdk/EpSdkLogger";
 
 export enum ECliStatusCodes {
   INFO = "INFO",
@@ -56,19 +54,54 @@ export enum ECliStatusCodes {
   
 }
 
-export type TCliStatus = {
-  code: ECliStatusCodes,
-  message?: string, 
-  details?: any
+export interface ICliLogDetails extends IEpSdkLogDetails {
 }
 
-export type TCliLogEntry = {
-  name: string;
+export interface ICliLogEntry extends IEpSdkLogEntry {
   runContext: ICliRunContext;
-} & TCliStatus;
+}
+
+class CliPinoLogger implements IEpSdkLoggerInstance {
+  appId: string;
+  epSdkLogLevel: EEpSdkLogLevel;
+
+  constructor(appId: string) {
+    this.appId = appId;
+  }
+
+  public createLogEntry = (logName: string, details: ICliLogDetails): ICliLogEntry => {
+    return CliLogger.createLogEntry(logName, details);
+  }
+
+  public fatal = (logEntry: IEpSdkLogEntry): void => {
+    CliLogger.fatal(CliLogger.createLogEntry(logEntry.logName, logEntry));
+  }
+
+  public error = (logEntry: IEpSdkLogEntry): void => {
+    CliLogger.error(CliLogger.createLogEntry(logEntry.logName, logEntry));
+  }
+
+  public warn = (logEntry: IEpSdkLogEntry): void => {
+    CliLogger.warn(CliLogger.createLogEntry(logEntry.logName, logEntry));
+  }
+
+  public info = (logEntry: IEpSdkLogEntry): void => {
+    CliLogger.info(CliLogger.createLogEntry(logEntry.logName, logEntry));
+  }
+
+  public debug = (logEntry: IEpSdkLogEntry): void => {
+    CliLogger.debug(CliLogger.createLogEntry(logEntry.logName, logEntry));
+  }
+
+  public trace = (logEntry: IEpSdkLogEntry): void => {
+    CliLogger.trace(CliLogger.createLogEntry(logEntry.logName, logEntry));
+  }
+
+}
+
 
 export class CliLogger {
-  private static level: string;
+  private static appId: string;
 
   public static L = pino({
     name: process.env.CLI_APP_ID || "sep-async-api-importer",
@@ -76,46 +109,51 @@ export class CliLogger {
   });
 
   public static initialize = (config: TCliLoggerConfig): void => {
-    CliLogger.level = config.level;
+
+    CliLogger.appId = config.appId;
+    // setup epSdk logger with a pino logger
+    const cliPinoLogger: CliPinoLogger = new CliPinoLogger(config.appId);
+    EpSdkLogger.initialize({ epSdkLoggerInstance: cliPinoLogger });
+
     CliLogger.L = pino({
       name: config.appId,
       level: config.level
     });
   }
 
-  public static isLevelTrace = (): boolean => {
-    return CliLogger.level === 'trace';
-  }
-
-  public static createLogEntry = (componentName: string, cliStatus: TCliStatus): TCliLogEntry => {
+  public static createLogEntry = (logName: string, cliLogDetails: ICliLogDetails): ICliLogEntry => {
+    const d = new Date();
     return {
-      name: componentName,
+      logger: CliPinoLogger.name,
+      appId: this.appId,
+      logName: logName,
+      timestamp: d.toUTCString(),
       runContext: CliRunContext.getContext(),
-      ...cliStatus
+      ...cliLogDetails
     };
   }
 
-  public static fatal = (logEntry: TCliLogEntry): void => {
+  public static fatal = (logEntry: ICliLogEntry): void => {
     CliLogger.L.fatal(logEntry);
   }
 
-  public static error = (logEntry: TCliLogEntry): void => {
+  public static error = (logEntry: ICliLogEntry): void => {
     CliLogger.L.error(logEntry);
   }
 
-  public static warn = (logEntry: TCliLogEntry): void => {
+  public static warn = (logEntry: ICliLogEntry): void => {
     CliLogger.L.warn(logEntry);
   }
 
-  public static info = (logEntry: TCliLogEntry): void => {
+  public static info = (logEntry: ICliLogEntry): void => {
     CliLogger.L.info(logEntry);
   }
 
-  public static debug = (logEntry: TCliLogEntry): void => {
+  public static debug = (logEntry: ICliLogEntry): void => {
     CliLogger.L.debug(logEntry);
   }
 
-  public static trace = (logEntry: TCliLogEntry): void => {
+  public static trace = (logEntry: ICliLogEntry): void => {
     CliLogger.L.trace(logEntry);
   }
 

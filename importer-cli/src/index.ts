@@ -11,11 +11,10 @@ import { CliImporter, ICliImporterRunReturn } from './CliImporter';
 import { Command, OptionValues } from 'commander';
 import { glob } from 'glob';
 import { CliUsageError } from './CliError';
-import CliEPApplicationDomainsService from './services/CliEPApplicationDomainsService';
-// import { ApplicationDomain } from './_generated/@solace-iot-team/sep-openapi-node';
-// import { EPClient } from './EPClient';
 import { ApplicationDomain } from '@solace-iot-team/ep-sdk/sep-openapi-node';
-import { EPClient } from '@solace-iot-team/ep-sdk/EPClient';
+import { EpSdkClient } from '@solace-iot-team/ep-sdk/EpSdkClient';
+// import CliEPApplicationDomainsService from './services/CliEPApplicationDomainsService';
+import EpSdkApplicationDomainsService from '@solace-iot-team/ep-sdk/services/EpSdkApplicationDomainsService';
 
 dotenv.config();
 const packageJson = require('../package.json');
@@ -38,7 +37,7 @@ async function cleanup({ applicationDomainNameList }:{
 
   for(const applicationDomainName of applicationDomainNameList) {
     try {
-      const applicationDomain: ApplicationDomain = await CliEPApplicationDomainsService.deleteByName( { 
+      const applicationDomain: ApplicationDomain = await EpSdkApplicationDomainsService.deleteByName( { 
         applicationDomainName: applicationDomainName
       });
       CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.INFO, message: 'application domain deleted', details: {
@@ -121,7 +120,7 @@ function initialize(commandLineOptionValues: OptionValues) {
   });
   CliLogger.initialize(CliConfig.getCliLoggerConfig());
   CliConfig.logConfig();
-  EPClient.initialize({
+  EpSdkClient.initialize({
     token: CliConfig.getSolaceCloudToken(),
     baseUrl: CliConfig.getCliEpApiConfig().epApiBaseUrl
   });  
