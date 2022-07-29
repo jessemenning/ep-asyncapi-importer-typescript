@@ -6,7 +6,8 @@ import {
   EpSdkApplicationDomainTask, 
   IEpSdkApplicationDomainTask_ExecuteReturn 
 } from '@solace-iot-team/ep-sdk/tasks/EpSdkApplicationDomainTask';
-import { EEpSdkTask_Action, EEpSdkTask_TargetState } from '@solace-iot-team/ep-sdk/tasks/EpSdkTask';
+import { EEpSdkTask_TargetState } from '@solace-iot-team/ep-sdk/tasks/EpSdkTask';
+import { EpSdkError } from '@solace-iot-team/ep-sdk/EpSdkErrors';
 
 import CliEPStatesService from './services/CliEPStatesService';
 import { CliUtils, TDeepDiffFromTo } from './CliUtils';
@@ -18,7 +19,8 @@ import {
   CliError, 
   CliErrorFromError, 
   CliErrorFromSEPApiError, 
-  CliImporterError 
+  CliImporterError, 
+  CliErrorFromEpSdkError
 } from './CliError';
 import { CliSchemaTask, EPSchemaType, ICliSchemaTask_ExecuteReturn } from './tasks/CliSchemaTask';
 import { 
@@ -1010,6 +1012,10 @@ export class CliImporter {
       if(e instanceof CliError) {
         CliLogger.error(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_ERROR, details: {
           error: e
+        }}));
+      } else if(e instanceof EpSdkError) {
+        CliLogger.error(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_ERROR, details: {
+          error: new CliErrorFromEpSdkError(logName, undefined, e)
         }}));
       } else if(e instanceof ApiError) {
         CliLogger.error(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_ERROR, details: {
