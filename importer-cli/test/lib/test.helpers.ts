@@ -258,6 +258,7 @@ export type TTestEnv = {
   testApiSpecsDir: string;
   globalDomainNamePrefix: string;
   createdAppDomainNameList: Array<string>;
+  testRunId: string;
 }
 
 export class TestContext {

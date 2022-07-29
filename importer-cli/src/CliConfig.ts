@@ -63,6 +63,8 @@ export type TCliAppConfig = {
   prefixDomainName?: string;
   assetImportTargetLifecycleState: TAssetImportTargetLifecycleState;
   assetOutputRootDir: string;
+  apiTransactionId: string;
+  apiGroupTransactionId: string;
 }
 export type TCliEpApiConfig = {
   epApiBaseUrl: string;
@@ -238,10 +240,11 @@ export class CliConfig {
     return absoluteDir;
   }
 
-  public initialize = ({ filePath, fileList, globalDomainName }: {
+  public initialize = ({ filePath, fileList, globalDomainName, apiGroupTransactionId }: {
     fileList?: Array<string>;
     filePath?: string;
     globalDomainName?: string;
+    apiGroupTransactionId: string;
   }): void => {
     const funcName = 'initialize';
     const logName = `${CliConfig.name}.${funcName}()`;
@@ -285,6 +288,8 @@ export class CliConfig {
           domainName: globalDomainName,
           assetImportTargetLifecycleState: this.initialize_AssetImportTargetLifecycleState(),
           assetOutputRootDir: assetOutputRootDir,
+          apiGroupTransactionId: apiGroupTransactionId,
+          apiTransactionId: 'undefined'
         },
         epApiConfig: {
           epApiBaseUrl: this.getOptionalEnvVarValueAsUrlWithDefault(EEnvVars.CLI_EP_API_BASE_URL, CliConfig.DEFAULT_CLI_EP_API_BASE_URL),

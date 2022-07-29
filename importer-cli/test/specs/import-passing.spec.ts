@@ -1,7 +1,7 @@
 import 'mocha';
 import { expect } from 'chai';
 import path from 'path';
-import { TestContext, TestLogger } from '../lib/test.helpers';
+import { getUUID, TestContext, TestLogger } from '../lib/test.helpers';
 import CliConfig, { TCliAppConfig } from '../../src/CliConfig';
 import { CliImporter, ICliImporterRunReturn } from '../../src/CliImporter';
 import { CliError } from '../../src/CliError';
@@ -55,7 +55,8 @@ describe(`${scriptName}`, () => {
             const cliAppConfig: TCliAppConfig = {
               ...CliConfig.getCliAppConfig(),
               asyncApiFileName: apiFile,
-              domainName: testList.domainName
+              domainName: testList.domainName,
+              apiTransactionId: getUUID(),
             };
             const importer = new CliImporter(cliAppConfig);
             const cliImporterRunReturn: ICliImporterRunReturn = await importer.run();  

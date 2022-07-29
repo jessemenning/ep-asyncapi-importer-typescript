@@ -15,6 +15,7 @@ import { ApplicationDomain } from '@solace-iot-team/ep-sdk/sep-openapi-node';
 import { EpSdkClient } from '@solace-iot-team/ep-sdk/EpSdkClient';
 // import CliEPApplicationDomainsService from './services/CliEPApplicationDomainsService';
 import EpSdkApplicationDomainsService from '@solace-iot-team/ep-sdk/services/EpSdkApplicationDomainsService';
+import { CliUtils } from './CliUtils';
 
 dotenv.config();
 const packageJson = require('../package.json');
@@ -71,6 +72,7 @@ async function main() {
       const cliAppConfig: TCliAppConfig = {
         ...CliConfig.getCliAppConfig(),
         asyncApiFileName: asyncApiFile,
+        apiTransactionId: CliUtils.getUUID(),
       };
       const importer = new CliImporter(cliAppConfig);
       const cliImporterRunReturn: ICliImporterRunReturn = await importer.run();  
@@ -116,7 +118,8 @@ function initialize(commandLineOptionValues: OptionValues) {
 
   CliConfig.initialize({
     fileList: fileList,
-    globalDomainName: commandLineOptionValues.domain
+    globalDomainName: commandLineOptionValues.domain,
+    apiGroupTransactionId: CliUtils.getUUID(),
   });
   CliLogger.initialize(CliConfig.getCliLoggerConfig());
   CliConfig.logConfig();

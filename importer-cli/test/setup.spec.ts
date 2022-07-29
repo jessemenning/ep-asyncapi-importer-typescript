@@ -43,6 +43,7 @@ const setTestEnv = (scriptDir: string): TTestEnv => {
     testApiSpecsDir: path.join(projectRootDir, CLI_TEST_API_SPECS_ROOT_DIR),
     globalDomainNamePrefix: `sep-async-api-importer/test/${getUUID()}`,
     createdAppDomainNameList: [],
+    testRunId: getUUID()
   }
   return testEnv;
 }
@@ -80,7 +81,8 @@ describe(`${scriptName}`, () => {
     it(`${scriptName}: should initialize cli`, async () => {
       try {
         CliConfig.initialize({ 
-          globalDomainName: TestEnv.globalDomainNamePrefix
+          globalDomainName: TestEnv.globalDomainNamePrefix,
+          apiGroupTransactionId: TestEnv.testRunId,
         });
         CliLogger.initialize(CliConfig.getCliLoggerConfig());
         CliConfig.logConfig();

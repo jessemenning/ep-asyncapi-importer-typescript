@@ -123,7 +123,7 @@ export class CliImporter {
         content: cliMessageDocument.getPayloadSchemaAsString(),
         description: cliMessageDocument.getDescription(),
         displayName: cliMessageDocument.getMessageName(),
-        stateId: CliEPStatesService.getTargetLifecycleState({assetImportTargetLifecycleState: CliConfig.getCliAppConfig().assetImportTargetLifecycleState}),
+        stateId: CliEPStatesService.getTargetLifecycleState({assetImportTargetLifecycleState: this.cliAppConfig.assetImportTargetLifecycleState}),
       }
     });
     const cliSchemaVersionTask_ExecuteReturn: ICliSchemaVersionTask_ExecuteReturn = await cliSchemaVersionTask.execute();
@@ -210,7 +210,7 @@ export class CliImporter {
       eventVersionSettings: {
         description: cliMessageDocument.getDescription(),
         displayName: cliMessageDocument.getMessageName(),
-        stateId: CliEPStatesService.getTargetLifecycleState({assetImportTargetLifecycleState: CliConfig.getCliAppConfig().assetImportTargetLifecycleState}),
+        stateId: CliEPStatesService.getTargetLifecycleState({assetImportTargetLifecycleState: this.cliAppConfig.assetImportTargetLifecycleState}),
         schemaVersionId: schemaVersionId,
       }
     });
@@ -296,7 +296,7 @@ export class CliImporter {
       enumVersionSettings: {
         description: cliChannelParameterDocument.getDescription(),
         displayName: cliChannelParameterDocument.getDisplayName(),
-        stateId: CliEPStatesService.getTargetLifecycleState({assetImportTargetLifecycleState: CliConfig.getCliAppConfig().assetImportTargetLifecycleState}),
+        stateId: CliEPStatesService.getTargetLifecycleState({assetImportTargetLifecycleState: this.cliAppConfig.assetImportTargetLifecycleState}),
       }
     });
     const cliEnumVersionTask_ExecuteReturn: ICliEnumVersionTask_ExecuteReturn = await cliEnumVersionTask.execute();
@@ -530,7 +530,7 @@ export class CliImporter {
       eventApiVersionSettings: {
         description: cliAsyncApiDocument.getDescription(),
         displayName: cliAsyncApiDocument.getTitle(),
-        stateId: CliEPStatesService.getTargetLifecycleState({assetImportTargetLifecycleState: CliConfig.getCliAppConfig().assetImportTargetLifecycleState}),
+        stateId: CliEPStatesService.getTargetLifecycleState({assetImportTargetLifecycleState: this.cliAppConfig.assetImportTargetLifecycleState}),
 
         producedEventVersionIds: (publishEventVersionIds as unknown) as EventApiVersion.producedEventVersionIds,
         consumedEventVersionIds: (subscribeEventVersionIds as unknown) as EventApiVersion.consumedEventVersionIds,
@@ -674,7 +674,7 @@ export class CliImporter {
       eventApiVersionSettings: {
         description: cliAsyncApiDocument.getDescription(),
         displayName: cliAsyncApiDocument.getTitle(),
-        stateId: CliEPStatesService.getTargetLifecycleState({assetImportTargetLifecycleState: CliConfig.getCliAppConfig().assetImportTargetLifecycleState}),
+        stateId: CliEPStatesService.getTargetLifecycleState({assetImportTargetLifecycleState: this.cliAppConfig.assetImportTargetLifecycleState}),
 
         producedEventVersionIds: (publishEventVersionIds as unknown) as EventApiVersion.producedEventVersionIds,
         consumedEventVersionIds: (subscribeEventVersionIds as unknown) as EventApiVersion.consumedEventVersionIds,
@@ -872,6 +872,10 @@ export class CliImporter {
       applicationDomainName: cliAsyncApiDocument.getApplicationDomainName(),
       applicationDomainSettings: {
         // description: "a new description x"
+      },
+      epSdkTask_TransactionConfig: {
+        groupTransactionId: this.cliAppConfig.apiGroupTransactionId,
+        parentTransactionId: this.cliAppConfig.apiTransactionId
       }
     });
     const epSdkApplicationDomainTask_ExecuteReturn: IEpSdkApplicationDomainTask_ExecuteReturn = await applicationDomainsTask.execute();
