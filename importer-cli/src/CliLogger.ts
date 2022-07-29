@@ -54,7 +54,17 @@ export enum ECliStatusCodes {
   
 }
 
-export interface ICliLogDetails extends IEpSdkLogDetails {
+// export interface IEpSdkLogDetails {
+//   module: string;
+//   code: string;
+//   message?: string;
+//   details?: any;
+// }
+
+export interface ICliLogDetails {
+  code: string;
+  message?: string;
+  details?: any;
 }
 
 export interface ICliLogEntry extends IEpSdkLogEntry {
@@ -68,6 +78,8 @@ class CliPinoLogger implements IEpSdkLoggerInstance {
   constructor(appId: string) {
     this.appId = appId;
   }
+
+  public setLogLevel: (epSdkLogLevel: EEpSdkLogLevel) => void;
 
   public createLogEntry = (logName: string, details: ICliLogDetails): ICliLogEntry => {
     return CliLogger.createLogEntry(logName, details);
@@ -125,6 +137,7 @@ export class CliLogger {
     const d = new Date();
     return {
       logger: CliPinoLogger.name,
+      module: logName,
       appId: this.appId,
       logName: logName,
       timestamp: d.toUTCString(),

@@ -2,7 +2,12 @@ import { CliLogger, ECliStatusCodes } from './CliLogger';
 import CliConfig, { ECliAssetsTargetState, TCliAppConfig } from './CliConfig';
 import { CliAsyncApiDocument, CliChannelDocumentMap, CliChannelParameterDocumentMap, CliEventNames, E_ASYNC_API_SPEC_CONTENNT_TYPES } from './documents/CliAsyncApiDocument';
 import { ECliTaskAction, ECliTaskState } from './tasks/CliTask';
-import { CliApplicationDomainTask, ICliApplicationDomainTask_ExecuteReturn } from './tasks/CliApplicationDomainTask';
+import { 
+  EpSdkApplicationDomainTask, 
+  IEpSdkApplicationDomainTask_ExecuteReturn 
+} from '@solace-iot-team/ep-sdk/tasks/EpSdkApplicationDomainTask';
+import { EEpSdkTask_Action, EEpSdkTask_TargetState } from '@solace-iot-team/ep-sdk/tasks/EpSdkTask';
+
 import CliEPStatesService from './services/CliEPStatesService';
 import { CliUtils, TDeepDiffFromTo } from './CliUtils';
 import { 
@@ -860,23 +865,23 @@ export class CliImporter {
     let xvoid: void;
     
     // ensure application domain name exists
-    const applicationDomainsTask = new CliApplicationDomainTask({
-      cliTaskState: ECliTaskState.PRESENT,
+    const applicationDomainsTask = new EpSdkApplicationDomainTask({
+      epSdkTask_TargetState: EEpSdkTask_TargetState.PRESENT,
       applicationDomainName: cliAsyncApiDocument.getApplicationDomainName(),
       applicationDomainSettings: {
         // description: "a new description x"
       }
     });
-    const cliApplicationDomainTask_ExecuteReturn: ICliApplicationDomainTask_ExecuteReturn = await applicationDomainsTask.execute();
+    const epSdkApplicationDomainTask_ExecuteReturn: IEpSdkApplicationDomainTask_ExecuteReturn = await applicationDomainsTask.execute();
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, message: 'created application domain', details: {
-      cliApplicationDomainTask_ExecuteReturn: cliApplicationDomainTask_ExecuteReturn
+      epSdkApplicationDomainTask_ExecuteReturn: epSdkApplicationDomainTask_ExecuteReturn
     }}));
 
     // we need the id in subsequent calls
-    if(cliApplicationDomainTask_ExecuteReturn.applicationDomainObject.id === undefined) throw new CliEPApiContentError(logName, 'cliApplicationDomainTask_ExecuteReturn.applicationDomainObject.id === undefined', {
-      applicationDomainObject: cliApplicationDomainTask_ExecuteReturn.applicationDomainObject,
+    if(epSdkApplicationDomainTask_ExecuteReturn.epObject.id === undefined) throw new CliEPApiContentError(logName, 'epSdkApplicationDomainTask_ExecuteReturn.epObject.id === undefined', {
+      applicationDomainObject: epSdkApplicationDomainTask_ExecuteReturn.epObject,
     });
-    const applicationDomainId: string = cliApplicationDomainTask_ExecuteReturn.applicationDomainObject.id;
+    const applicationDomainId: string = epSdkApplicationDomainTask_ExecuteReturn.epObject.id;
     
     xvoid = await this.run_present_check_and_compare({ 
       applicationDomainId: applicationDomainId,
