@@ -12,7 +12,7 @@ import {
 import {
   EpSdkEnumVersionTask, IEpSdkEnumVersionTask_ExecuteReturn
 } from "@solace-iot-team/ep-sdk/tasks/EpSdkEnumVersionTask";
-import EpSdkSemVerUtils from '@solace-iot-team/ep-sdk/EpSdkSemVerUtils';
+import EpSdkSemVerUtils, { EEpSdk_VersionStrategy } from '@solace-iot-team/ep-sdk/EpSdkSemVerUtils';
 import { EEpSdkTask_TargetState } from '@solace-iot-team/ep-sdk/tasks/EpSdkTask';
 import { EpSdkError } from '@solace-iot-team/ep-sdk/EpSdkErrors';
 
@@ -29,7 +29,9 @@ import {
   CliImporterError, 
   CliErrorFromEpSdkError
 } from './CliError';
-import { CliSchemaTask, EPSchemaType, ICliSchemaTask_ExecuteReturn } from './tasks/CliSchemaTask';
+import { EpSdkSchemaTask, IEpSdkSchemaTask_ExecuteReturn } from '@solace-iot-team/ep-sdk/tasks/EpSdkSchemaTask'
+import { EpSdkSchemaVersionTask, IEpSdkSchemaVersionTask_ExecuteReturn } from '@solace-iot-team/ep-sdk/tasks/EpSdkSchemaVersionTask';
+import { EpSdkSchemaContentType, EpSdkSchemaType } from '@solace-iot-team/ep-sdk/services/EpSdkSchemasService';
 import { 
   SchemaObject, 
   Event as EPEvent, 
@@ -42,7 +44,6 @@ import {
 } from '@solace-iot-team/ep-sdk/sep-openapi-node';
 import { CliMessageDocument } from './documents/CliMessageDocument';
 import { CliChannelDocument, CliChannelParameterDocument, CliChannelPublishOperation, CliChannelSubscribeOperation } from './documents/CliChannelDocument';
-import { CliSchemaVersionTask, ICliSchemaVersionTask_ExecuteReturn } from './tasks/CliSchemaVersionTask';
 import { CliEventTask, ICliEventTask_ExecuteReturn } from './tasks/CliEventTask';
 import { CliEventVersionTask, ICliEventVersionTask_ExecuteReturn } from './tasks/CliEventVersionTask';
 import CliEPEventApisService from './services/CliEPEventApisService';
@@ -99,11 +100,12 @@ export class CliImporter {
    * - bump latest version per strategy
    * 
    */
-  private run_present_schema_version = async({ schemaObject, specVersion, cliMessageDocument }: {
+  private run_present_schema_version = async({ applicationDomainId, schemaObject, specVersion, cliMessageDocument }: {
+    applicationDomainId: string;
     schemaObject: SchemaObject;
     specVersion: string;
     cliMessageDocument: CliMessageDocument;
-  }): Promise<ICliSchemaVersionTask_ExecuteReturn> => {
+  }): Promise<IEpSdkSchemaVersionTask_ExecuteReturn> => {
     const funcName = 'run_present_schema_version';
     const logName = `${CliImporter.name}.${funcName}()`;
 
@@ -117,24 +119,29 @@ export class CliImporter {
       schemaObject: schemaObject
     });
 
-    const schemaId: string = schemaObject.id;
-
-    const cliSchemaVersionTask: CliSchemaVersionTask = new CliSchemaVersionTask({
-      cliTaskState: ECliTaskState.PRESENT,
-      schemaId: schemaId,
-      baseVersionString: specVersion,
+    const epSdkSchemaVersionTask = new EpSdkSchemaVersionTask({
+      epSdkTask_TargetState: EEpSdkTask_TargetState.PRESENT,
+      applicationDomainId: applicationDomainId,
+      schemaId: schemaObject.id,
+      epSdk_VersionStrategy: CliConfig.getCliAppConfig().assetImportTargetLifecycleState.versionStrategy,
+      initialVersionString: specVersion,
       schemaVersionSettings: {
         content: cliMessageDocument.getPayloadSchemaAsString(),
         description: cliMessageDocument.getDescription(),
         displayName: cliMessageDocument.getMessageName(),
         stateId: CliEPStatesService.getTargetLifecycleState({assetImportTargetLifecycleState: this.cliAppConfig.assetImportTargetLifecycleState}),
+      },
+      epSdkTask_TransactionConfig: {
+        groupTransactionId: this.cliAppConfig.apiGroupTransactionId,
+        parentTransactionId: this.cliAppConfig.apiTransactionId
       }
     });
-    const cliSchemaVersionTask_ExecuteReturn: ICliSchemaVersionTask_ExecuteReturn = await cliSchemaVersionTask.execute();
+
+    const epSdkSchemaVersionTask_ExecuteReturn: IEpSdkSchemaVersionTask_ExecuteReturn = await epSdkSchemaVersionTask.execute();
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
-      cliSchemaVersionTask_ExecuteReturn: cliSchemaVersionTask_ExecuteReturn
+      epSdkSchemaVersionTask_ExecuteReturn: epSdkSchemaVersionTask_ExecuteReturn
     }}));
-    return cliSchemaVersionTask_ExecuteReturn;
+    return epSdkSchemaVersionTask_ExecuteReturn;
   }
 
   private run_present_channel_message = async({ applicationDomainId, messageDocument, specVersion }:{
@@ -158,28 +165,30 @@ export class CliImporter {
     }}));
 
     // ensure the schema exists
-    const cliSchemaTask = new CliSchemaTask({
-      cliTaskState: ECliTaskState.PRESENT,
+    const epSdkSchemaTask = new EpSdkSchemaTask({
+      epSdkTask_TargetState: EEpSdkTask_TargetState.PRESENT,
       applicationDomainId: applicationDomainId,
       schemaName: messageDocument.getMessageName(),
       schemaObjectSettings: {
-        contentType: messageDocument.getContentType(),
-        schemaType: EPSchemaType.JSON_SCHEMA,
+        contentType: CliUtils.map_MessageDocumentContentType_To_EpSchemaContentType(messageDocument.getContentType()),
+        schemaType: EpSdkSchemaType.JSON_SCHEMA,
         shared: true,
       },
     });
-    const cliSchemaTask_ExecuteReturn: ICliSchemaTask_ExecuteReturn = await cliSchemaTask.execute();
+
+    const epSdkSchemaTask_ExecuteReturn: IEpSdkSchemaTask_ExecuteReturn = await epSdkSchemaTask.execute();
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
-      cliSchemaTask_ExecuteReturn: cliSchemaTask_ExecuteReturn
+      epSdkSchemaTask_ExecuteReturn: epSdkSchemaTask_ExecuteReturn
     }}));
 
     // present the schema version
-    const cliSchemaVersionTask_ExecuteReturn: ICliSchemaVersionTask_ExecuteReturn = await this.run_present_schema_version({
-      schemaObject: cliSchemaTask_ExecuteReturn.schemaObject,
+    const epSdkSchemaVersionTask_ExecuteReturn: IEpSdkSchemaVersionTask_ExecuteReturn = await this.run_present_schema_version({
+      schemaObject: epSdkSchemaTask_ExecuteReturn.epObject,
       specVersion: specVersion,
-      cliMessageDocument: messageDocument
+      cliMessageDocument: messageDocument,
+      applicationDomainId: applicationDomainId,
     });
-    return cliSchemaVersionTask_ExecuteReturn.schemaVersionObject;
+    return epSdkSchemaVersionTask_ExecuteReturn.epObject;
   }
 
   private run_present_event_version = async({ channelTopic, eventObject, specVersion, cliMessageDocument, schemaVersionId, applicationDomainId  }: {
@@ -303,6 +312,10 @@ export class CliImporter {
         stateId: CliEPStatesService.getTargetLifecycleState({assetImportTargetLifecycleState: this.cliAppConfig.assetImportTargetLifecycleState}),
       },
       epSdk_VersionStrategy: CliConfig.getCliAppConfig().assetImportTargetLifecycleState.versionStrategy,
+      epSdkTask_TransactionConfig: {
+        groupTransactionId: this.cliAppConfig.apiGroupTransactionId,
+        parentTransactionId: this.cliAppConfig.apiTransactionId
+      }
     });
 
     const epSdkEnumVersionTask_ExecuteReturn: IEpSdkEnumVersionTask_ExecuteReturn = await epSdkEnumVersionTask.execute();
@@ -353,7 +366,11 @@ export class CliImporter {
           enumName: parameterName,
           enumObjectSettings: {
             shared: true
-          }
+          },
+          epSdkTask_TransactionConfig: {
+            groupTransactionId: this.cliAppConfig.apiGroupTransactionId,
+            parentTransactionId: this.cliAppConfig.apiTransactionId
+          }    
         });
         const epSdkEnumTask_ExecuteReturn: IEpSdkEnumTask_ExecuteReturn = await epSdkEnumTask.execute();
         CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
@@ -825,7 +842,7 @@ export class CliImporter {
         const cliMessageDocument: CliMessageDocument = cliChannelPublishOperation.getCliMessageDocument();
         if(cliMessageDocument.getContentType() !== E_ASYNC_API_SPEC_CONTENNT_TYPES.APPLICATION_JSON) throw new CliAsyncApiSpecNotSupportedError(logName, undefined, { message: "unsupported message schema content type" }, {
           messageName: cliMessageDocument.getMessageName(),
-          contentType: cliMessageDocument.getContentType(),
+          contentType: CliUtils.map_MessageDocumentContentType_To_EpSchemaContentType(cliMessageDocument.getContentType()),
           supportedContentTypes: cliAsyncApiDocument.getSupportedContentTypes()
         });
 
@@ -841,7 +858,7 @@ export class CliImporter {
         const cliMessageDocument: CliMessageDocument = cliChannelSubscribeOperation.getCliMessageDocument();
         if(cliMessageDocument.getContentType() !== E_ASYNC_API_SPEC_CONTENNT_TYPES.APPLICATION_JSON) throw new CliAsyncApiSpecNotSupportedError(logName, undefined, { message: "unsupported message schema content type" }, {
           messageName: cliMessageDocument.getMessageName(),
-          contentType: cliMessageDocument.getContentType(),
+          contentType: CliUtils.map_MessageDocumentContentType_To_EpSchemaContentType(cliMessageDocument.getContentType()),
           supportedContentTypes: cliAsyncApiDocument.getSupportedContentTypes()
         });
 
@@ -1024,24 +1041,32 @@ export class CliImporter {
         CliLogger.error(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_ERROR, details: {
           error: e
         }}));
+        cliImporterRunReturn.error = e;
       } else if(e instanceof EpSdkError) {
+        const cliError = new CliErrorFromEpSdkError(logName, undefined, e);
         CliLogger.error(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_ERROR, details: {
-          error: new CliErrorFromEpSdkError(logName, undefined, e)
+          error: cliError
         }}));
+        cliImporterRunReturn.error = cliError;
       } else if(e instanceof ApiError) {
+        const cliError = new CliErrorFromSEPApiError(logName, undefined, e);
         CliLogger.error(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_ERROR, details: {
-          error: new CliErrorFromSEPApiError(logName, undefined, e)
+          error: cliError
         }}));
+        cliImporterRunReturn.error = cliError;
       } else if(e instanceof ParserError) {
+        const cliError = new CliAsyncApiParserError(logName, undefined, e);
         CliLogger.error(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_ERROR, details: {
-          error: new CliAsyncApiParserError(logName, undefined, e)
+          error: cliError
         }}));
+        cliImporterRunReturn.error = cliError;
       } else {
+        const cliError = new CliErrorFromError(e, logName);
         CliLogger.error(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_ERROR, details: {
-          error: new CliErrorFromError(e, logName)
+          error: cliError
         }}));  
+        cliImporterRunReturn.error = cliError;
       }
-      cliImporterRunReturn.error = e;
     } finally {
       return cliImporterRunReturn;
     }
