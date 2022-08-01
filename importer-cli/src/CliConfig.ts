@@ -4,6 +4,7 @@ import fs from 'fs';
 import { CliError, CliErrorFromError, CliInvalidDirConfigEnvVarError, CliInvalidUrlConfigEnvVarError, ConfigMissingEnvVarError, InvalidEnvVarValueFromListError, InvalidFileConfigError } from './CliError';
 import { CliLogger, ECliStatusCodes } from './CliLogger';
 import { CliUtils } from './CliUtils';
+import { EEpSdk_VersionStrategy } from '@solace-iot-team/ep-sdk/EpSdkSemVerUtils';
 
 export enum ECliImporterMode {
   RELEASE_MODE = "release_mode",
@@ -13,13 +14,13 @@ const ValidEnvCliImporterMode = {
   RELEASE_MODE: ECliImporterMode.RELEASE_MODE,
   TEST_MODE: ECliImporterMode.TEST_MODE
 }
-export enum ECliAssetImportTargetLifecycleState_VersionStrategy {
-  BUMP_MINOR = "bump_minor",
-  BUMP_PATCH = "bump_patch"
-}
+// export enum ECliAssetImportTargetLifecycleState_VersionStrategy {
+//   BUMP_MINOR = "bump_minor",
+//   BUMP_PATCH = "bump_patch"
+// }
 const ValidEnvAssetImportTargetLifecycleState_VersionStrategy = {
-  BUMP_MINOR: ECliAssetImportTargetLifecycleState_VersionStrategy.BUMP_MINOR,
-  BUMP_PATCH: ECliAssetImportTargetLifecycleState_VersionStrategy.BUMP_PATCH
+  BUMP_MINOR: EEpSdk_VersionStrategy.BUMP_MINOR,
+  BUMP_PATCH: EEpSdk_VersionStrategy.BUMP_PATCH
 }
 export enum ECliAssetImportTargetLifecycleState {
   RELEASED = "released",
@@ -30,7 +31,7 @@ const ValidEnvAssetImportTargetLifecycleState = {
   DRAFT: ECliAssetImportTargetLifecycleState.DRAFT,
 }
 export type TAssetImportTargetLifecycleState_Base = {
-  versionStrategy: ECliAssetImportTargetLifecycleState_VersionStrategy;
+  versionStrategy: EEpSdk_VersionStrategy;
 }
 export type TAssetImportTargetLifecycleState_Draft = TAssetImportTargetLifecycleState_Base & {
   type: ECliAssetImportTargetLifecycleState.DRAFT;
@@ -208,7 +209,7 @@ export class CliConfig {
     const logName = `${CliConfig.name}.${funcName}()`;
 
     const cliAssetImportTargetLifecycleState: ECliAssetImportTargetLifecycleState = this.getOptionalEnvVarValueAsString_From_List_WithDefault(EEnvVars.CLI_ASSET_IMPORT_TARGET_LIFECYLE_STATE, Object.values(ValidEnvAssetImportTargetLifecycleState), CliConfig.DEFAULT_CLI_ASSET_IMPORT_TARGET_LIFECYLE_STATE) as ECliAssetImportTargetLifecycleState;
-    const cliAssetImportTargetLifecycleState_VersionStrategy: ECliAssetImportTargetLifecycleState_VersionStrategy = this.getOptionalEnvVarValueAsString_From_List_WithDefault(EEnvVars.CLI_ASSET_IMPORT_TARGET_VERSION_STRATEGY, Object.values(ValidEnvAssetImportTargetLifecycleState_VersionStrategy), CliConfig.DEFAULT_CLI_ASSET_IMPORT_TARGET_VERSION_STRATEGY) as ECliAssetImportTargetLifecycleState_VersionStrategy;
+    const cliAssetImportTargetLifecycleState_VersionStrategy: EEpSdk_VersionStrategy = this.getOptionalEnvVarValueAsString_From_List_WithDefault(EEnvVars.CLI_ASSET_IMPORT_TARGET_VERSION_STRATEGY, Object.values(ValidEnvAssetImportTargetLifecycleState_VersionStrategy), CliConfig.DEFAULT_CLI_ASSET_IMPORT_TARGET_VERSION_STRATEGY) as EEpSdk_VersionStrategy;
 
     switch(cliAssetImportTargetLifecycleState) {
       case ECliAssetImportTargetLifecycleState.DRAFT:

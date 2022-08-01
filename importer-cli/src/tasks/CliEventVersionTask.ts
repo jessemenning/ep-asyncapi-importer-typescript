@@ -13,7 +13,7 @@ import {
 import CliConfig from "../CliConfig";
 import CliSemVerUtils from "../CliSemVerUtils";
 import CliEPEventVersionsService from "../services/CliEPEventVersionsService";
-import CliEPEnumVersionsService from "../services/CliEPEnumVersionsService";
+import EpSdkEnumVersionService from "@solace-iot-team/ep-sdk/services/EpSdkEnumVersionsService";
 
 type TCliEventVersionTask_Settings = Required<Pick<EventVersion, "description" | "displayName" | "stateId" | "schemaVersionId">>;
 type TCliEventVersionTask_CompareObject = Partial<TCliEventVersionTask_Settings> & Pick<EventVersion, "deliveryDescriptor">;
@@ -73,7 +73,7 @@ export class CliEventVersionTask extends CliTask {
         topicLevel = topicLevel.replace('}', '').replace('{', '');
         type = AddressLevel.addressLevelType.VARIABLE;
         // get the enumVersionId if it exists
-        const enumVersion: EnumVersion | undefined = await CliEPEnumVersionsService.getLastestVersionByName({ 
+        const enumVersion: EnumVersion | undefined = await EpSdkEnumVersionService.getLastestVersionForEnumName({ 
           enumName: topicLevel, 
           applicationDomainId: this.getCliTaskConfig().applicationDomainId        
         });

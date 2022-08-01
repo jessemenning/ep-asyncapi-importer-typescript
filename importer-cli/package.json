@@ -87,7 +87,7 @@
   },
   "dependencies": {
     "@asyncapi/parser": "^1.15.1",
-    "@solace-iot-team/ep-sdk": "^0.2.2-alpha",
+    "@solace-iot-team/ep-sdk": "^0.2.3-alpha",
     "abort-controller": "^3.0.0",
     "chalk": "^4.1.2",
     "clear": "^0.1.0",

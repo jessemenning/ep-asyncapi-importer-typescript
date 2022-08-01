@@ -6,6 +6,13 @@ import {
   EpSdkApplicationDomainTask, 
   IEpSdkApplicationDomainTask_ExecuteReturn 
 } from '@solace-iot-team/ep-sdk/tasks/EpSdkApplicationDomainTask';
+import {
+  EpSdkEnumTask, IEpSdkEnumTask_ExecuteReturn
+} from "@solace-iot-team/ep-sdk/tasks/EpSdkEnumTask";
+import {
+  EpSdkEnumVersionTask, IEpSdkEnumVersionTask_ExecuteReturn
+} from "@solace-iot-team/ep-sdk/tasks/EpSdkEnumVersionTask";
+import EpSdkSemVerUtils from '@solace-iot-team/ep-sdk/EpSdkSemVerUtils';
 import { EEpSdkTask_TargetState } from '@solace-iot-team/ep-sdk/tasks/EpSdkTask';
 import { EpSdkError } from '@solace-iot-team/ep-sdk/EpSdkErrors';
 
@@ -38,11 +45,8 @@ import { CliChannelDocument, CliChannelParameterDocument, CliChannelPublishOpera
 import { CliSchemaVersionTask, ICliSchemaVersionTask_ExecuteReturn } from './tasks/CliSchemaVersionTask';
 import { CliEventTask, ICliEventTask_ExecuteReturn } from './tasks/CliEventTask';
 import { CliEventVersionTask, ICliEventVersionTask_ExecuteReturn } from './tasks/CliEventVersionTask';
-import { CliEnumTask, ICliEnumTask_ExecuteReturn } from './tasks/CliEnumTask';
-import { CliEnumVersionTask, ICliEnumVersionTask_ExecuteReturn } from './tasks/CliEnumVersionTask';
 import CliEPEventApisService from './services/CliEPEventApisService';
 import CliEPEventApiVersionsService from './services/CliEPEventApiVersionsService';
-import CliSemVerUtils from './CliSemVerUtils';
 import CliAsyncApiDocumentsService from './services/CliAsyncApiDocumentsService';
 import { CliEventApiTask, ICliEventApiTask_ExecuteReturn } from './tasks/CliEventApiTask';
 import { CliEventApiVersionTask, ICliEventApiVersionTask_ActionLog, ICliEventApiVersionTask_ExecuteReturn } from './tasks/CliEventApiVersionTask';
@@ -287,21 +291,24 @@ export class CliImporter {
       enumObject: enumObject
     });
 
-    const cliEnumVersionTask: CliEnumVersionTask = new CliEnumVersionTask({
-      cliTaskState: ECliTaskState.PRESENT,
+    const epSdkEnumVersionTask = new EpSdkEnumVersionTask({
+      epSdkTask_TargetState: EEpSdkTask_TargetState.PRESENT,
       applicationDomainId: applicationDomainId,
       enumId: enumObject.id,
-      baseVersionString: specVersion,
-      parameterEnumValues: cliChannelParameterDocument.getParameterEnumValueList(),
+      initialVersionString: specVersion,
+      enumValues: cliChannelParameterDocument.getParameterEnumValueList(),
       enumVersionSettings: {
         description: cliChannelParameterDocument.getDescription(),
         displayName: cliChannelParameterDocument.getDisplayName(),
         stateId: CliEPStatesService.getTargetLifecycleState({assetImportTargetLifecycleState: this.cliAppConfig.assetImportTargetLifecycleState}),
-      }
+      },
+      epSdk_VersionStrategy: CliConfig.getCliAppConfig().assetImportTargetLifecycleState.versionStrategy,
     });
-    const cliEnumVersionTask_ExecuteReturn: ICliEnumVersionTask_ExecuteReturn = await cliEnumVersionTask.execute();
+
+    const epSdkEnumVersionTask_ExecuteReturn: IEpSdkEnumVersionTask_ExecuteReturn = await epSdkEnumVersionTask.execute();
+
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
-      cliEnumVersionTask_ExecuteReturn: cliEnumVersionTask_ExecuteReturn
+      epSdkEnumVersionTask_ExecuteReturn: epSdkEnumVersionTask_ExecuteReturn
     }}));
   }
 
@@ -340,19 +347,19 @@ export class CliImporter {
       // only create the enum if there are any values in the list
       if(parameterEnumList.length > 0) {
         // ensure the enum exists
-        const cliEnumTask = new CliEnumTask({
-          cliTaskState: ECliTaskState.PRESENT,
+        const epSdkEnumTask = new EpSdkEnumTask({
+          epSdkTask_TargetState: EEpSdkTask_TargetState.PRESENT,
           applicationDomainId: applicationDomainId,
           enumName: parameterName,
           enumObjectSettings: {
-            shared: true,
+            shared: true
           }
         });
-        const cliEnumTask_ExecuteReturn: ICliEnumTask_ExecuteReturn = await cliEnumTask.execute();
+        const epSdkEnumTask_ExecuteReturn: IEpSdkEnumTask_ExecuteReturn = await epSdkEnumTask.execute();
         CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
-          cliEnumTask_ExecuteReturn: cliEnumTask_ExecuteReturn
+          epSdkEnumTask_ExecuteReturn: epSdkEnumTask_ExecuteReturn
         }}));
-        const enumObject: Enum = cliEnumTask_ExecuteReturn.enumObject;
+        const enumObject: Enum = epSdkEnumTask_ExecuteReturn.epObject;
         if(enumObject.id === undefined) throw new CliEPApiContentError(logName, 'enumObject.id === undefined', {
           enumObject: enumObject,
         })
@@ -600,9 +607,9 @@ export class CliImporter {
     }}));
     
     // if ep version is greater spec version ==> don't continue, manual versioning in EP happened
-    if(CliSemVerUtils.is_NewVersion_GreaterThan_OldVersion({
-      newVersion: latestEventApiVersion.version,
-      oldVersion: cliAsyncApiDocument.getVersion(),
+    if(EpSdkSemVerUtils.is_NewVersion_GreaterThan_OldVersion({
+      newVersionString: latestEventApiVersion.version,
+      oldVersionString: cliAsyncApiDocument.getVersion(),
     })) {
       throw new CliAsyncApiSpecBestPracticesError(logName, undefined, "Event Portal Event API Version greater than Api Spec version. Aborting import...", {
         epEventApiName: eventApi.name ? eventApi.name : 'undefined',
@@ -694,9 +701,9 @@ export class CliImporter {
       const epLatestVersion = latestEventApiVersion.version;
       const importSpecVersion = cliAsyncApiDocument.getVersion();
       // importSpecVersion must be greater than epLatestVersion
-      if(!CliSemVerUtils.is_NewVersion_GreaterThan_OldVersion({
-        newVersion: importSpecVersion,
-        oldVersion: epLatestVersion,
+      if(!EpSdkSemVerUtils.is_NewVersion_GreaterThan_OldVersion({
+        newVersionString: importSpecVersion,
+        oldVersionString: epLatestVersion,
       })) {
         // create report of differences
         const cliEventApiVersionTask_ActionLog: ICliEventApiVersionTask_ActionLog = cliEventApiVersionTask_ExecuteReturn.actionLog;
