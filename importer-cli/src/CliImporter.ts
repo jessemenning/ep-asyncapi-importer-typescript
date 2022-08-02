@@ -12,7 +12,7 @@ import {
 import {
   EpSdkEnumVersionTask, IEpSdkEnumVersionTask_ExecuteReturn
 } from "@solace-iot-team/ep-sdk/tasks/EpSdkEnumVersionTask";
-import EpSdkSemVerUtils, { EEpSdk_VersionStrategy } from '@solace-iot-team/ep-sdk/EpSdkSemVerUtils';
+import EpSdkSemVerUtils from '@solace-iot-team/ep-sdk/EpSdkSemVerUtils';
 import { EEpSdkTask_TargetState } from '@solace-iot-team/ep-sdk/tasks/EpSdkTask';
 import { EpSdkError } from '@solace-iot-team/ep-sdk/EpSdkErrors';
 
@@ -31,7 +31,6 @@ import {
 } from './CliError';
 import { EpSdkSchemaTask, IEpSdkSchemaTask_ExecuteReturn } from '@solace-iot-team/ep-sdk/tasks/EpSdkSchemaTask'
 import { EpSdkSchemaVersionTask, IEpSdkSchemaVersionTask_ExecuteReturn } from '@solace-iot-team/ep-sdk/tasks/EpSdkSchemaVersionTask';
-import { EpSdkSchemaContentType, EpSdkSchemaType } from '@solace-iot-team/ep-sdk/services/EpSdkSchemasService';
 import { 
   SchemaObject, 
   Event as EPEvent, 
@@ -44,8 +43,6 @@ import {
 } from '@solace-iot-team/ep-sdk/sep-openapi-node';
 import { CliMessageDocument } from './documents/CliMessageDocument';
 import { CliChannelDocument, CliChannelParameterDocument, CliChannelPublishOperation, CliChannelSubscribeOperation } from './documents/CliChannelDocument';
-import { CliEventTask, ICliEventTask_ExecuteReturn } from './tasks/CliEventTask';
-import { CliEventVersionTask, ICliEventVersionTask_ExecuteReturn } from './tasks/CliEventVersionTask';
 import CliEPEventApisService from './services/CliEPEventApisService';
 import CliEPEventApiVersionsService from './services/CliEPEventApiVersionsService';
 import CliAsyncApiDocumentsService from './services/CliAsyncApiDocumentsService';
@@ -64,6 +61,9 @@ import CliRunContext, {
   ICliRunContext_State 
 } from './CliRunContext';
 import { ParserError } from '@asyncapi/parser';
+import { EEpSdkSchemaType } from '@solace-iot-team/ep-sdk/services/EpSdkSchemasService';
+import { EpSdkEpEventVersionTask, IEpSdkEpEventVersionTask_ExecuteReturn } from '@solace-iot-team/ep-sdk/tasks/EpSdkEpEventVersionTask';
+import { EpSdkEpEventTask, IEpSdkEpEventTask_ExecuteReturn } from '@solace-iot-team/ep-sdk/tasks/EpSdkEpEventTask';
 
 type TCliImporter_FromTo_EventVersionId = {
   type: string;
@@ -171,7 +171,7 @@ export class CliImporter {
       schemaName: messageDocument.getMessageName(),
       schemaObjectSettings: {
         contentType: CliUtils.map_MessageDocumentContentType_To_EpSchemaContentType(messageDocument.getContentType()),
-        schemaType: EpSdkSchemaType.JSON_SCHEMA,
+        schemaType: EEpSdkSchemaType.JSON_SCHEMA,
         shared: true,
       },
     });
@@ -214,22 +214,27 @@ export class CliImporter {
 
     const eventId: string = eventObject.id;
 
-    const cliEventVersionTask: CliEventVersionTask = new CliEventVersionTask({
-      cliTaskState: ECliTaskState.PRESENT,
+    const epSdkEpEventVersionTask = new EpSdkEpEventVersionTask({
+      epSdkTask_TargetState: EEpSdkTask_TargetState.PRESENT,
       applicationDomainId: applicationDomainId,
       eventId: eventId,
-      baseVersionString: specVersion,
-      channelTopic: channelTopic,
+      initialVersionString: specVersion,
+      topicString: channelTopic,
       eventVersionSettings: {
         description: cliMessageDocument.getDescription(),
         displayName: cliMessageDocument.getMessageName(),
         stateId: CliEPStatesService.getTargetLifecycleState({assetImportTargetLifecycleState: this.cliAppConfig.assetImportTargetLifecycleState}),
-        schemaVersionId: schemaVersionId,
+        schemaVersionId: schemaVersionId
+      },
+      epSdk_VersionStrategy: CliConfig.getCliAppConfig().assetImportTargetLifecycleState.versionStrategy,
+      epSdkTask_TransactionConfig: {
+        groupTransactionId: this.cliAppConfig.apiGroupTransactionId,
+        parentTransactionId: this.cliAppConfig.apiTransactionId
       }
     });
-    const cliEventVersionTask_ExecuteReturn: ICliEventVersionTask_ExecuteReturn = await cliEventVersionTask.execute();
+    const epSdkEpEventVersionTask_ExecuteReturn: IEpSdkEpEventVersionTask_ExecuteReturn = await epSdkEpEventVersionTask.execute();
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
-      cliEventVersionTask_ExecuteReturn: cliEventVersionTask_ExecuteReturn
+      epSdkEpEventVersionTask_ExecuteReturn: epSdkEpEventVersionTask_ExecuteReturn
     }}));
   }
 
@@ -257,24 +262,30 @@ export class CliImporter {
     }}));
 
     // ensure the event exists
-    const cliEventTask = new CliEventTask({
-      cliTaskState: ECliTaskState.PRESENT,
+    const epSdkEpEventTask = new EpSdkEpEventTask({
+      epSdkTask_TargetState: EEpSdkTask_TargetState.PRESENT,
       applicationDomainId: applicationDomainId,
       eventName: messageDocument.getMessageName(),
       eventObjectSettings: {
         shared: true,
+      },
+      epSdkTask_TransactionConfig: {
+        groupTransactionId: this.cliAppConfig.apiGroupTransactionId,
+        parentTransactionId: this.cliAppConfig.apiTransactionId
       }
     });
-    const cliEventTask_ExecuteReturn: ICliEventTask_ExecuteReturn = await cliEventTask.execute();
+
+    const epSdkEpEventTask_ExecuteReturn: IEpSdkEpEventTask_ExecuteReturn = await epSdkEpEventTask.execute();
+
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
-      cliEventTask_ExecuteReturn: cliEventTask_ExecuteReturn
+      epSdkEpEventTask_ExecuteReturn: epSdkEpEventTask_ExecuteReturn
     }}));
 
     // present the event version
     const xvoid: void = await this.run_present_event_version({
       applicationDomainId: applicationDomainId,
       channelTopic: channelTopic,
-      eventObject: cliEventTask_ExecuteReturn.eventObject,
+      eventObject: epSdkEpEventTask_ExecuteReturn.epObject,
       specVersion: specVersion,
       cliMessageDocument: messageDocument,
       schemaVersionId: schemaVersionId
