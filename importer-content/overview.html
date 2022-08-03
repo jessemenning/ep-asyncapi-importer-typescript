@@ -92,10 +92,14 @@
 <li><p>import large number of apis in CI/CD pipeline into released state</p></li>
 <li><p>test importing apis in CI/CD pipeline before importing proper</p></li>
 </ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Importer currently does not rollback imports on error. Instead, use <cite>test_mode</cite> first, then <cite>release_mode</cite>.</p>
+</div>
 <section id="application-domain">
 <h2>Application Domain<a class="headerlink" href="#application-domain" title="Permalink to this heading"></a></h2>
 <ul class="simple">
-<li><p>application domain is specified in the api itself using extension</p></li>
+<li><p>application domain is specified in the api itself using extension: <cite>$.x-sep-application-domain-name</cite></p></li>
 <li><p>global application domain overrides all api application domains</p></li>
 </ul>
 </section>
@@ -182,7 +186,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright 2022, Solace Corporation, Ricardo Gomez-Ulmke, &lt;ricardo.gomez-ulmke@solace.com&gt;.
-      <span class="lastupdated">Last updated on 26 Jul 2022 at 14:42.
+      <span class="lastupdated">Last updated on 03 Aug 2022 at 08:35.
       </span></p>
   </div>
 
