@@ -27,14 +27,21 @@ const createApiSpecFileList = (filePattern: string): Array<string> => {
   return files;
 }
 
-async function cleanup({ applicationDomainNameList }:{
-  applicationDomainNameList: Array<string>;
+async function rollback({ }:{
 }): Promise<void> {
-  const funcName = 'cleanup';
+  const funcName = 'rollback';
   const logName = `${ComponentName}.${funcName}()`;
 
-  // if test mode then delete the application domains
-  if(CliConfig.getCliAppConfig().importerMode !== ECliImporterMode.TEST_MODE) return;
+  CliLogger.warn(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.INFO, message: 'TODO: implement rollback', details: {
+    importerMode: CliConfig.getCliAppConfig().importerMode,
+  }}));
+}
+
+async function deleteApplicationDomains({ applicationDomainNameList }:{
+  applicationDomainNameList: Array<string>;
+}): Promise<void> {
+  const funcName = 'deleteApplicationDomains';
+  const logName = `${ComponentName}.${funcName}()`;
 
   for(const applicationDomainName of applicationDomainNameList) {
     try {
@@ -51,6 +58,66 @@ async function cleanup({ applicationDomainNameList }:{
   }
 }
 
+async function run_test_mode_before_release_mode() {
+  const funcName = 'run_test_mode_before_release_mode';
+  const logName = `${ComponentName}.${funcName}()`;
+
+  if(CliConfig.getCliAppConfig().importerMode === ECliImporterMode.TEST_MODE) return;
+
+  // re-configure app config for test mode
+  const copyOfCliAppConfig: TCliAppConfig = CliConfig.getCopyOfCliAppConfig();
+  const testModeAppConfig: TCliAppConfig = {
+    ...copyOfCliAppConfig,
+    importerMode: ECliImporterMode.TEST_MODE,
+  };
+  testModeAppConfig.prefixDomainName = CliConfig.createPrefixDomainName({ cliConfig: {
+    ...CliConfig.getConfig(),
+    appConfig: testModeAppConfig
+  }});
+
+  // keep track of applicationDomains 
+  const applicationDomainNameList: Array<string> = [];
+
+  try {
+    for(const asyncApiFile of CliConfig.getCliAppConfig().asyncApiFileList) {
+
+      CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.INFO, message: 'starting...', details: {
+        asyncApiFile: asyncApiFile
+      }}));
+
+      const cliAppConfig: TCliAppConfig = {
+        ...testModeAppConfig,
+        asyncApiFileName: asyncApiFile,
+        apiTransactionId: CliUtils.getUUID(),
+      };
+
+      const importer = new CliImporter(cliAppConfig);
+      const cliImporterRunReturn: ICliImporterRunReturn = await importer.run();  
+      if(cliImporterRunReturn.applicationDomainName !== undefined) applicationDomainNameList.push(cliImporterRunReturn.applicationDomainName);
+      if(cliImporterRunReturn.error !== undefined) throw cliImporterRunReturn.error;
+
+      CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.INFO, message: 'done.', details: {
+        asyncApiFile: asyncApiFile,
+      }}));
+
+    }
+    const xvoid: void = await deleteApplicationDomains({ applicationDomainNameList: applicationDomainNameList });
+        
+  } catch(e) {
+
+    const xvoid: void = await deleteApplicationDomains({ applicationDomainNameList: applicationDomainNameList });
+  
+    CliLogger.error(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_ERROR, details: {
+      error: e
+    }}));
+
+    throw e;
+
+  }
+
+}
+
+
 async function main() {
   const funcName = 'main';
   const logName = `${ComponentName}.${funcName}()`;
@@ -58,6 +125,8 @@ async function main() {
   CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.INFO, message: 'starting...', details: {
     cliAppConfig: CliConfig.getCliAppConfig()
   }}));
+
+  await run_test_mode_before_release_mode();
 
   // keep track of applicationDomains 
   const applicationDomainNameList: Array<string> = [];
@@ -83,12 +152,22 @@ async function main() {
         asyncApiFile: asyncApiFile,
       }}));
 
-      const xvoid: void = await cleanup({ applicationDomainNameList: applicationDomainNameList });
-
     }
+    // if test mode then delete the application domains
+    if(CliConfig.getCliAppConfig().importerMode === ECliImporterMode.TEST_MODE) {
+      const xvoid: void = await deleteApplicationDomains({ applicationDomainNameList: applicationDomainNameList });
+    }    
   } catch(e) {
 
-    const xvoid: void = await cleanup({ applicationDomainNameList: applicationDomainNameList });
+    if(CliConfig.getCliAppConfig().importerMode === ECliImporterMode.TEST_MODE) {
+      const xvoid: void = await deleteApplicationDomains({ applicationDomainNameList: applicationDomainNameList });
+    } else {
+      const xvoid: void = await rollback({ });
+    }
+  
+    CliLogger.error(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_ERROR, details: {
+      error: e
+    }}));
 
     throw e;
 

@@ -68,7 +68,7 @@ export class CliErrorFromError extends CliError {
 
 export class CliErrorFromEpSdkError extends CliError {
   protected static defaultDescription = 'EP SDK Error';
-  private epSdkError: EpSdkError;
+  public epSdkError: EpSdkError;
   constructor(internalLogName: string, internalMessage: string = CliErrorFromEpSdkError.defaultDescription, epSdkError: EpSdkError) {
     super(internalLogName, internalMessage);
     this.epSdkError = epSdkError;

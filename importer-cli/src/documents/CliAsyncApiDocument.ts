@@ -10,7 +10,7 @@ import {
 import CliSemVerUtils from '../CliSemVerUtils';
 import { CliMessageDocument } from './CliMessageDocument';
 import { CliChannelDocument, CliChannelParameterDocument, CliChannelPublishOperation, CliChannelSubscribeOperation } from './CliChannelDocument';
-import CliEPEventApiVersionsService from '../services/CliEPEventApiVersionsService';
+import EpSdkEventApiVersionsService from '@solace-iot-team/ep-sdk/services/EpSdkEventApiVersionsService';
 
 enum E_EP_Extensions {
   X_APPLICATION_DOMAIN_NAME = "x-sep-application-domain-name",
@@ -65,7 +65,7 @@ export class CliAsyncApiDocument {
 
   private validate_EP(): void {
     
-    CliEPEventApiVersionsService.validateTitle({ title: this.getTitle() });
+    EpSdkEventApiVersionsService.validateDisplayName({ displayName: this.getTitle() });
 
   }
 

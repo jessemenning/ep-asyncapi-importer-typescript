@@ -20,6 +20,7 @@ import {
 import * as __requestLib from '@solace-iot-team/ep-sdk/sep-openapi-node/core/request';
 
 import { CliError } from "../../src/CliError";
+import { EpSdkError } from "@solace-iot-team/ep-sdk/EpSdkErrors";
 
 
 export const getUUID = (): string => {
@@ -122,8 +123,8 @@ export class TestLogger {
         if(!TestLogger.do_log) return;
         console.log(`[${id}]: ApiError=\n${JSON.stringify(apiError, null, 2)}\n`);
     }
-    public static createLogMessage = (message: string) : string => {
-      return `[${TestContext.getItId()}]: ${message}`;
+    public static createLogMessage = (message: string, obj?: any) : string => {
+      return `[${TestContext.getItId()}]: ${message}\nobj=${JSON.stringify(obj, null, 2)}`;
     }
     public static createTestFailMessage = (message: string): string => {
         return `[${TestContext.getItId()}]: ${message}\napiRequestOptions=${TestLogger.getLoggingApiRequestOptions(TestContext.getApiRequestOptions())}\napiResult=${TestLogger.getLoggingApiResult(TestContext.getApiResult())}\napiError=${JSON.stringify(TestContext.getApiError(), null, 2)}\n`;
@@ -136,6 +137,12 @@ export class TestLogger {
     }
     public static createNotCliErrorMesssage = (message: string): string => {
       return `[${TestContext.getItId()}]: error is not an instance of CliError, error=${message}`;
+    }
+    public static createWrongEpSdkErrorMesssage = (epSdkError: EpSdkError): string => {
+      return `[${TestContext.getItId()}]: wrong epSdkError instance, epSdkError=\n${epSdkError.toString()}`;
+    }
+    public static createEpSdkTestFailMessage = (message: string, epSdkError: EpSdkError): string => {
+      return `[${TestContext.getItId()}]: message=${message}, epSdkError=${epSdkError}`;
     }
   
 }

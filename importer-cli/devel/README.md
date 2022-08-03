@@ -64,6 +64,27 @@ npm run dev:start -- -fp '../data/passing/**/*.spec.yml' | npx pino-pretty > ./d
 
 ```
 
+## Run Tests
+
+```bash
+export CLI_SOLACE_CLOUD_TOKEN={token}
+npm test
+```
+
+### Run a Single Test
+````bash
+# set the env
+source ./test/source.env.sh
+# run test
+# for example:
+npx mocha --config test/.mocharc.yml test/specs/import-failing.spec.ts
+# pretty print server output:
+npx mocha --config test/.mocharc.yml test/specs/import-failing.spec.ts | npx pino-pretty
+# unset the env
+unset_source_env
+````
+
+
 
 ---
 
