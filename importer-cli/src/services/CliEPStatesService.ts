@@ -6,17 +6,13 @@ import {
   StatesResponse, 
   StatesService 
 } from '@solace-iot-team/ep-sdk/sep-openapi-node';
+import EpSdkStatesService from "@solace-iot-team/ep-sdk/services/EpSdkStatesService";
 
 /**
  * EP Asset States.
  * Hard-coded, needs to check at initialize.
  */
 class CliEPStatesService {
-
-  private readonly _draftId: string = "1";
-  private readonly _releasedId: string = "2";
-  private readonly _deprecatedId: string = "3";
-  private readonly _retiredId: string = "4";
 
   public initialize = async(): Promise<void> => {
     const funcName = 'initialize';
@@ -35,22 +31,6 @@ class CliEPStatesService {
 
   }
 
-  public get draftId() {
-    return this._draftId;
-  }
-
-  public get releasedId() {
-    return this._releasedId;
-  }
-
-  public get deprecatedId() {
-    return this._deprecatedId;
-  }
-
-  public get retiredId() {
-    return this._retiredId;
-  }
-
   public getTargetLifecycleState({ assetImportTargetLifecycleState }:{
     assetImportTargetLifecycleState: TAssetImportTargetLifecycleState;
   }): string {
@@ -60,9 +40,9 @@ class CliEPStatesService {
     const type: ECliAssetImportTargetLifecycleState = assetImportTargetLifecycleState.type;
     switch(type) {
       case ECliAssetImportTargetLifecycleState.DRAFT:
-        return this.draftId;
+        return EpSdkStatesService.draftId;
       case ECliAssetImportTargetLifecycleState.RELEASED:
-        return this.releasedId;
+        return EpSdkStatesService.releasedId;
       default:
         CliUtils.assertNever(logName, type);
     }

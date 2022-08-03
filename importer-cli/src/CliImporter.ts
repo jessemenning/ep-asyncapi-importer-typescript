@@ -2,7 +2,20 @@ import { CliLogger, ECliStatusCodes } from './CliLogger';
 import CliConfig, { ECliAssetsTargetState, TCliAppConfig } from './CliConfig';
 import { CliAsyncApiDocument, CliChannelDocumentMap, CliChannelParameterDocumentMap, CliEventNames, E_ASYNC_API_SPEC_CONTENNT_TYPES } from './documents/CliAsyncApiDocument';
 import { ECliTaskAction, ECliTaskState } from './tasks/CliTask';
-import { CliApplicationDomainTask, ICliApplicationDomainTask_ExecuteReturn } from './tasks/CliApplicationDomainTask';
+import { 
+  EpSdkApplicationDomainTask, 
+  IEpSdkApplicationDomainTask_ExecuteReturn 
+} from '@solace-iot-team/ep-sdk/tasks/EpSdkApplicationDomainTask';
+import {
+  EpSdkEnumTask, IEpSdkEnumTask_ExecuteReturn
+} from "@solace-iot-team/ep-sdk/tasks/EpSdkEnumTask";
+import {
+  EpSdkEnumVersionTask, IEpSdkEnumVersionTask_ExecuteReturn
+} from "@solace-iot-team/ep-sdk/tasks/EpSdkEnumVersionTask";
+import EpSdkSemVerUtils, { EEpSdk_VersionStrategy } from '@solace-iot-team/ep-sdk/EpSdkSemVerUtils';
+import { EEpSdkTask_Action, EEpSdkTask_TargetState } from '@solace-iot-team/ep-sdk/tasks/EpSdkTask';
+import { EpSdkError } from '@solace-iot-team/ep-sdk/EpSdkErrors';
+
 import CliEPStatesService from './services/CliEPStatesService';
 import { CliUtils, TDeepDiffFromTo } from './CliUtils';
 import { 
@@ -13,9 +26,11 @@ import {
   CliError, 
   CliErrorFromError, 
   CliErrorFromSEPApiError, 
-  CliImporterError 
+  CliImporterError, 
+  CliErrorFromEpSdkError
 } from './CliError';
-import { CliSchemaTask, EPSchemaType, ICliSchemaTask_ExecuteReturn } from './tasks/CliSchemaTask';
+import { EpSdkSchemaTask, IEpSdkSchemaTask_ExecuteReturn } from '@solace-iot-team/ep-sdk/tasks/EpSdkSchemaTask'
+import { EpSdkSchemaVersionTask, IEpSdkSchemaVersionTask_ExecuteReturn } from '@solace-iot-team/ep-sdk/tasks/EpSdkSchemaVersionTask';
 import { 
   SchemaObject, 
   Event as EPEvent, 
@@ -28,18 +43,7 @@ import {
 } from '@solace-iot-team/ep-sdk/sep-openapi-node';
 import { CliMessageDocument } from './documents/CliMessageDocument';
 import { CliChannelDocument, CliChannelParameterDocument, CliChannelPublishOperation, CliChannelSubscribeOperation } from './documents/CliChannelDocument';
-import { CliSchemaVersionTask, ICliSchemaVersionTask_ExecuteReturn } from './tasks/CliSchemaVersionTask';
-import { CliEventTask, ICliEventTask_ExecuteReturn } from './tasks/CliEventTask';
-import { CliEventVersionTask, ICliEventVersionTask_ExecuteReturn } from './tasks/CliEventVersionTask';
-import { CliEnumTask, ICliEnumTask_ExecuteReturn } from './tasks/CliEnumTask';
-import { CliEnumVersionTask, ICliEnumVersionTask_ExecuteReturn } from './tasks/CliEnumVersionTask';
-import CliEPEventApisService from './services/CliEPEventApisService';
-import CliEPEventApiVersionsService from './services/CliEPEventApiVersionsService';
-import CliSemVerUtils from './CliSemVerUtils';
 import CliAsyncApiDocumentsService from './services/CliAsyncApiDocumentsService';
-import { CliEventApiTask, ICliEventApiTask_ExecuteReturn } from './tasks/CliEventApiTask';
-import { CliEventApiVersionTask, ICliEventApiVersionTask_ActionLog, ICliEventApiVersionTask_ExecuteReturn } from './tasks/CliEventApiVersionTask';
-import CliEPEventVersionsService from './services/CliEPEventVersionsService';
 import CliRunContext, { 
   ECliChannelOperation, 
   ICliRunContext_Channel, 
@@ -52,6 +56,16 @@ import CliRunContext, {
   ICliRunContext_State 
 } from './CliRunContext';
 import { ParserError } from '@asyncapi/parser';
+import { EEpSdkSchemaType } from '@solace-iot-team/ep-sdk/services/EpSdkSchemasService';
+import { EpSdkEpEventVersionTask, IEpSdkEpEventVersionTask_ExecuteReturn } from '@solace-iot-team/ep-sdk/tasks/EpSdkEpEventVersionTask';
+import { EpSdkEpEventTask, IEpSdkEpEventTask_ExecuteReturn } from '@solace-iot-team/ep-sdk/tasks/EpSdkEpEventTask';
+import { EpSdkEventApiTask, IEpSdkEventApiTask_ExecuteReturn } from '@solace-iot-team/ep-sdk/tasks/EpSdkEventApiTask';
+import { EpSdkEventApiVersionTask, IEpSdkEventApiVersionTask_ExecuteReturn } from '@solace-iot-team/ep-sdk/tasks/EpSdkEventApiVersionTask';
+import EpSdkEpEventVersionsService from '@solace-iot-team/ep-sdk/services/EpSdkEpEventVersionsService';
+import EpSdkEventApisService from '@solace-iot-team/ep-sdk/services/EpSdkEventApisService';
+import EpSdkEventApiVersionsService from '@solace-iot-team/ep-sdk/services/EpSdkEventApiVersionsService';
+import { IEpSdkTask_TransactionLogData } from '@solace-iot-team/ep-sdk/tasks/EpSdkTask_TransactionLog';
+import { EEpSdk_VersionTaskStrategy } from '@solace-iot-team/ep-sdk/tasks/EpSdkVersionTask';
 
 type TCliImporter_FromTo_EventVersionId = {
   type: string;
@@ -88,11 +102,12 @@ export class CliImporter {
    * - bump latest version per strategy
    * 
    */
-  private run_present_schema_version = async({ schemaObject, specVersion, cliMessageDocument }: {
+  private run_present_schema_version = async({ applicationDomainId, schemaObject, specVersion, cliMessageDocument }: {
+    applicationDomainId: string;
     schemaObject: SchemaObject;
     specVersion: string;
     cliMessageDocument: CliMessageDocument;
-  }): Promise<ICliSchemaVersionTask_ExecuteReturn> => {
+  }): Promise<IEpSdkSchemaVersionTask_ExecuteReturn> => {
     const funcName = 'run_present_schema_version';
     const logName = `${CliImporter.name}.${funcName}()`;
 
@@ -106,24 +121,29 @@ export class CliImporter {
       schemaObject: schemaObject
     });
 
-    const schemaId: string = schemaObject.id;
-
-    const cliSchemaVersionTask: CliSchemaVersionTask = new CliSchemaVersionTask({
-      cliTaskState: ECliTaskState.PRESENT,
-      schemaId: schemaId,
-      baseVersionString: specVersion,
+    const epSdkSchemaVersionTask = new EpSdkSchemaVersionTask({
+      epSdkTask_TargetState: EEpSdkTask_TargetState.PRESENT,
+      applicationDomainId: applicationDomainId,
+      schemaId: schemaObject.id,
+      versionString: specVersion,
+      versionStrategy: CliConfig.getCliAppConfig().assetImportTargetLifecycleState.versionStrategy,
       schemaVersionSettings: {
         content: cliMessageDocument.getPayloadSchemaAsString(),
         description: cliMessageDocument.getDescription(),
         displayName: cliMessageDocument.getMessageName(),
-        stateId: CliEPStatesService.getTargetLifecycleState({assetImportTargetLifecycleState: CliConfig.getCliAppConfig().assetImportTargetLifecycleState}),
+        stateId: CliEPStatesService.getTargetLifecycleState({assetImportTargetLifecycleState: this.cliAppConfig.assetImportTargetLifecycleState}),
+      },
+      epSdkTask_TransactionConfig: {
+        groupTransactionId: this.cliAppConfig.apiGroupTransactionId,
+        parentTransactionId: this.cliAppConfig.apiTransactionId
       }
     });
-    const cliSchemaVersionTask_ExecuteReturn: ICliSchemaVersionTask_ExecuteReturn = await cliSchemaVersionTask.execute();
+
+    const epSdkSchemaVersionTask_ExecuteReturn: IEpSdkSchemaVersionTask_ExecuteReturn = await epSdkSchemaVersionTask.execute();
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
-      cliSchemaVersionTask_ExecuteReturn: cliSchemaVersionTask_ExecuteReturn
+      epSdkSchemaVersionTask_ExecuteReturn: epSdkSchemaVersionTask_ExecuteReturn
     }}));
-    return cliSchemaVersionTask_ExecuteReturn;
+    return epSdkSchemaVersionTask_ExecuteReturn;
   }
 
   private run_present_channel_message = async({ applicationDomainId, messageDocument, specVersion }:{
@@ -147,28 +167,30 @@ export class CliImporter {
     }}));
 
     // ensure the schema exists
-    const cliSchemaTask = new CliSchemaTask({
-      cliTaskState: ECliTaskState.PRESENT,
+    const epSdkSchemaTask = new EpSdkSchemaTask({
+      epSdkTask_TargetState: EEpSdkTask_TargetState.PRESENT,
       applicationDomainId: applicationDomainId,
       schemaName: messageDocument.getMessageName(),
       schemaObjectSettings: {
-        contentType: messageDocument.getContentType(),
-        schemaType: EPSchemaType.JSON_SCHEMA,
+        contentType: CliUtils.map_MessageDocumentContentType_To_EpSchemaContentType(messageDocument.getContentType()),
+        schemaType: EEpSdkSchemaType.JSON_SCHEMA,
         shared: true,
       },
     });
-    const cliSchemaTask_ExecuteReturn: ICliSchemaTask_ExecuteReturn = await cliSchemaTask.execute();
+
+    const epSdkSchemaTask_ExecuteReturn: IEpSdkSchemaTask_ExecuteReturn = await epSdkSchemaTask.execute();
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
-      cliSchemaTask_ExecuteReturn: cliSchemaTask_ExecuteReturn
+      epSdkSchemaTask_ExecuteReturn: epSdkSchemaTask_ExecuteReturn
     }}));
 
     // present the schema version
-    const cliSchemaVersionTask_ExecuteReturn: ICliSchemaVersionTask_ExecuteReturn = await this.run_present_schema_version({
-      schemaObject: cliSchemaTask_ExecuteReturn.schemaObject,
+    const epSdkSchemaVersionTask_ExecuteReturn: IEpSdkSchemaVersionTask_ExecuteReturn = await this.run_present_schema_version({
+      schemaObject: epSdkSchemaTask_ExecuteReturn.epObject,
       specVersion: specVersion,
-      cliMessageDocument: messageDocument
+      cliMessageDocument: messageDocument,
+      applicationDomainId: applicationDomainId,
     });
-    return cliSchemaVersionTask_ExecuteReturn.schemaVersionObject;
+    return epSdkSchemaVersionTask_ExecuteReturn.epObject;
   }
 
   private run_present_event_version = async({ channelTopic, eventObject, specVersion, cliMessageDocument, schemaVersionId, applicationDomainId  }: {
@@ -194,22 +216,27 @@ export class CliImporter {
 
     const eventId: string = eventObject.id;
 
-    const cliEventVersionTask: CliEventVersionTask = new CliEventVersionTask({
-      cliTaskState: ECliTaskState.PRESENT,
+    const epSdkEpEventVersionTask = new EpSdkEpEventVersionTask({
+      epSdkTask_TargetState: EEpSdkTask_TargetState.PRESENT,
       applicationDomainId: applicationDomainId,
       eventId: eventId,
-      baseVersionString: specVersion,
-      channelTopic: channelTopic,
+      versionString: specVersion,
+      versionStrategy: CliConfig.getCliAppConfig().assetImportTargetLifecycleState.versionStrategy,
+      topicString: channelTopic,
       eventVersionSettings: {
         description: cliMessageDocument.getDescription(),
         displayName: cliMessageDocument.getMessageName(),
-        stateId: CliEPStatesService.getTargetLifecycleState({assetImportTargetLifecycleState: CliConfig.getCliAppConfig().assetImportTargetLifecycleState}),
-        schemaVersionId: schemaVersionId,
+        stateId: CliEPStatesService.getTargetLifecycleState({assetImportTargetLifecycleState: this.cliAppConfig.assetImportTargetLifecycleState}),
+        schemaVersionId: schemaVersionId
+      },
+      epSdkTask_TransactionConfig: {
+        groupTransactionId: this.cliAppConfig.apiGroupTransactionId,
+        parentTransactionId: this.cliAppConfig.apiTransactionId
       }
     });
-    const cliEventVersionTask_ExecuteReturn: ICliEventVersionTask_ExecuteReturn = await cliEventVersionTask.execute();
+    const epSdkEpEventVersionTask_ExecuteReturn: IEpSdkEpEventVersionTask_ExecuteReturn = await epSdkEpEventVersionTask.execute();
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
-      cliEventVersionTask_ExecuteReturn: cliEventVersionTask_ExecuteReturn
+      epSdkEpEventVersionTask_ExecuteReturn: epSdkEpEventVersionTask_ExecuteReturn
     }}));
   }
 
@@ -237,24 +264,30 @@ export class CliImporter {
     }}));
 
     // ensure the event exists
-    const cliEventTask = new CliEventTask({
-      cliTaskState: ECliTaskState.PRESENT,
+    const epSdkEpEventTask = new EpSdkEpEventTask({
+      epSdkTask_TargetState: EEpSdkTask_TargetState.PRESENT,
       applicationDomainId: applicationDomainId,
       eventName: messageDocument.getMessageName(),
       eventObjectSettings: {
         shared: true,
+      },
+      epSdkTask_TransactionConfig: {
+        groupTransactionId: this.cliAppConfig.apiGroupTransactionId,
+        parentTransactionId: this.cliAppConfig.apiTransactionId
       }
     });
-    const cliEventTask_ExecuteReturn: ICliEventTask_ExecuteReturn = await cliEventTask.execute();
+
+    const epSdkEpEventTask_ExecuteReturn: IEpSdkEpEventTask_ExecuteReturn = await epSdkEpEventTask.execute();
+
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
-      cliEventTask_ExecuteReturn: cliEventTask_ExecuteReturn
+      epSdkEpEventTask_ExecuteReturn: epSdkEpEventTask_ExecuteReturn
     }}));
 
     // present the event version
     const xvoid: void = await this.run_present_event_version({
       applicationDomainId: applicationDomainId,
       channelTopic: channelTopic,
-      eventObject: cliEventTask_ExecuteReturn.eventObject,
+      eventObject: epSdkEpEventTask_ExecuteReturn.epObject,
       specVersion: specVersion,
       cliMessageDocument: messageDocument,
       schemaVersionId: schemaVersionId
@@ -280,21 +313,28 @@ export class CliImporter {
       enumObject: enumObject
     });
 
-    const cliEnumVersionTask: CliEnumVersionTask = new CliEnumVersionTask({
-      cliTaskState: ECliTaskState.PRESENT,
+    const epSdkEnumVersionTask = new EpSdkEnumVersionTask({
+      epSdkTask_TargetState: EEpSdkTask_TargetState.PRESENT,
       applicationDomainId: applicationDomainId,
       enumId: enumObject.id,
-      baseVersionString: specVersion,
-      parameterEnumValues: cliChannelParameterDocument.getParameterEnumValueList(),
+      versionString: specVersion,
+      versionStrategy: CliConfig.getCliAppConfig().assetImportTargetLifecycleState.versionStrategy,
+      enumValues: cliChannelParameterDocument.getParameterEnumValueList(),
       enumVersionSettings: {
         description: cliChannelParameterDocument.getDescription(),
         displayName: cliChannelParameterDocument.getDisplayName(),
-        stateId: CliEPStatesService.getTargetLifecycleState({assetImportTargetLifecycleState: CliConfig.getCliAppConfig().assetImportTargetLifecycleState}),
+        stateId: CliEPStatesService.getTargetLifecycleState({assetImportTargetLifecycleState: this.cliAppConfig.assetImportTargetLifecycleState}),
+      },
+      epSdkTask_TransactionConfig: {
+        groupTransactionId: this.cliAppConfig.apiGroupTransactionId,
+        parentTransactionId: this.cliAppConfig.apiTransactionId
       }
     });
-    const cliEnumVersionTask_ExecuteReturn: ICliEnumVersionTask_ExecuteReturn = await cliEnumVersionTask.execute();
+
+    const epSdkEnumVersionTask_ExecuteReturn: IEpSdkEnumVersionTask_ExecuteReturn = await epSdkEnumVersionTask.execute();
+
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
-      cliEnumVersionTask_ExecuteReturn: cliEnumVersionTask_ExecuteReturn
+      epSdkEnumVersionTask_ExecuteReturn: epSdkEnumVersionTask_ExecuteReturn
     }}));
   }
 
@@ -333,19 +373,23 @@ export class CliImporter {
       // only create the enum if there are any values in the list
       if(parameterEnumList.length > 0) {
         // ensure the enum exists
-        const cliEnumTask = new CliEnumTask({
-          cliTaskState: ECliTaskState.PRESENT,
+        const epSdkEnumTask = new EpSdkEnumTask({
+          epSdkTask_TargetState: EEpSdkTask_TargetState.PRESENT,
           applicationDomainId: applicationDomainId,
           enumName: parameterName,
           enumObjectSettings: {
-            shared: true,
-          }
+            shared: true
+          },
+          epSdkTask_TransactionConfig: {
+            groupTransactionId: this.cliAppConfig.apiGroupTransactionId,
+            parentTransactionId: this.cliAppConfig.apiTransactionId
+          }    
         });
-        const cliEnumTask_ExecuteReturn: ICliEnumTask_ExecuteReturn = await cliEnumTask.execute();
+        const epSdkEnumTask_ExecuteReturn: IEpSdkEnumTask_ExecuteReturn = await epSdkEnumTask.execute();
         CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
-          cliEnumTask_ExecuteReturn: cliEnumTask_ExecuteReturn
+          epSdkEnumTask_ExecuteReturn: epSdkEnumTask_ExecuteReturn
         }}));
-        const enumObject: Enum = cliEnumTask_ExecuteReturn.enumObject;
+        const enumObject: Enum = epSdkEnumTask_ExecuteReturn.epObject;
         if(enumObject.id === undefined) throw new CliEPApiContentError(logName, 'enumObject.id === undefined', {
           enumObject: enumObject,
         })
@@ -478,27 +522,35 @@ export class CliImporter {
     }}));
 
     // present event api
-    const cliEventApiTask: CliEventApiTask = new CliEventApiTask({
-      cliTaskState: ECliTaskState.PRESENT,
+    const epSdkEventApiTask = new EpSdkEventApiTask({
+      epSdkTask_TargetState: EEpSdkTask_TargetState.PRESENT,
       applicationDomainId: applicationDomainId,
-      eventApiName: cliAsyncApiDocument.getTitle(),
+      eventApiName: eventApiName,
       eventApiObjectSettings: {
-        shared: true
+        shared: true,
+      },
+      epSdkTask_TransactionConfig: {
+        groupTransactionId: this.cliAppConfig.apiGroupTransactionId,
+        parentTransactionId: this.cliAppConfig.apiTransactionId
       }
     });
-    const cliEventApiTask_ExecuteReturn: ICliEventApiTask_ExecuteReturn = await cliEventApiTask.execute();
+    const epSdkEventApiTask_ExecuteReturn: IEpSdkEventApiTask_ExecuteReturn = await epSdkEventApiTask.execute();
+
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_EVENT_API, details: {
-      cliEventApiTask_ExecuteReturn: cliEventApiTask_ExecuteReturn
+      epSdkEventApiTask_ExecuteReturn: epSdkEventApiTask_ExecuteReturn
     }}));
-    if(cliEventApiTask_ExecuteReturn.eventApiObject.id === undefined) throw new CliEPApiContentError(logName, 'cliEventApiTask_ExecuteReturn.eventApiObject.id === undefined', {
-      cliEventApiTask_ExecuteReturn: cliEventApiTask_ExecuteReturn
+    if(epSdkEventApiTask_ExecuteReturn.epObject.id === undefined) throw new CliEPApiContentError(logName, 'epSdkEventApiTask_ExecuteReturn.epObject.id === undefined', {
+      epSdkEventApiTask_ExecuteReturn: epSdkEventApiTask_ExecuteReturn
     });
-    const eventApiId: string = cliEventApiTask_ExecuteReturn.eventApiObject.id;
+    const eventApiId: string = epSdkEventApiTask_ExecuteReturn.epObject.id;
     // create new version
     const cliEventNames: CliEventNames = cliAsyncApiDocument.getEventNames();
     const publishEventVersionIds: Array<string> = [];
     for(const publishEventName of cliEventNames.publishEventNames) {
-      const eventVersion: EventVersion | undefined = await CliEPEventVersionsService.getLastestVersionByName({ eventName: publishEventName, applicationDomainId: applicationDomainId });
+      const eventVersion: EventVersion | undefined = await EpSdkEpEventVersionsService.getLatestVersionForEventName({
+        eventName: publishEventName,
+        applicationDomainId: applicationDomainId
+      });
       if(eventVersion === undefined) throw new CliImporterError(logName, 'eventVersion === undefined', {});
       if(eventVersion.id === undefined) throw new CliEPApiContentError(logName, 'eventVersion.id === undefined', {
         eventVersion: eventVersion
@@ -507,34 +559,38 @@ export class CliImporter {
     }
     const subscribeEventVersionIds: Array<string> = [];
     for(const subscribeEventName of cliEventNames.subscribeEventNames) {
-      const eventVersion: EventVersion | undefined = await CliEPEventVersionsService.getLastestVersionByName({ eventName: subscribeEventName, applicationDomainId: applicationDomainId });
+      const eventVersion: EventVersion | undefined = await EpSdkEpEventVersionsService.getLatestVersionForEventName({
+        eventName: subscribeEventName,
+        applicationDomainId: applicationDomainId
+      });
       if(eventVersion === undefined) throw new CliImporterError(logName, 'eventVersion === undefined', {});
       if(eventVersion.id === undefined) throw new CliEPApiContentError(logName, 'eventVersion.id === undefined', {
         eventVersion: eventVersion
       });
       subscribeEventVersionIds.push(eventVersion.id);
     }
-    const cliEventApiVersionTask: CliEventApiVersionTask = new CliEventApiVersionTask({
-      cliTaskState: ECliTaskState.PRESENT,
-      // checkmode: true,
+    const epSdkEventApiVersionTask = new EpSdkEventApiVersionTask({
+      epSdkTask_TargetState: EEpSdkTask_TargetState.PRESENT,
       applicationDomainId: applicationDomainId,
       eventApiId: eventApiId,
-      baseVersionString: cliAsyncApiDocument.getVersion(),
+      versionString: cliAsyncApiDocument.getVersion(),
+      versionStrategy: EEpSdk_VersionTaskStrategy.EXACT_VERSION,
       eventApiVersionSettings: {
         description: cliAsyncApiDocument.getDescription(),
         displayName: cliAsyncApiDocument.getTitle(),
-        stateId: CliEPStatesService.getTargetLifecycleState({assetImportTargetLifecycleState: CliConfig.getCliAppConfig().assetImportTargetLifecycleState}),
-
+        stateId: CliEPStatesService.getTargetLifecycleState({assetImportTargetLifecycleState: this.cliAppConfig.assetImportTargetLifecycleState}),
         producedEventVersionIds: (publishEventVersionIds as unknown) as EventApiVersion.producedEventVersionIds,
         consumedEventVersionIds: (subscribeEventVersionIds as unknown) as EventApiVersion.consumedEventVersionIds,
-  
-        // consumedEventVersionIds: subscribeEventVersionIds,
-        // producedEventVersionIds: publishEventVersionIds
+      },
+      epSdkTask_TransactionConfig: {
+        groupTransactionId: this.cliAppConfig.apiGroupTransactionId,
+        parentTransactionId: this.cliAppConfig.apiTransactionId
       }
     });
-    const cliEventApiVersionTask_ExecuteReturn: ICliEventApiVersionTask_ExecuteReturn = await cliEventApiVersionTask.execute();
+    const epSdkEventApiVersionTask_ExecuteReturn: IEpSdkEventApiVersionTask_ExecuteReturn = await epSdkEventApiVersionTask.execute();
+
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_EVENT_API, details: {
-      cliEventApiVersionTask_ExecuteReturn: cliEventApiVersionTask_ExecuteReturn
+      epSdkEventApiVersionTask_ExecuteReturn: epSdkEventApiVersionTask_ExecuteReturn
     }}));
 
   }
@@ -547,11 +603,10 @@ export class CliImporter {
     const logName = `${CliImporter.name}.${funcName}()`;
 
     // check if event api exists
-    const eventApi: EventApi | undefined = await CliEPEventApisService.getByName({ 
+    const eventApi: EventApi | undefined = await EpSdkEventApisService.getByName({ 
       applicationDomainId: applicationDomainId,
       eventApiName: cliAsyncApiDocument.getTitle()
     });
-
     if(eventApi === undefined) {
       CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.CHECK_EVENT_API, message: "eventApi does not exist", details: {
         applicationDomainId: applicationDomainId,
@@ -559,7 +614,6 @@ export class CliImporter {
       }}));
       return;
     }
-
     // eventApi exists
     if(eventApi.id === undefined) throw new CliEPApiContentError(logName, 'eventApi.id === undefined', {
       eventApi: eventApi
@@ -567,14 +621,20 @@ export class CliImporter {
     if(eventApi.name === undefined) throw new CliEPApiContentError(logName, 'eventApi.name === undefined', {
       eventApi: eventApi
     });
-
     // check if event api version already exists in the application domain
-    const latestEventApiVersion: EventApiVersion | undefined = await CliEPEventApiVersionsService.getLastestVersionById({ 
+    const latestEventApiVersion: EventApiVersion | undefined = await EpSdkEventApiVersionsService.getLatestVersionForEventApiId({ 
+      applicationDomainId: applicationDomainId,
       eventApiId: eventApi.id,
     });
     CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.CHECK_EVENT_API, message: "latest version of event api", details: {
       latestEventApiVersion: latestEventApiVersion ? latestEventApiVersion : 'undefined'
     }}));
+    // // DEBUG
+    // if(latestEventApiVersion !== undefined) {
+    //   throw new CliImporterError(logName, 'check event api version exists', {
+    //     latestEventApiVersion: latestEventApiVersion ? latestEventApiVersion : 'undefined'
+    //   });
+    // } 
     if(latestEventApiVersion === undefined) return;
 
     // event api version exists
@@ -593,9 +653,9 @@ export class CliImporter {
     }}));
     
     // if ep version is greater spec version ==> don't continue, manual versioning in EP happened
-    if(CliSemVerUtils.is_NewVersion_GreaterThan_OldVersion({
-      newVersion: latestEventApiVersion.version,
-      oldVersion: cliAsyncApiDocument.getVersion(),
+    if(EpSdkSemVerUtils.is_NewVersion_GreaterThan_OldVersion({
+      newVersionString: latestEventApiVersion.version,
+      oldVersionString: cliAsyncApiDocument.getVersion(),
     })) {
       throw new CliAsyncApiSpecBestPracticesError(logName, undefined, "Event Portal Event API Version greater than Api Spec version. Aborting import...", {
         epEventApiName: eventApi.name ? eventApi.name : 'undefined',
@@ -608,160 +668,161 @@ export class CliImporter {
     // both versions are either the same or import spec version is greater than ep spec version
 
     // check if a new event api version would be created
-    const cliEventNames: CliEventNames = cliAsyncApiDocument.getEventNames();
+    // const cliEventNames: CliEventNames = cliAsyncApiDocument.getEventNames();
 
-    const publishEventVersionIds: Array<string> = [];
-    for(const publishEventName of cliEventNames.publishEventNames) {
-      // set run context
-      const rctxt: ICliRunContext_Channel_Event = {
-        messageName: publishEventName
-      };
-      CliRunContext.updateContext({ 
-        runContext: rctxt
-      });  
-      CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.CHECK_EVENT, details: {
-      }}));  
-      // check if event version exists 
-      const eventVersion: EventVersion | undefined = await CliEPEventVersionsService.getLastestVersionByName({ eventName: publishEventName, applicationDomainId: applicationDomainId });
-      // there may not be an event version yet
-      let eventVersionId: string = `new-event-version-for-${publishEventName}`;
-      if(eventVersion !== undefined) {
-        if(eventVersion.id === undefined) throw new CliEPApiContentError(logName, 'eventVersion.id === undefined', {
-          eventVersion: eventVersion
-        });
-        eventVersionId = eventVersion.id;
-      } 
-      publishEventVersionIds.push(eventVersionId);
-    }
-    const subscribeEventVersionIds: Array<string> = [];
-    for(const subscribeEventName of cliEventNames.subscribeEventNames) {
-      // set run context
-      const rctxt: ICliRunContext_Channel_Event = {
-        messageName: subscribeEventName
-      };
-      CliRunContext.updateContext({ 
-        runContext: rctxt
-      });  
-      CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.CHECK_EVENT, details: {
-      }}));
-      // check if event version exists 
-      const eventVersion: EventVersion | undefined = await CliEPEventVersionsService.getLastestVersionByName({ eventName: subscribeEventName, applicationDomainId: applicationDomainId });
-      // there may not be an event version yet
-      let eventVersionId: string = `new-event-version-for-${subscribeEventName}`;
-      if(eventVersion !== undefined) {
-        if(eventVersion.id === undefined) throw new CliEPApiContentError(logName, 'eventVersion.id === undefined', {
-          eventVersion: eventVersion
-        });
-        eventVersionId = eventVersion.id;
-      } 
-      subscribeEventVersionIds.push(eventVersionId);
-    }
+    // const publishEventVersionIds: Array<string> = [];
+    // for(const publishEventName of cliEventNames.publishEventNames) {
+    //   // set run context
+    //   const rctxt: ICliRunContext_Channel_Event = {
+    //     messageName: publishEventName
+    //   };
+    //   CliRunContext.updateContext({ 
+    //     runContext: rctxt
+    //   });  
+    //   CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.CHECK_EVENT, details: {
+    //   }}));  
+    //   // check if event version exists 
+    //   const eventVersion: EventVersion | undefined = await EpSdkEpEventVersionsService.getLatestVersionForEventName({ eventName: publishEventName, applicationDomainId: applicationDomainId });
+    //   // there may not be an event version yet
+    //   let eventVersionId: string = `new-event-version-for-${publishEventName}`;
+    //   if(eventVersion !== undefined) {
+    //     if(eventVersion.id === undefined) throw new CliEPApiContentError(logName, 'eventVersion.id === undefined', {
+    //       eventVersion: eventVersion
+    //     });
+    //     eventVersionId = eventVersion.id;
+    //   } 
+    //   publishEventVersionIds.push(eventVersionId);
+    // }
+    // const subscribeEventVersionIds: Array<string> = [];
+    // for(const subscribeEventName of cliEventNames.subscribeEventNames) {
+    //   // set run context
+    //   const rctxt: ICliRunContext_Channel_Event = {
+    //     messageName: subscribeEventName
+    //   };
+    //   CliRunContext.updateContext({ 
+    //     runContext: rctxt
+    //   });  
+    //   CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.CHECK_EVENT, details: {
+    //   }}));
+    //   // check if event version exists 
+    //   const eventVersion: EventVersion | undefined = await EpSdkEpEventVersionsService.getLatestVersionForEventName({ eventName: subscribeEventName, applicationDomainId: applicationDomainId });
+    //   // there may not be an event version yet
+    //   let eventVersionId: string = `new-event-version-for-${subscribeEventName}`;
+    //   if(eventVersion !== undefined) {
+    //     if(eventVersion.id === undefined) throw new CliEPApiContentError(logName, 'eventVersion.id === undefined', {
+    //       eventVersion: eventVersion
+    //     });
+    //     eventVersionId = eventVersion.id;
+    //   } 
+    //   subscribeEventVersionIds.push(eventVersionId);
+    // }
 
-    // check if a new event api version would be required
-    const cliEventApiVersionTask: CliEventApiVersionTask = new CliEventApiVersionTask({
-      cliTaskState: ECliTaskState.PRESENT,
-      checkmode: true,
-      applicationDomainId: applicationDomainId,
-      eventApiId: eventApi.id,
-      baseVersionString: cliAsyncApiDocument.getVersion(),
-      eventApiVersionSettings: {
-        description: cliAsyncApiDocument.getDescription(),
-        displayName: cliAsyncApiDocument.getTitle(),
-        stateId: CliEPStatesService.getTargetLifecycleState({assetImportTargetLifecycleState: CliConfig.getCliAppConfig().assetImportTargetLifecycleState}),
+    // // check if a new event api version would be required
+    // const epSdkEventApiVersionTask = new EpSdkEventApiVersionTask({
+    //   epSdkTask_TargetState: EEpSdkTask_TargetState.PRESENT,
+    //   applicationDomainId: applicationDomainId,
+    //   eventApiId: eventApi.id,
+    //   initialVersionString: cliAsyncApiDocument.getVersion(),
+    //   epSdk_VersionStrategy: EEpSdk_VersionStrategy.BUMP_PATCH,
+    //   eventApiVersionSettings: {
+    //     description: cliAsyncApiDocument.getDescription(),
+    //     displayName: cliAsyncApiDocument.getTitle(),
+    //     stateId: CliEPStatesService.getTargetLifecycleState({assetImportTargetLifecycleState: this.cliAppConfig.assetImportTargetLifecycleState}),
+    //     producedEventVersionIds: (publishEventVersionIds as unknown) as EventApiVersion.producedEventVersionIds,
+    //     consumedEventVersionIds: (subscribeEventVersionIds as unknown) as EventApiVersion.consumedEventVersionIds,
+    //   },
+    //   checkmode: true
+    // });
+    // const epSdkEventApiVersionTask_ExecuteReturn: IEpSdkEventApiVersionTask_ExecuteReturn = await epSdkEventApiVersionTask.execute();
+    // CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_EVENT_API, details: {
+    //   epSdkEventApiVersionTask_ExecuteReturn: epSdkEventApiVersionTask_ExecuteReturn
+    // }}));
 
-        producedEventVersionIds: (publishEventVersionIds as unknown) as EventApiVersion.producedEventVersionIds,
-        consumedEventVersionIds: (subscribeEventVersionIds as unknown) as EventApiVersion.consumedEventVersionIds,
+    // // check result
+    // // check if new version would be created
+    // if(epSdkEventApiVersionTask_ExecuteReturn.epSdkTask_TransactionLogData.epSdkTask_Action === EEpSdkTask_Action.WOULD_CREATE_NEW_VERSION) {
+    //   const epLatestVersion = latestEventApiVersion.version;
+    //   const importSpecVersion = cliAsyncApiDocument.getVersion();
+    //   // importSpecVersion must be greater than epLatestVersion
+    //   if(!EpSdkSemVerUtils.is_NewVersion_GreaterThan_OldVersion({
+    //     newVersionString: importSpecVersion,
+    //     oldVersionString: epLatestVersion,
+    //   })) {
+    //     // create report of differences
+    //     const epSdkTask_TransactionLogData: IEpSdkTask_TransactionLogData = epSdkEventApiVersionTask_ExecuteReturn.epSdkTask_TransactionLogData;
+    //     if(epSdkTask_TransactionLogData.epSdkTask_IsUpdateRequiredFuncReturn === undefined) throw new CliImporterError(logName, 'epSdkTask_TransactionLogData.epSdkTask_IsUpdateRequiredFuncReturn === undefined', {
+    //       epSdkTask_TransactionLogData: epSdkTask_TransactionLogData
+    //     });
+        
+    //     throw new CliImporterError(logName, 'check the difference format', {
+    //       epSdkTask_TransactionLogData: epSdkTask_TransactionLogData
+    //     });
+    //     // follow the event version ids and get the details and differences: from / to
 
-        // consumedEventVersionIds: subscribeEventVersionIds,
-        // producedEventVersionIds: publishEventVersionIds
-      }
-    });
-    const cliEventApiVersionTask_ExecuteReturn: ICliEventApiVersionTask_ExecuteReturn = await cliEventApiVersionTask.execute();
-    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_EVENT_API, details: {
-      cliEventApiVersionTask_ExecuteReturn: cliEventApiVersionTask_ExecuteReturn
-    }}));
+    //     // const fromTo: {
+    //     //   from: string;
+    //     //   to: string;
+    //     // } = {
+    //     //   from: "03tptnff2sh",
+    //     //   to: "657ob2ysenj" 
+    //     // };
+    //     // const producedEventVersionIds: Array<{
+    //     //   from: string;
+    //     //   to: string;
+    //     // }> = [];
 
-    // check result
-    // check if new version would be created
-    if(cliEventApiVersionTask_ExecuteReturn.actionLog.action === ECliTaskAction.CREATE_NEW_VERSION) {
-      const epLatestVersion = latestEventApiVersion.version;
-      const importSpecVersion = cliAsyncApiDocument.getVersion();
-      // importSpecVersion must be greater than epLatestVersion
-      if(!CliSemVerUtils.is_NewVersion_GreaterThan_OldVersion({
-        newVersion: importSpecVersion,
-        oldVersion: epLatestVersion,
-      })) {
-        // create report of differences
-        const cliEventApiVersionTask_ActionLog: ICliEventApiVersionTask_ActionLog = cliEventApiVersionTask_ExecuteReturn.actionLog;
-        if(cliEventApiVersionTask_ActionLog.details.difference === undefined) throw new CliImporterError(logName, 'cliEventApiVersionTask_ActionLog.details.difference === undefined', {
-          cliEventApiVersionTask_ActionLog: cliEventApiVersionTask_ActionLog
-        });
-        // follow the event version ids and get the details and differences: from / to
-
-        // const fromTo: {
-        //   from: string;
-        //   to: string;
-        // } = {
-        //   from: "03tptnff2sh",
-        //   to: "657ob2ysenj" 
-        // };
-        // const producedEventVersionIds: Array<{
-        //   from: string;
-        //   to: string;
-        // }> = [];
-
-        const fromToEventVersionIdList: Array<TCliImporter_FromTo_EventVersionId> = [];
-        for(const key in cliEventApiVersionTask_ActionLog.details.difference) {
-          let _type = CliUtils.nameOf<EventApiVersion>('producedEventVersionIds');
-          if(key.includes(_type)) {
-            const fromTo: TDeepDiffFromTo = cliEventApiVersionTask_ActionLog.details.difference[key];
-            fromToEventVersionIdList.push({
-              type: _type,
-              fromEventVersionId: fromTo.from,
-              toEventVersionId: fromTo.to
-            });
-          }
-          _type = CliUtils.nameOf<EventApiVersion>('consumedEventVersionIds');
-          if(key.includes(_type)) {
-            const fromTo: TDeepDiffFromTo = cliEventApiVersionTask_ActionLog.details.difference[key];
-            fromToEventVersionIdList.push({
-              type: _type,
-              fromEventVersionId: fromTo.from,
-              toEventVersionId: fromTo.to
-            });
-          }
-        }
-        // gather the even version objects
-        const cliImporter_FromTo_EventVersion_List: Array<TCliImporter_FromTo_EventVersion> = [];
-        for(const cliImporter_FromTo_EventVersionId of fromToEventVersionIdList) {
-          // get both event versions and output details
-          const cliImporter_FromTo_EventVersion: TCliImporter_FromTo_EventVersion = {
-            type: cliImporter_FromTo_EventVersionId.type,
-            fromEventVersion: await CliEPEventVersionsService.getVersionById({ 
-              applicationDomainId: applicationDomainId,
-              eventVersionId: cliImporter_FromTo_EventVersionId.fromEventVersionId,
-            }),
-            toEventVersion: await CliEPEventVersionsService.getVersionById({ 
-              applicationDomainId: applicationDomainId,
-              eventVersionId: cliImporter_FromTo_EventVersionId.toEventVersionId,
-            }),
-            difference: undefined
-          };
-          cliImporter_FromTo_EventVersion.difference = CliEPEventVersionsService.creteVersionDifference4Reporting({ 
-            fromEventVersion: cliImporter_FromTo_EventVersion.fromEventVersion,
-            toEventVersion: cliImporter_FromTo_EventVersion.toEventVersion
-          });
-          cliImporter_FromTo_EventVersion_List.push(cliImporter_FromTo_EventVersion);
-        }
-        throw new CliAsyncApiSpecBestPracticesError(logName, undefined, "Changes made to Api. Api Version not greater than latest Event Portal Event API Version. Aborting import...", {
-          epEventApiName: eventApi.name ? eventApi.name : 'undefined',
-          epEventApiVersionName: latestEventApiVersion.displayName ? latestEventApiVersion.displayName : 'undefined',
-          epEventApiVersion: epLatestVersion,
-          apiVersion: importSpecVersion,
-          eventVersionDifferences: cliImporter_FromTo_EventVersion_List
-        });  
-      }
-    }
+    //     // const fromToEventVersionIdList: Array<TCliImporter_FromTo_EventVersionId> = [];
+    //     // for(const key in epSdkTask_TransactionLogData.epSdkTask_IsUpdateRequiredFuncReturn.difference) {
+    //     //   let _type = CliUtils.nameOf<EventApiVersion>('producedEventVersionIds');
+    //     //   if(key.includes(_type)) {
+    //     //     const fromTo: TDeepDiffFromTo = cliEventApiVersionTask_ActionLog.details.difference[key];
+    //     //     fromToEventVersionIdList.push({
+    //     //       type: _type,
+    //     //       fromEventVersionId: fromTo.from,
+    //     //       toEventVersionId: fromTo.to
+    //     //     });
+    //     //   }
+    //     //   _type = CliUtils.nameOf<EventApiVersion>('consumedEventVersionIds');
+    //     //   if(key.includes(_type)) {
+    //     //     const fromTo: TDeepDiffFromTo = cliEventApiVersionTask_ActionLog.details.difference[key];
+    //     //     fromToEventVersionIdList.push({
+    //     //       type: _type,
+    //     //       fromEventVersionId: fromTo.from,
+    //     //       toEventVersionId: fromTo.to
+    //     //     });
+    //     //   }
+    //     // }
+    //     // gather the even version objects
+    //   //   const cliImporter_FromTo_EventVersion_List: Array<TCliImporter_FromTo_EventVersion> = [];
+    //   //   for(const cliImporter_FromTo_EventVersionId of fromToEventVersionIdList) {
+    //   //     // get both event versions and output details
+    //   //     const cliImporter_FromTo_EventVersion: TCliImporter_FromTo_EventVersion = {
+    //   //       type: cliImporter_FromTo_EventVersionId.type,
+    //   //       fromEventVersion: await CliEPEventVersionsService.getVersionById({ 
+    //   //         applicationDomainId: applicationDomainId,
+    //   //         eventVersionId: cliImporter_FromTo_EventVersionId.fromEventVersionId,
+    //   //       }),
+    //   //       toEventVersion: await CliEPEventVersionsService.getVersionById({ 
+    //   //         applicationDomainId: applicationDomainId,
+    //   //         eventVersionId: cliImporter_FromTo_EventVersionId.toEventVersionId,
+    //   //       }),
+    //   //       difference: undefined
+    //   //     };
+    //   //     cliImporter_FromTo_EventVersion.difference = CliEPEventVersionsService.creteVersionDifference4Reporting({ 
+    //   //       fromEventVersion: cliImporter_FromTo_EventVersion.fromEventVersion,
+    //   //       toEventVersion: cliImporter_FromTo_EventVersion.toEventVersion
+    //   //     });
+    //   //     cliImporter_FromTo_EventVersion_List.push(cliImporter_FromTo_EventVersion);
+    //   //   }
+    //   //   throw new CliAsyncApiSpecBestPracticesError(logName, undefined, "Changes made to Api. Api Version not greater than latest Event Portal Event API Version. Aborting import...", {
+    //   //     epEventApiName: eventApi.name ? eventApi.name : 'undefined',
+    //   //     epEventApiVersionName: latestEventApiVersion.displayName ? latestEventApiVersion.displayName : 'undefined',
+    //   //     epEventApiVersion: epLatestVersion,
+    //   //     apiVersion: importSpecVersion,
+    //   //     eventVersionDifferences: cliImporter_FromTo_EventVersion_List
+    //   //   });  
+    //   }
+    // }
   }
 
   private generate_asset_ouput = ({ cliAsyncApiDocument, filePath, appConfig }:{
@@ -811,7 +872,7 @@ export class CliImporter {
         const cliMessageDocument: CliMessageDocument = cliChannelPublishOperation.getCliMessageDocument();
         if(cliMessageDocument.getContentType() !== E_ASYNC_API_SPEC_CONTENNT_TYPES.APPLICATION_JSON) throw new CliAsyncApiSpecNotSupportedError(logName, undefined, { message: "unsupported message schema content type" }, {
           messageName: cliMessageDocument.getMessageName(),
-          contentType: cliMessageDocument.getContentType(),
+          contentType: CliUtils.map_MessageDocumentContentType_To_EpSchemaContentType(cliMessageDocument.getContentType()),
           supportedContentTypes: cliAsyncApiDocument.getSupportedContentTypes()
         });
 
@@ -827,7 +888,7 @@ export class CliImporter {
         const cliMessageDocument: CliMessageDocument = cliChannelSubscribeOperation.getCliMessageDocument();
         if(cliMessageDocument.getContentType() !== E_ASYNC_API_SPEC_CONTENNT_TYPES.APPLICATION_JSON) throw new CliAsyncApiSpecNotSupportedError(logName, undefined, { message: "unsupported message schema content type" }, {
           messageName: cliMessageDocument.getMessageName(),
-          contentType: cliMessageDocument.getContentType(),
+          contentType: CliUtils.map_MessageDocumentContentType_To_EpSchemaContentType(cliMessageDocument.getContentType()),
           supportedContentTypes: cliAsyncApiDocument.getSupportedContentTypes()
         });
 
@@ -860,28 +921,34 @@ export class CliImporter {
     let xvoid: void;
     
     // ensure application domain name exists
-    const applicationDomainsTask = new CliApplicationDomainTask({
-      cliTaskState: ECliTaskState.PRESENT,
+    const applicationDomainsTask = new EpSdkApplicationDomainTask({
+      epSdkTask_TargetState: EEpSdkTask_TargetState.PRESENT,
       applicationDomainName: cliAsyncApiDocument.getApplicationDomainName(),
       applicationDomainSettings: {
         // description: "a new description x"
+      },
+      epSdkTask_TransactionConfig: {
+        groupTransactionId: this.cliAppConfig.apiGroupTransactionId,
+        parentTransactionId: this.cliAppConfig.apiTransactionId
       }
     });
-    const cliApplicationDomainTask_ExecuteReturn: ICliApplicationDomainTask_ExecuteReturn = await applicationDomainsTask.execute();
+    const epSdkApplicationDomainTask_ExecuteReturn: IEpSdkApplicationDomainTask_ExecuteReturn = await applicationDomainsTask.execute();
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, message: 'created application domain', details: {
-      cliApplicationDomainTask_ExecuteReturn: cliApplicationDomainTask_ExecuteReturn
+      epSdkApplicationDomainTask_ExecuteReturn: epSdkApplicationDomainTask_ExecuteReturn
     }}));
 
     // we need the id in subsequent calls
-    if(cliApplicationDomainTask_ExecuteReturn.applicationDomainObject.id === undefined) throw new CliEPApiContentError(logName, 'cliApplicationDomainTask_ExecuteReturn.applicationDomainObject.id === undefined', {
-      applicationDomainObject: cliApplicationDomainTask_ExecuteReturn.applicationDomainObject,
+    if(epSdkApplicationDomainTask_ExecuteReturn.epObject.id === undefined) throw new CliEPApiContentError(logName, 'epSdkApplicationDomainTask_ExecuteReturn.epObject.id === undefined', {
+      applicationDomainObject: epSdkApplicationDomainTask_ExecuteReturn.epObject,
     });
-    const applicationDomainId: string = cliApplicationDomainTask_ExecuteReturn.applicationDomainObject.id;
+    const applicationDomainId: string = epSdkApplicationDomainTask_ExecuteReturn.epObject.id;
     
-    xvoid = await this.run_present_check_and_compare({ 
-      applicationDomainId: applicationDomainId,
-      cliAsyncApiDocument: cliAsyncApiDocument
-    });
+
+    // TODO: enable again
+    // xvoid = await this.run_present_check_and_compare({ 
+    //   applicationDomainId: applicationDomainId,
+    //   cliAsyncApiDocument: cliAsyncApiDocument
+    // });
 
     // present all channels
     const channelDocumentMap: CliChannelDocumentMap = cliAsyncApiDocument.getChannelDocuments();
@@ -1003,23 +1070,16 @@ export class CliImporter {
 
     } catch(e: any) {
       if(e instanceof CliError) {
-        CliLogger.error(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_ERROR, details: {
-          error: e
-        }}));
+        cliImporterRunReturn.error = e;
+      } else if(e instanceof EpSdkError) {
+        cliImporterRunReturn.error = new CliErrorFromEpSdkError(logName, undefined, e);
       } else if(e instanceof ApiError) {
-        CliLogger.error(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_ERROR, details: {
-          error: new CliErrorFromSEPApiError(logName, undefined, e)
-        }}));
+        cliImporterRunReturn.error = new CliErrorFromSEPApiError(logName, undefined, e);
       } else if(e instanceof ParserError) {
-        CliLogger.error(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_ERROR, details: {
-          error: new CliAsyncApiParserError(logName, undefined, e)
-        }}));
+        cliImporterRunReturn.error = new CliAsyncApiParserError(logName, undefined, e);
       } else {
-        CliLogger.error(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_ERROR, details: {
-          error: new CliErrorFromError(e, logName)
-        }}));  
+        cliImporterRunReturn.error = new CliErrorFromError(e, logName);
       }
-      cliImporterRunReturn.error = e;
     } finally {
       return cliImporterRunReturn;
     }

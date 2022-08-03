@@ -1,5 +1,5 @@
 import { SemVer, coerce as SemVerCoerce, valid as SemVerValid } from "semver";
-import { ECliAssetImportTargetLifecycleState_VersionStrategy } from "./CliConfig";
+import { EEpSdk_VersionStrategy } from '@solace-iot-team/ep-sdk/EpSdkSemVerUtils';
 import { CliUtils } from "./CliUtils";
 
 export class CliSemVerUtils {
@@ -18,17 +18,17 @@ export class CliSemVerUtils {
 
   public createNextVersion({ versionString, strategy }:{
     versionString: string;
-    strategy: ECliAssetImportTargetLifecycleState_VersionStrategy;
+    strategy: EEpSdk_VersionStrategy;
   }): string {
     const funcName = 'createNextVersion';
     const logName = `${CliSemVerUtils.name}.${funcName}()`;
 
     const versionSemVer = new SemVer(versionString);
     switch(strategy) {
-      case ECliAssetImportTargetLifecycleState_VersionStrategy.BUMP_MINOR:
+      case EEpSdk_VersionStrategy.BUMP_MINOR:
         versionSemVer.inc("minor");
         break;
-      case ECliAssetImportTargetLifecycleState_VersionStrategy.BUMP_PATCH:
+      case EEpSdk_VersionStrategy.BUMP_PATCH:
         versionSemVer.inc("patch");
         break;
       default:

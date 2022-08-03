@@ -4,6 +4,8 @@ import fs from 'fs';
 import { CliError, CliErrorFromError, CliInvalidDirConfigEnvVarError, CliInvalidUrlConfigEnvVarError, ConfigMissingEnvVarError, InvalidEnvVarValueFromListError, InvalidFileConfigError } from './CliError';
 import { CliLogger, ECliStatusCodes } from './CliLogger';
 import { CliUtils } from './CliUtils';
+import { EEpSdk_VersionStrategy } from '@solace-iot-team/ep-sdk/EpSdkSemVerUtils';
+import { EEpSdk_VersionTaskStrategy } from '@solace-iot-team/ep-sdk/tasks/EpSdkVersionTask';
 
 export enum ECliImporterMode {
   RELEASE_MODE = "release_mode",
@@ -13,13 +15,13 @@ const ValidEnvCliImporterMode = {
   RELEASE_MODE: ECliImporterMode.RELEASE_MODE,
   TEST_MODE: ECliImporterMode.TEST_MODE
 }
-export enum ECliAssetImportTargetLifecycleState_VersionStrategy {
-  BUMP_MINOR = "bump_minor",
-  BUMP_PATCH = "bump_patch"
-}
+// export enum ECliAssetImportTargetLifecycleState_VersionStrategy {
+//   BUMP_MINOR = "bump_minor",
+//   BUMP_PATCH = "bump_patch"
+// }
 const ValidEnvAssetImportTargetLifecycleState_VersionStrategy = {
-  BUMP_MINOR: ECliAssetImportTargetLifecycleState_VersionStrategy.BUMP_MINOR,
-  BUMP_PATCH: ECliAssetImportTargetLifecycleState_VersionStrategy.BUMP_PATCH
+  BUMP_MINOR: EEpSdk_VersionTaskStrategy.BUMP_MINOR,
+  BUMP_PATCH: EEpSdk_VersionTaskStrategy.BUMP_PATCH
 }
 export enum ECliAssetImportTargetLifecycleState {
   RELEASED = "released",
@@ -30,7 +32,7 @@ const ValidEnvAssetImportTargetLifecycleState = {
   DRAFT: ECliAssetImportTargetLifecycleState.DRAFT,
 }
 export type TAssetImportTargetLifecycleState_Base = {
-  versionStrategy: ECliAssetImportTargetLifecycleState_VersionStrategy;
+  versionStrategy: EEpSdk_VersionTaskStrategy;
 }
 export type TAssetImportTargetLifecycleState_Draft = TAssetImportTargetLifecycleState_Base & {
   type: ECliAssetImportTargetLifecycleState.DRAFT;
@@ -63,6 +65,8 @@ export type TCliAppConfig = {
   prefixDomainName?: string;
   assetImportTargetLifecycleState: TAssetImportTargetLifecycleState;
   assetOutputRootDir: string;
+  apiTransactionId: string;
+  apiGroupTransactionId: string;
 }
 export type TCliEpApiConfig = {
   epApiBaseUrl: string;
@@ -108,7 +112,7 @@ export class CliConfig {
     level: CliConfig.DEFAULT_LOGGER_LOG_LEVEL,
   };
 
-  private createPrefixDomainName = ({ cliConfig }:{
+  public createPrefixDomainName = ({ cliConfig }:{
     cliConfig: TCliConfig;
   }): string | undefined => {
     if(cliConfig.appConfig.importerMode === ECliImporterMode.TEST_MODE) {
@@ -206,7 +210,7 @@ export class CliConfig {
     const logName = `${CliConfig.name}.${funcName}()`;
 
     const cliAssetImportTargetLifecycleState: ECliAssetImportTargetLifecycleState = this.getOptionalEnvVarValueAsString_From_List_WithDefault(EEnvVars.CLI_ASSET_IMPORT_TARGET_LIFECYLE_STATE, Object.values(ValidEnvAssetImportTargetLifecycleState), CliConfig.DEFAULT_CLI_ASSET_IMPORT_TARGET_LIFECYLE_STATE) as ECliAssetImportTargetLifecycleState;
-    const cliAssetImportTargetLifecycleState_VersionStrategy: ECliAssetImportTargetLifecycleState_VersionStrategy = this.getOptionalEnvVarValueAsString_From_List_WithDefault(EEnvVars.CLI_ASSET_IMPORT_TARGET_VERSION_STRATEGY, Object.values(ValidEnvAssetImportTargetLifecycleState_VersionStrategy), CliConfig.DEFAULT_CLI_ASSET_IMPORT_TARGET_VERSION_STRATEGY) as ECliAssetImportTargetLifecycleState_VersionStrategy;
+    const cliAssetImportTargetLifecycleState_VersionStrategy: EEpSdk_VersionTaskStrategy = this.getOptionalEnvVarValueAsString_From_List_WithDefault(EEnvVars.CLI_ASSET_IMPORT_TARGET_VERSION_STRATEGY, Object.values(ValidEnvAssetImportTargetLifecycleState_VersionStrategy), CliConfig.DEFAULT_CLI_ASSET_IMPORT_TARGET_VERSION_STRATEGY) as EEpSdk_VersionTaskStrategy;
 
     switch(cliAssetImportTargetLifecycleState) {
       case ECliAssetImportTargetLifecycleState.DRAFT:
@@ -238,10 +242,11 @@ export class CliConfig {
     return absoluteDir;
   }
 
-  public initialize = ({ filePath, fileList, globalDomainName }: {
+  public initialize = ({ filePath, fileList, globalDomainName, apiGroupTransactionId }: {
     fileList?: Array<string>;
     filePath?: string;
     globalDomainName?: string;
+    apiGroupTransactionId: string;
   }): void => {
     const funcName = 'initialize';
     const logName = `${CliConfig.name}.${funcName}()`;
@@ -285,6 +290,8 @@ export class CliConfig {
           domainName: globalDomainName,
           assetImportTargetLifecycleState: this.initialize_AssetImportTargetLifecycleState(),
           assetOutputRootDir: assetOutputRootDir,
+          apiGroupTransactionId: apiGroupTransactionId,
+          apiTransactionId: 'undefined'
         },
         epApiConfig: {
           epApiBaseUrl: this.getOptionalEnvVarValueAsUrlWithDefault(EEnvVars.CLI_EP_API_BASE_URL, CliConfig.DEFAULT_CLI_EP_API_BASE_URL),
@@ -323,6 +330,10 @@ export class CliConfig {
 
   public getCliAppConfig = (): TCliAppConfig => {
     return this.config.appConfig;
+  }
+
+  public getCopyOfCliAppConfig = (): TCliAppConfig => {
+    return JSON.parse(JSON.stringify(this.config.appConfig));
   }
 
   public getCliEpApiConfig = (): TCliEpApiConfig => {

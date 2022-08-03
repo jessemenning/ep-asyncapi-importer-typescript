@@ -1,6 +1,7 @@
 import CliConfig from "./CliConfig";
 import { CliLogger, ECliStatusCodes } from "./CliLogger";
 import { ApiError } from "@solace-iot-team/ep-sdk/sep-openapi-node";
+import { EpSdkError } from "@solace-iot-team/ep-sdk/EpSdkErrors";
 
 export class CliErrorFactory {
   public static createCliError = (e: any, logName: string): CliError => {
@@ -62,6 +63,15 @@ export class CliErrorFromError extends CliError {
       errors: originalError.errors || [{ message: originalError.message }],
       status: originalError.status
     }
+  }
+}
+
+export class CliErrorFromEpSdkError extends CliError {
+  protected static defaultDescription = 'EP SDK Error';
+  public epSdkError: EpSdkError;
+  constructor(internalLogName: string, internalMessage: string = CliErrorFromEpSdkError.defaultDescription, epSdkError: EpSdkError) {
+    super(internalLogName, internalMessage);
+    this.epSdkError = epSdkError;
   }
 }
 

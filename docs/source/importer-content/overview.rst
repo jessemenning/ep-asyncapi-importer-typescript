@@ -6,10 +6,15 @@ Overview
 * import large number of apis in CI/CD pipeline into released state
 * test importing apis in CI/CD pipeline before importing proper
 
+.. note::
+
+  Importer currently does not rollback imports on error. Instead, use `test_mode` first, then `release_mode`.
+
+
 Application Domain
 ------------------
 
-* application domain is specified in the api itself using extension
+* application domain is specified in the api itself using extension: `$.x-sep-application-domain-name`
 * global application domain overrides all api application domains
 
 Asset Mapping & Naming

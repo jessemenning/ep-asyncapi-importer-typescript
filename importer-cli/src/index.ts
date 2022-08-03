@@ -11,11 +11,11 @@ import { CliImporter, ICliImporterRunReturn } from './CliImporter';
 import { Command, OptionValues } from 'commander';
 import { glob } from 'glob';
 import { CliUsageError } from './CliError';
-import CliEPApplicationDomainsService from './services/CliEPApplicationDomainsService';
-// import { ApplicationDomain } from './_generated/@solace-iot-team/sep-openapi-node';
-// import { EPClient } from './EPClient';
 import { ApplicationDomain } from '@solace-iot-team/ep-sdk/sep-openapi-node';
-import { EPClient } from '@solace-iot-team/ep-sdk/EPClient';
+import { EpSdkClient } from '@solace-iot-team/ep-sdk/EpSdkClient';
+// import CliEPApplicationDomainsService from './services/CliEPApplicationDomainsService';
+import EpSdkApplicationDomainsService from '@solace-iot-team/ep-sdk/services/EpSdkApplicationDomainsService';
+import { CliUtils } from './CliUtils';
 
 dotenv.config();
 const packageJson = require('../package.json');
@@ -27,18 +27,25 @@ const createApiSpecFileList = (filePattern: string): Array<string> => {
   return files;
 }
 
-async function cleanup({ applicationDomainNameList }:{
-  applicationDomainNameList: Array<string>;
+async function rollback({ }:{
 }): Promise<void> {
-  const funcName = 'cleanup';
+  const funcName = 'rollback';
   const logName = `${ComponentName}.${funcName}()`;
 
-  // if test mode then delete the application domains
-  if(CliConfig.getCliAppConfig().importerMode !== ECliImporterMode.TEST_MODE) return;
+  CliLogger.warn(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.INFO, message: 'TODO: implement rollback', details: {
+    importerMode: CliConfig.getCliAppConfig().importerMode,
+  }}));
+}
+
+async function deleteApplicationDomains({ applicationDomainNameList }:{
+  applicationDomainNameList: Array<string>;
+}): Promise<void> {
+  const funcName = 'deleteApplicationDomains';
+  const logName = `${ComponentName}.${funcName}()`;
 
   for(const applicationDomainName of applicationDomainNameList) {
     try {
-      const applicationDomain: ApplicationDomain = await CliEPApplicationDomainsService.deleteByName( { 
+      const applicationDomain: ApplicationDomain = await EpSdkApplicationDomainsService.deleteByName( { 
         applicationDomainName: applicationDomainName
       });
       CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.INFO, message: 'application domain deleted', details: {
@@ -51,6 +58,66 @@ async function cleanup({ applicationDomainNameList }:{
   }
 }
 
+async function run_test_mode_before_release_mode() {
+  const funcName = 'run_test_mode_before_release_mode';
+  const logName = `${ComponentName}.${funcName}()`;
+
+  if(CliConfig.getCliAppConfig().importerMode === ECliImporterMode.TEST_MODE) return;
+
+  // re-configure app config for test mode
+  const copyOfCliAppConfig: TCliAppConfig = CliConfig.getCopyOfCliAppConfig();
+  const testModeAppConfig: TCliAppConfig = {
+    ...copyOfCliAppConfig,
+    importerMode: ECliImporterMode.TEST_MODE,
+  };
+  testModeAppConfig.prefixDomainName = CliConfig.createPrefixDomainName({ cliConfig: {
+    ...CliConfig.getConfig(),
+    appConfig: testModeAppConfig
+  }});
+
+  // keep track of applicationDomains 
+  const applicationDomainNameList: Array<string> = [];
+
+  try {
+    for(const asyncApiFile of CliConfig.getCliAppConfig().asyncApiFileList) {
+
+      CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.INFO, message: 'starting...', details: {
+        asyncApiFile: asyncApiFile
+      }}));
+
+      const cliAppConfig: TCliAppConfig = {
+        ...testModeAppConfig,
+        asyncApiFileName: asyncApiFile,
+        apiTransactionId: CliUtils.getUUID(),
+      };
+
+      const importer = new CliImporter(cliAppConfig);
+      const cliImporterRunReturn: ICliImporterRunReturn = await importer.run();  
+      if(cliImporterRunReturn.applicationDomainName !== undefined) applicationDomainNameList.push(cliImporterRunReturn.applicationDomainName);
+      if(cliImporterRunReturn.error !== undefined) throw cliImporterRunReturn.error;
+
+      CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.INFO, message: 'done.', details: {
+        asyncApiFile: asyncApiFile,
+      }}));
+
+    }
+    const xvoid: void = await deleteApplicationDomains({ applicationDomainNameList: applicationDomainNameList });
+        
+  } catch(e) {
+
+    const xvoid: void = await deleteApplicationDomains({ applicationDomainNameList: applicationDomainNameList });
+  
+    CliLogger.error(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_ERROR, details: {
+      error: e
+    }}));
+
+    throw e;
+
+  }
+
+}
+
+
 async function main() {
   const funcName = 'main';
   const logName = `${ComponentName}.${funcName}()`;
@@ -58,6 +125,8 @@ async function main() {
   CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.INFO, message: 'starting...', details: {
     cliAppConfig: CliConfig.getCliAppConfig()
   }}));
+
+  await run_test_mode_before_release_mode();
 
   // keep track of applicationDomains 
   const applicationDomainNameList: Array<string> = [];
@@ -72,6 +141,7 @@ async function main() {
       const cliAppConfig: TCliAppConfig = {
         ...CliConfig.getCliAppConfig(),
         asyncApiFileName: asyncApiFile,
+        apiTransactionId: CliUtils.getUUID(),
       };
       const importer = new CliImporter(cliAppConfig);
       const cliImporterRunReturn: ICliImporterRunReturn = await importer.run();  
@@ -82,12 +152,22 @@ async function main() {
         asyncApiFile: asyncApiFile,
       }}));
 
-      const xvoid: void = await cleanup({ applicationDomainNameList: applicationDomainNameList });
-
     }
+    // if test mode then delete the application domains
+    if(CliConfig.getCliAppConfig().importerMode === ECliImporterMode.TEST_MODE) {
+      const xvoid: void = await deleteApplicationDomains({ applicationDomainNameList: applicationDomainNameList });
+    }    
   } catch(e) {
 
-    const xvoid: void = await cleanup({ applicationDomainNameList: applicationDomainNameList });
+    if(CliConfig.getCliAppConfig().importerMode === ECliImporterMode.TEST_MODE) {
+      const xvoid: void = await deleteApplicationDomains({ applicationDomainNameList: applicationDomainNameList });
+    } else {
+      const xvoid: void = await rollback({ });
+    }
+  
+    CliLogger.error(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_ERROR, details: {
+      error: e
+    }}));
 
     throw e;
 
@@ -117,11 +197,12 @@ function initialize(commandLineOptionValues: OptionValues) {
 
   CliConfig.initialize({
     fileList: fileList,
-    globalDomainName: commandLineOptionValues.domain
+    globalDomainName: commandLineOptionValues.domain,
+    apiGroupTransactionId: CliUtils.getUUID(),
   });
   CliLogger.initialize(CliConfig.getCliLoggerConfig());
   CliConfig.logConfig();
-  EPClient.initialize({
+  EpSdkClient.initialize({
     token: CliConfig.getSolaceCloudToken(),
     baseUrl: CliConfig.getCliEpApiConfig().epApiBaseUrl
   });  

@@ -2,6 +2,25 @@
 
 Solace Event Portal Async API Importer.
 
+## Version 0.3.0-alpha
+
+**New Features:**
+- **run tests before import for CLI_MODE=release_mode**
+  - run tests in a dummy application domain before importing into target domain
+
+**Enhancements:**
+- **transaction ids**
+  - added apiGroupTransactionId and apiTransactionId for transaction logging
+  - maps to groupTransactionId and parentTransactionId in ep sdk tasks
+
+**Core:**
+- **Ep Sdk**
+  - added use of EpSdkApplicationTask
+  - added use of EpSdkEnumTask & EpSdkEnumVersionTask
+  - added use of EpSdkSchemaTask & EPSdkSchemaVersionTask
+  - added use of EpSdkEpEventTask & EPSdkEpEventVersionTask
+
+
 ## Version 0.2.0-alpha
   * [Solace Event Portal OpenAPI](https://github.com/solace-iot-team/sep-async-api-importer/blob/main/resources/sep-openapi-spec.2.0.0-ea.json): '2.0.0-ea'
 

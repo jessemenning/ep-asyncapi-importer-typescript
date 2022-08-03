@@ -2,6 +2,9 @@ import fs from 'fs';
 import path from 'path';
 import _ from "lodash";
 import { v4 as uuidv4 } from 'uuid';
+import { E_ASYNC_API_SPEC_CONTENNT_TYPES } from './documents/CliAsyncApiDocument';
+import { EEpSdkSchemaContentType } from '@solace-iot-team/ep-sdk/services/EpSdkSchemasService';
+import { CliImporterError } from './CliError';
 
 
 // export type APSOptional<T, K extends keyof T> = Pick<Partial<T>, K> & Omit<T, K>;
@@ -180,5 +183,18 @@ export class CliUtils {
       difference: deepDiffResult
     };
   }
+
+  public static map_MessageDocumentContentType_To_EpSchemaContentType(messageContentType: E_ASYNC_API_SPEC_CONTENNT_TYPES): EEpSdkSchemaContentType {
+    const funcName = 'map_MessageDocumentContentType_To_EpSchemaContentType';
+    const logName = `${CliUtils.name}.${funcName}()`;
+    switch(messageContentType) {
+      case E_ASYNC_API_SPEC_CONTENNT_TYPES.APPLICATION_JSON:
+        return EEpSdkSchemaContentType.APPLICATION_JSON;
+      default:
+        CliUtils.assertNever(logName, messageContentType);
+    }
+    throw new CliImporterError(logName, 'should never get here', { messageContentType: messageContentType });
+  }
+
 
 }
