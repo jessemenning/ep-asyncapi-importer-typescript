@@ -1,7 +1,6 @@
 import { CliLogger, ECliStatusCodes } from './CliLogger';
 import CliConfig, { ECliAssetsTargetState, TCliAppConfig } from './CliConfig';
 import { CliAsyncApiDocument, CliChannelDocumentMap, CliChannelParameterDocumentMap, CliEventNames, E_ASYNC_API_SPEC_CONTENNT_TYPES } from './documents/CliAsyncApiDocument';
-import { ECliTaskAction, ECliTaskState } from './tasks/CliTask';
 import { 
   EpSdkApplicationDomainTask, 
   IEpSdkApplicationDomainTask_ExecuteReturn 
@@ -12,12 +11,12 @@ import {
 import {
   EpSdkEnumVersionTask, IEpSdkEnumVersionTask_ExecuteReturn
 } from "@solace-iot-team/ep-sdk/tasks/EpSdkEnumVersionTask";
-import EpSdkSemVerUtils, { EEpSdk_VersionStrategy } from '@solace-iot-team/ep-sdk/EpSdkSemVerUtils';
-import { EEpSdkTask_Action, EEpSdkTask_TargetState } from '@solace-iot-team/ep-sdk/tasks/EpSdkTask';
+import EpSdkSemVerUtils from '@solace-iot-team/ep-sdk/EpSdkSemVerUtils';
+import { EEpSdkTask_TargetState } from '@solace-iot-team/ep-sdk/tasks/EpSdkTask';
 import { EpSdkError } from '@solace-iot-team/ep-sdk/EpSdkErrors';
 
 import CliEPStatesService from './services/CliEPStatesService';
-import { CliUtils, TDeepDiffFromTo } from './CliUtils';
+import { CliUtils } from './CliUtils';
 import { 
   CliAsyncApiSpecBestPracticesError, 
   CliAsyncApiSpecNotSupportedError, 
@@ -40,7 +39,7 @@ import {
   eventApiVersion as EventApiVersion,
   ApiError,
   EventVersion
-} from '@solace-iot-team/ep-sdk/sep-openapi-node';
+} from '@solace-iot-team/ep-openapi-node';
 import { CliMessageDocument } from './documents/CliMessageDocument';
 import { CliChannelDocument, CliChannelParameterDocument, CliChannelPublishOperation, CliChannelSubscribeOperation } from './documents/CliChannelDocument';
 import CliAsyncApiDocumentsService from './services/CliAsyncApiDocumentsService';
@@ -64,20 +63,19 @@ import { EpSdkEventApiVersionTask, IEpSdkEventApiVersionTask_ExecuteReturn } fro
 import EpSdkEpEventVersionsService from '@solace-iot-team/ep-sdk/services/EpSdkEpEventVersionsService';
 import EpSdkEventApisService from '@solace-iot-team/ep-sdk/services/EpSdkEventApisService';
 import EpSdkEventApiVersionsService from '@solace-iot-team/ep-sdk/services/EpSdkEventApiVersionsService';
-import { IEpSdkTask_TransactionLogData } from '@solace-iot-team/ep-sdk/tasks/EpSdkTask_TransactionLog';
 import { EEpSdk_VersionTaskStrategy } from '@solace-iot-team/ep-sdk/tasks/EpSdkVersionTask';
 
-type TCliImporter_FromTo_EventVersionId = {
-  type: string;
-  fromEventVersionId: string;
-  toEventVersionId: string;
-}
-type TCliImporter_FromTo_EventVersion = {
-  type: string;
-  fromEventVersion: EventVersion;
-  toEventVersion: EventVersion;
-  difference: any;
-}
+// type TCliImporter_FromTo_EventVersionId = {
+//   type: string;
+//   fromEventVersionId: string;
+//   toEventVersionId: string;
+// }
+// type TCliImporter_FromTo_EventVersion = {
+//   type: string;
+//   fromEventVersion: EventVersion;
+//   toEventVersion: EventVersion;
+//   difference: any;
+// }
 
 export interface ICliImporterRunReturn {
   applicationDomainName: string | undefined;

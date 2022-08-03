@@ -5,7 +5,7 @@ import { CliUtils } from '../CliUtils';
 import {
   StatesResponse, 
   StatesService 
-} from '@solace-iot-team/ep-sdk/sep-openapi-node';
+} from '@solace-iot-team/ep-openapi-node';
 import EpSdkStatesService from "@solace-iot-team/ep-sdk/services/EpSdkStatesService";
 
 /**

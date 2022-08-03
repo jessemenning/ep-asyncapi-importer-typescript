@@ -1,7 +1,7 @@
 import pino from 'pino';
 import { TCliLoggerConfig } from './CliConfig';
 import CliRunContext, { ICliRunContext } from './CliRunContext';
-import { EEpSdkLogLevel, EpSdkLogger, IEpSdkLogDetails, IEpSdkLogEntry, IEpSdkLoggerInstance } from "@solace-iot-team/ep-sdk/EpSdkLogger";
+import { EEpSdkLogLevel, EpSdkLogger, IEpSdkLogEntry, IEpSdkLoggerInstance } from "@solace-iot-team/ep-sdk/EpSdkLogger";
 
 export enum ECliStatusCodes {
   INFO = "INFO",

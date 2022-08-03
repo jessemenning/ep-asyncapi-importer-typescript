@@ -16,7 +16,7 @@ import { CliError } from "../src/CliError";
 import EpSdkApplicationDomainsService from '@solace-iot-team/ep-sdk/services/EpSdkApplicationDomainsService';
 import { 
   ApplicationDomain 
-} from '@solace-iot-team/ep-sdk/sep-openapi-node';
+} from '@solace-iot-team/ep-openapi-node';
 import { EpSdkClient } from "@solace-iot-team/ep-sdk/EpSdkClient";
 
 // ensure any unhandled exception cause exit = 1
