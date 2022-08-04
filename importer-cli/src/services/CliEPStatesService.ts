@@ -6,7 +6,9 @@ import {
   StatesResponse, 
   StatesService 
 } from '@solace-iot-team/ep-openapi-node';
-import EpSdkStatesService from "@solace-iot-team/ep-sdk/services/EpSdkStatesService";
+import {
+  EpSdkStatesService 
+} from "@solace-iot-team/ep-sdk";
 
 /**
  * EP Asset States.

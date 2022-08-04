@@ -13,11 +13,13 @@ import { expect } from 'chai';
 import CliConfig from "../src/CliConfig";
 import { CliLogger } from "../src/CliLogger";
 import { CliError } from "../src/CliError";
-import EpSdkApplicationDomainsService from '@solace-iot-team/ep-sdk/services/EpSdkApplicationDomainsService';
+import {
+  EpSdkApplicationDomainsService,
+  EpSdkClient
+}from '@solace-iot-team/ep-sdk';
 import { 
   ApplicationDomain 
 } from '@solace-iot-team/ep-openapi-node';
-import { EpSdkClient } from "@solace-iot-team/ep-sdk/EpSdkClient";
 
 // ensure any unhandled exception cause exit = 1
 function onUncaught(err: any){

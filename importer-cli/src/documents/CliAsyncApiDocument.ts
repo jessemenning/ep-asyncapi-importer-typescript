@@ -7,10 +7,13 @@ import {
   CliAsyncApiSpecError, 
   CliAsyncApiSpecXtensionError
 } from '../CliError';
-import CliSemVerUtils from '../CliSemVerUtils';
 import { CliMessageDocument } from './CliMessageDocument';
 import { CliChannelDocument, CliChannelParameterDocument, CliChannelPublishOperation, CliChannelSubscribeOperation } from './CliChannelDocument';
-import EpSdkEventApiVersionsService from '@solace-iot-team/ep-sdk/services/EpSdkEventApiVersionsService';
+
+import {
+  EpSdkEventApiVersionsService,
+  EpSdkSemVerUtils
+} from '@solace-iot-team/ep-sdk';
 
 enum E_EP_Extensions {
   X_APPLICATION_DOMAIN_NAME = "x-sep-application-domain-name",
@@ -75,7 +78,7 @@ export class CliAsyncApiDocument {
 
     // version must be in SemVer format
     const versionStr: string = this.getVersion();
-    if(!CliSemVerUtils.isSemVerFormat({ versionString: versionStr })) {
+    if(!EpSdkSemVerUtils.isSemVerFormat({ versionString: versionStr })) {
       throw new CliAsyncApiSpecBestPracticesError(logName, undefined, "Please use semantic versioning format for API version.", { versionString: versionStr });
     }
     // check that all channels have a message - must not be inline

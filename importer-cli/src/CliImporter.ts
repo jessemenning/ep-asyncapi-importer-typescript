@@ -3,17 +3,55 @@ import CliConfig, { ECliAssetsTargetState, TCliAppConfig } from './CliConfig';
 import { CliAsyncApiDocument, CliChannelDocumentMap, CliChannelParameterDocumentMap, CliEventNames, E_ASYNC_API_SPEC_CONTENNT_TYPES } from './documents/CliAsyncApiDocument';
 import { 
   EpSdkApplicationDomainTask, 
-  IEpSdkApplicationDomainTask_ExecuteReturn 
-} from '@solace-iot-team/ep-sdk/tasks/EpSdkApplicationDomainTask';
-import {
-  EpSdkEnumTask, IEpSdkEnumTask_ExecuteReturn
-} from "@solace-iot-team/ep-sdk/tasks/EpSdkEnumTask";
-import {
-  EpSdkEnumVersionTask, IEpSdkEnumVersionTask_ExecuteReturn
-} from "@solace-iot-team/ep-sdk/tasks/EpSdkEnumVersionTask";
-import EpSdkSemVerUtils from '@solace-iot-team/ep-sdk/EpSdkSemVerUtils';
-import { EEpSdkTask_TargetState } from '@solace-iot-team/ep-sdk/tasks/EpSdkTask';
-import { EpSdkError } from '@solace-iot-team/ep-sdk/EpSdkErrors';
+  IEpSdkApplicationDomainTask_ExecuteReturn,
+  EpSdkEnumTask, 
+  IEpSdkEnumTask_ExecuteReturn,
+  EpSdkEnumVersionTask, 
+  IEpSdkEnumVersionTask_ExecuteReturn,
+  EEpSdkTask_TargetState,
+  EpSdkError,
+  EpSdkSemVerUtils,
+  EpSdkSchemaTask, 
+  IEpSdkSchemaTask_ExecuteReturn,
+  EpSdkSchemaVersionTask, 
+  IEpSdkSchemaVersionTask_ExecuteReturn,
+  EEpSdkSchemaType,
+  EpSdkEpEventVersionTask, 
+  EEpSdk_VersionTaskStrategy,
+  IEpSdkEpEventVersionTask_ExecuteReturn,
+  EpSdkEpEventTask, 
+  IEpSdkEpEventTask_ExecuteReturn,
+  EpSdkEventApiTask, 
+  IEpSdkEventApiTask_ExecuteReturn,
+  EpSdkEventApiVersionTask, 
+  IEpSdkEventApiVersionTask_ExecuteReturn,
+  EpSdkEpEventVersionsService,
+  EpSdkEventApisService,
+  EpSdkEventApiVersionsService
+} from '@solace-iot-team/ep-sdk';
+// import { EpSdkSchemaTask, IEpSdkSchemaTask_ExecuteReturn } from '@solace-iot-team/ep-sdk/tasks/EpSdkSchemaTask'
+// import { EpSdkSchemaVersionTask, IEpSdkSchemaVersionTask_ExecuteReturn } from '@solace-iot-team/ep-sdk/tasks/EpSdkSchemaVersionTask';
+
+// import { EEpSdkSchemaType } from '@solace-iot-team/ep-sdk/services/EpSdkSchemasService';
+
+// import { EpSdkEpEventVersionTask, IEpSdkEpEventVersionTask_ExecuteReturn } from '@solace-iot-team/ep-sdk/tasks/EpSdkEpEventVersionTask';
+// import { EpSdkEpEventTask, IEpSdkEpEventTask_ExecuteReturn } from '@solace-iot-team/ep-sdk/tasks/EpSdkEpEventTask';
+// import { EpSdkEventApiTask, IEpSdkEventApiTask_ExecuteReturn } from '@solace-iot-team/ep-sdk/tasks/EpSdkEventApiTask';
+// import { EpSdkEventApiVersionTask, IEpSdkEventApiVersionTask_ExecuteReturn } from '@solace-iot-team/ep-sdk/tasks/EpSdkEventApiVersionTask';
+// import EpSdkEpEventVersionsService from '@solace-iot-team/ep-sdk/services/EpSdkEpEventVersionsService';
+// import EpSdkEventApisService from '@solace-iot-team/ep-sdk/services/EpSdkEventApisService';
+// import EpSdkEventApiVersionsService from '@solace-iot-team/ep-sdk/services/EpSdkEventApiVersionsService';
+// import { EEpSdk_VersionTaskStrategy } from '@solace-iot-team/ep-sdk/tasks/EpSdkVersionTask';
+
+// import {
+//   EpSdkEnumTask, IEpSdkEnumTask_ExecuteReturn
+// } from "@solace-iot-team/ep-sdk/tasks/EpSdkEnumTask";
+// import {
+//   EpSdkEnumVersionTask, IEpSdkEnumVersionTask_ExecuteReturn
+// } from "@solace-iot-team/ep-sdk/tasks/EpSdkEnumVersionTask";
+// import EpSdkSemVerUtils from '@solace-iot-team/ep-sdk/EpSdkSemVerUtils';
+// import { EEpSdkTask_TargetState } from '@solace-iot-team/ep-sdk/tasks/EpSdkTask';
+// import { EpSdkError } from '@solace-iot-team/ep-sdk/EpSdkErrors';
 
 import CliEPStatesService from './services/CliEPStatesService';
 import { CliUtils } from './CliUtils';
@@ -28,8 +66,6 @@ import {
   CliImporterError, 
   CliErrorFromEpSdkError
 } from './CliError';
-import { EpSdkSchemaTask, IEpSdkSchemaTask_ExecuteReturn } from '@solace-iot-team/ep-sdk/tasks/EpSdkSchemaTask'
-import { EpSdkSchemaVersionTask, IEpSdkSchemaVersionTask_ExecuteReturn } from '@solace-iot-team/ep-sdk/tasks/EpSdkSchemaVersionTask';
 import { 
   SchemaObject, 
   Event as EPEvent, 
@@ -55,15 +91,6 @@ import CliRunContext, {
   ICliRunContext_State 
 } from './CliRunContext';
 import { ParserError } from '@asyncapi/parser';
-import { EEpSdkSchemaType } from '@solace-iot-team/ep-sdk/services/EpSdkSchemasService';
-import { EpSdkEpEventVersionTask, IEpSdkEpEventVersionTask_ExecuteReturn } from '@solace-iot-team/ep-sdk/tasks/EpSdkEpEventVersionTask';
-import { EpSdkEpEventTask, IEpSdkEpEventTask_ExecuteReturn } from '@solace-iot-team/ep-sdk/tasks/EpSdkEpEventTask';
-import { EpSdkEventApiTask, IEpSdkEventApiTask_ExecuteReturn } from '@solace-iot-team/ep-sdk/tasks/EpSdkEventApiTask';
-import { EpSdkEventApiVersionTask, IEpSdkEventApiVersionTask_ExecuteReturn } from '@solace-iot-team/ep-sdk/tasks/EpSdkEventApiVersionTask';
-import EpSdkEpEventVersionsService from '@solace-iot-team/ep-sdk/services/EpSdkEpEventVersionsService';
-import EpSdkEventApisService from '@solace-iot-team/ep-sdk/services/EpSdkEventApisService';
-import EpSdkEventApiVersionsService from '@solace-iot-team/ep-sdk/services/EpSdkEventApiVersionsService';
-import { EEpSdk_VersionTaskStrategy } from '@solace-iot-team/ep-sdk/tasks/EpSdkVersionTask';
 
 // type TCliImporter_FromTo_EventVersionId = {
 //   type: string;

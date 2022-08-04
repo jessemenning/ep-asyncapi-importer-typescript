@@ -7,9 +7,12 @@ import { CliImporter, ICliImporterRunReturn } from '../../src/CliImporter';
 import { CliErrorFromEpSdkError } from '../../src/CliError';
 import { TestEnv } from '../setup.spec';
 import { glob } from 'glob';
-import { EpSdkError, EpSdkVersionTaskStrategyValidationError } from '@solace-iot-team/ep-sdk/EpSdkErrors';
-import { IEpSdkTask_TransactionLogData } from '@solace-iot-team/ep-sdk/tasks/EpSdkTask_TransactionLog';
-import { EEpSdkTask_Action } from '@solace-iot-team/ep-sdk/tasks/EpSdkTask';
+import { 
+  EpSdkError, 
+  IEpSdkTask_TransactionLogData,
+  EEpSdkTask_Action,
+  EpSdkVersionTaskStrategyValidationError
+} from '@solace-iot-team/ep-sdk';
 
 const scriptName: string = path.basename(__filename);
 TestLogger.logMessage(scriptName, ">>> starting ...");
