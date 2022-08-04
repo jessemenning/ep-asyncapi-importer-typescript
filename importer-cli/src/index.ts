@@ -11,10 +11,11 @@ import { CliImporter, ICliImporterRunReturn } from './CliImporter';
 import { Command, OptionValues } from 'commander';
 import { glob } from 'glob';
 import { CliUsageError } from './CliError';
-import { ApplicationDomain } from '@solace-iot-team/ep-openapi-node';
-import { EpSdkClient } from '@solace-iot-team/ep-sdk/EpSdkClient';
-// import CliEPApplicationDomainsService from './services/CliEPApplicationDomainsService';
-import EpSdkApplicationDomainsService from '@solace-iot-team/ep-sdk/services/EpSdkApplicationDomainsService';
+import { OpenAPI, ApplicationDomain } from '@solace-iot-team/ep-openapi-node';
+import { EpSdkClient } from '@solace-iot-team/ep-sdk';
+import { EpSdkApplicationDomainsService } from '@solace-iot-team/ep-sdk';
+
+
 import { CliUtils } from './CliUtils';
 
 dotenv.config();
@@ -203,6 +204,7 @@ function initialize(commandLineOptionValues: OptionValues) {
   CliLogger.initialize(CliConfig.getCliLoggerConfig());
   CliConfig.logConfig();
   EpSdkClient.initialize({
+    globalOpenAPI: OpenAPI,
     token: CliConfig.getSolaceCloudToken(),
     baseUrl: CliConfig.getCliEpApiConfig().epApiBaseUrl
   });  

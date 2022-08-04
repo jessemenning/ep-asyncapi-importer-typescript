@@ -3,7 +3,7 @@ import path from 'path';
 import _ from "lodash";
 import { v4 as uuidv4 } from 'uuid';
 import { E_ASYNC_API_SPEC_CONTENNT_TYPES } from './documents/CliAsyncApiDocument';
-import { EEpSdkSchemaContentType } from '@solace-iot-team/ep-sdk/services/EpSdkSchemasService';
+import { EEpSdkSchemaContentType } from '@solace-iot-team/ep-sdk';
 import { CliImporterError } from './CliError';
 
 

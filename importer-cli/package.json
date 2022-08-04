@@ -1,6 +1,6 @@
 {
   "name": "@solace-iot-team/sep-async-api-importer",
-  "version": "0.3.1-alpha",
+  "version": "0.3.2-alpha",
   "description": "Solace Event Portal Async API Importer ",
   "main": "./src/index.js",
   "type": "commonjs",
@@ -87,7 +87,8 @@
   },
   "dependencies": {
     "@asyncapi/parser": "^1.15.1",
-    "@solace-iot-team/ep-sdk": "^0.3.0-alpha",
+    "@solace-iot-team/ep-openapi-node": "^2.0.0-ea",
+    "@solace-iot-team/ep-sdk": "^0.5.1-alpha",
     "abort-controller": "^3.0.0",
     "chalk": "^4.1.2",
     "clear": "^0.1.0",

@@ -17,7 +17,9 @@ import { ApiResult } from "@solace-iot-team/ep-openapi-node/dist/core/ApiResult"
 import * as __requestLib from '@solace-iot-team/ep-openapi-node/dist/core/request';
 
 import { CliError } from "../../src/CliError";
-import { EpSdkError } from "@solace-iot-team/ep-sdk/EpSdkErrors";
+import { 
+  EpSdkError 
+} from "@solace-iot-team/ep-sdk";
 
 
 export const getUUID = (): string => {

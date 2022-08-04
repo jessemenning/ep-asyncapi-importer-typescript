@@ -13,11 +13,14 @@ import { expect } from 'chai';
 import CliConfig from "../src/CliConfig";
 import { CliLogger } from "../src/CliLogger";
 import { CliError } from "../src/CliError";
-import EpSdkApplicationDomainsService from '@solace-iot-team/ep-sdk/services/EpSdkApplicationDomainsService';
+import {
+  EpSdkApplicationDomainsService,
+  EpSdkClient
+}from '@solace-iot-team/ep-sdk';
 import { 
-  ApplicationDomain 
+  ApplicationDomain, 
+  OpenAPI 
 } from '@solace-iot-team/ep-openapi-node';
-import { EpSdkClient } from "@solace-iot-team/ep-sdk/EpSdkClient";
 
 // ensure any unhandled exception cause exit = 1
 function onUncaught(err: any){
@@ -87,9 +90,12 @@ describe(`${scriptName}`, () => {
         CliLogger.initialize(CliConfig.getCliLoggerConfig());
         CliConfig.logConfig();
         EpSdkClient.initialize({
+          globalOpenAPI: OpenAPI,
           token: CliConfig.getSolaceCloudToken(),
           baseUrl: CliConfig.getCliEpApiConfig().epApiBaseUrl
-        });      
+        });
+        // DEBUG
+        // expect(false, TestLogger.createLogMessage('OpenApi', OpenAPI )).to.be.true;
       } catch (e) {
         expect(e instanceof CliError, TestLogger.createNotCliErrorMesssage(e.message)).to.be.true;
         expect(false, TestLogger.createTestFailMessageWithCliError('failed', e)).to.be.true;
