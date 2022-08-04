@@ -74,7 +74,8 @@ import {
   EventApi, 
   eventApiVersion as EventApiVersion,
   ApiError,
-  EventVersion
+  EventVersion,
+  OpenAPI
 } from '@solace-iot-team/ep-openapi-node';
 import { CliMessageDocument } from './documents/CliMessageDocument';
 import { CliChannelDocument, CliChannelParameterDocument, CliChannelPublishOperation, CliChannelSubscribeOperation } from './documents/CliChannelDocument';
@@ -1072,9 +1073,6 @@ export class CliImporter {
       cliImporterRunReturn.applicationDomainName = cliAsyncApiDocument.getApplicationDomainName();
 
       let xvoid: void;
-
-      // get the state dtos as reference
-      xvoid = await CliEPStatesService.initialize();
 
       // run the respective pipeline
       switch(this.cliAppConfig.assetsTargetState) {
