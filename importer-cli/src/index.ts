@@ -11,7 +11,7 @@ import { CliImporter, ICliImporterRunReturn } from './CliImporter';
 import { Command, OptionValues } from 'commander';
 import { glob } from 'glob';
 import { CliUsageError } from './CliError';
-import { OpenAPI, ApplicationDomain } from '@solace-iot-team/ep-openapi-node';
+import { OpenAPI, ApplicationDomain } from '@solace-labs/ep-openapi-node';
 import { EpSdkClient } from '@solace-iot-team/ep-sdk';
 import { EpSdkApplicationDomainsService } from '@solace-iot-team/ep-sdk';
 

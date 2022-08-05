@@ -20,7 +20,7 @@ import {
 import { 
   ApplicationDomain, 
   OpenAPI 
-} from '@solace-iot-team/ep-openapi-node';
+} from '@solace-labs/ep-openapi-node';
 
 // ensure any unhandled exception cause exit = 1
 function onUncaught(err: any){

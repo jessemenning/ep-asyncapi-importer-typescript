@@ -7,14 +7,14 @@ import * as sinon from 'sinon';
 import request from 'supertest';
 import { customRequest } from './customOpenApiRequest';
 
-import { ApiRequestOptions } from "@solace-iot-team/ep-openapi-node/dist/core/ApiRequestOptions";
+import { ApiRequestOptions } from "@solace-labs/ep-openapi-node/dist/core/ApiRequestOptions";
 import { 
   ApiError,
   OpenAPIConfig,
   CancelablePromise
-} from "@solace-iot-team/ep-openapi-node";
-import { ApiResult } from "@solace-iot-team/ep-openapi-node/dist/core/ApiResult";
-import * as __requestLib from '@solace-iot-team/ep-openapi-node/dist/core/request';
+} from "@solace-labs/ep-openapi-node";
+import { ApiResult } from "@solace-labs/ep-openapi-node/dist/core/ApiResult";
+import * as __requestLib from '@solace-labs/ep-openapi-node/dist/core/request';
 
 import { CliError } from "../../src/CliError";
 import { 
