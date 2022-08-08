@@ -1,7 +1,8 @@
 import CliConfig from "./CliConfig";
 import { CliLogger, ECliStatusCodes } from "./CliLogger";
-import { ApiError } from "@solace-iot-team/ep-openapi-node";
+import { ApiError } from "@solace-labs/ep-openapi-node";
 import { EpSdkError } from "@solace-iot-team/ep-sdk";
+import { EpAsyncApiError } from "@solace-iot-team/ep-asyncapi";
 
 export class CliErrorFactory {
   public static createCliError = (e: any, logName: string): CliError => {
@@ -75,6 +76,15 @@ export class CliErrorFromEpSdkError extends CliError {
   }
 }
 
+export class CliErrorFromEpAsyncApiError extends CliError {
+  protected static defaultDescription = 'EP AsyncAPI Error';
+  public epAsyncApiError: EpAsyncApiError;
+  constructor(internalLogName: string, internalMessage: string = CliErrorFromEpAsyncApiError.defaultDescription, epAsyncApiError: EpAsyncApiError) {
+    super(internalLogName, internalMessage);
+    this.epAsyncApiError = epAsyncApiError;
+  }
+}
+
 export class CliErrorFromSEPApiError extends CliError {
   protected static defaultDescription = 'SEP Api Error';
   private apiError: ApiError;
@@ -135,13 +145,13 @@ export class InvalidEnvVarValueFromListError extends CliError {
   }
 }
 
-export class CliAsyncApiSpecError extends CliError {
-  private details: any;
-  constructor(internalLogName: string, internalMessage: string, details: any) {
-    super(internalLogName, internalMessage);
-    this.details = details;
-  }
-}
+// export class CliAsyncApiSpecError extends CliError {
+//   private details: any;
+//   constructor(internalLogName: string, internalMessage: string, details: any) {
+//     super(internalLogName, internalMessage);
+//     this.details = details;
+//   }
+// }
 
 export class CliAsyncApiParserError extends CliError {
   protected static defaultDescription = 'Async Api Parser Error';
@@ -152,28 +162,27 @@ export class CliAsyncApiParserError extends CliError {
   }
 }
 
+// export class CliAsyncApiSpecBestPracticesError extends CliError {
+//   protected static defaultDescription = 'Async Api Best Practices Error';
+//   private bestPracticesValidationError: any;
+//   private value: any;
+//   constructor(internalLogName: string, internalMessage: string = CliAsyncApiSpecBestPracticesError.defaultDescription, bestPracticesValidationError: any, value: any) {
+//     super(internalLogName, internalMessage);
+//     this.bestPracticesValidationError = bestPracticesValidationError;
+//     this.value = value;
+//   }
+// }
 
-export class CliAsyncApiSpecBestPracticesError extends CliError {
-  protected static defaultDescription = 'Async Api Best Practices Error';
-  private bestPracticesValidationError: any;
-  private value: any;
-  constructor(internalLogName: string, internalMessage: string = CliAsyncApiSpecBestPracticesError.defaultDescription, bestPracticesValidationError: any, value: any) {
-    super(internalLogName, internalMessage);
-    this.bestPracticesValidationError = bestPracticesValidationError;
-    this.value = value;
-  }
-}
-
-export class CliAsyncApiSpecEPValidationError extends CliError {
-  protected static defaultDescription = 'EP Async Api Spec Valiation Error';
-  private epValidationError: any;
-  private value: any;
-  constructor(internalLogName: string, internalMessage: string = CliAsyncApiSpecEPValidationError.defaultDescription, error: any, value: any, ) {
-    super(internalLogName, internalMessage);
-    this.epValidationError = error;
-    this.value = value;
-  }
-}
+// export class CliAsyncApiSpecEPValidationError extends CliError {
+//   protected static defaultDescription = 'EP Async Api Spec Valiation Error';
+//   private epValidationError: any;
+//   private value: any;
+//   constructor(internalLogName: string, internalMessage: string = CliAsyncApiSpecEPValidationError.defaultDescription, error: any, value: any, ) {
+//     super(internalLogName, internalMessage);
+//     this.epValidationError = error;
+//     this.value = value;
+//   }
+// }
 
 export class CliAsyncApiSpecNotSupportedError extends CliError {
   protected static defaultDescription = 'Async API Spec - Feature not supported';
@@ -184,19 +193,18 @@ export class CliAsyncApiSpecNotSupportedError extends CliError {
     this.error = error;
     this.featureDescription = featureDescription;
   }
-
 }
 
-export class CliAsyncApiSpecXtensionError extends CliError {
-  protected static apiDefaultDescription = 'Async API Spec Xtension Error';
-  private xtension: any;
-  private asyncApiSpecFile: string;
-  constructor(internalLogName: string, message: string = CliAsyncApiSpecXtensionError.apiDefaultDescription, asyncApiSpecFile: string, xtension: string) {
-    super(internalLogName, message);
-    this.xtension = xtension;
-    this.asyncApiSpecFile = asyncApiSpecFile
-  }
-}
+// export class CliAsyncApiSpecXtensionError extends CliError {
+//   protected static apiDefaultDescription = 'Async API Spec Xtension Error';
+//   private xtension: any;
+//   private asyncApiSpecFile: string;
+//   constructor(internalLogName: string, message: string = CliAsyncApiSpecXtensionError.apiDefaultDescription, asyncApiSpecFile: string, xtension: string) {
+//     super(internalLogName, message);
+//     this.xtension = xtension;
+//     this.asyncApiSpecFile = asyncApiSpecFile
+//   }
+// }
 
 export class CliAbstractMethodError extends CliError {
   private className: string;
