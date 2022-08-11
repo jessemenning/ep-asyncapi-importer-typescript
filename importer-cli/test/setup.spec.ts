@@ -16,7 +16,7 @@ import { CliError } from "../src/CliError";
 import {
   EpSdkApplicationDomainsService,
   EpSdkClient
-}from '@solace-iot-team/ep-sdk';
+}from '@solace-labs/ep-sdk';
 import { 
   ApplicationDomain, 
   OpenAPI 

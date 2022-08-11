@@ -6,9 +6,9 @@ import {
   EpSdkLogger, 
   IEpSdkLogEntry, 
   IEpSdkLoggerInstance 
-} from "@solace-iot-team/ep-sdk";
+} from "@solace-labs/ep-sdk";
 
-// import { EEpSdkLogLevel, EpSdkLogger, IEpSdkLogEntry, IEpSdkLoggerInstance } from "@solace-iot-team/ep-sdk/EpSdkLogger";
+// import { EEpSdkLogLevel, EpSdkLogger, IEpSdkLogEntry, IEpSdkLoggerInstance } from "@solace-labs/ep-sdk/EpSdkLogger";
 
 export enum ECliStatusCodes {
   INFO = "INFO",

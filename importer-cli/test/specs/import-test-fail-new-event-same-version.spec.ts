@@ -12,7 +12,7 @@ import {
   IEpSdkTask_TransactionLogData,
   EEpSdkTask_Action,
   EpSdkVersionTaskStrategyValidationError
-} from '@solace-iot-team/ep-sdk';
+} from '@solace-labs/ep-sdk';
 
 const scriptName: string = path.basename(__filename);
 TestLogger.logMessage(scriptName, ">>> starting ...");

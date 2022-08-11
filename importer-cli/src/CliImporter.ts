@@ -27,7 +27,7 @@ import {
   IEpSdkEventApiVersionTask_ExecuteReturn,
   EpSdkEpEventVersionsService,
   EpSdkEventApiVersionsService
-} from '@solace-iot-team/ep-sdk';
+} from '@solace-labs/ep-sdk';
 import CliEPStatesService from './services/CliEPStatesService';
 import { CliUtils } from './CliUtils';
 import { 

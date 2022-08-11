@@ -4,7 +4,7 @@ import fs from 'fs';
 import { CliError, CliErrorFromError, CliInvalidDirConfigEnvVarError, CliInvalidUrlConfigEnvVarError, ConfigMissingEnvVarError, InvalidEnvVarValueFromListError, InvalidFileConfigError } from './CliError';
 import { CliLogger, ECliStatusCodes } from './CliLogger';
 import { CliUtils } from './CliUtils';
-import { EEpSdk_VersionTaskStrategy } from '@solace-iot-team/ep-sdk';
+import { EEpSdk_VersionTaskStrategy } from '@solace-labs/ep-sdk';
 
 export enum ECliImporterMode {
   RELEASE_MODE = "release_mode",
