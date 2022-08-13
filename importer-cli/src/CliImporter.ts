@@ -76,7 +76,7 @@ import {
   T_EpAsyncApiChannelDocumentMap, 
   T_EpAsyncApiChannelParameterDocumentMap,
   T_EpAsyncApiEventNames,
-} from '@solace-iot-team/ep-asyncapi';
+} from '@solace-labs/ep-asyncapi';
 
 // type TCliImporter_FromTo_EventVersionId = {
 //   type: string;

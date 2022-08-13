@@ -4,7 +4,7 @@ import _ from "lodash";
 import { v4 as uuidv4 } from 'uuid';
 import { EEpSdkSchemaContentType } from '@solace-labs/ep-sdk';
 import { CliImporterError } from './CliError';
-import { E_EpAsyncApiContentTypes } from '@solace-iot-team/ep-asyncapi';
+import { E_EpAsyncApiContentTypes } from '@solace-labs/ep-asyncapi';
 
 
 // export type APSOptional<T, K extends keyof T> = Pick<Partial<T>, K> & Omit<T, K>;

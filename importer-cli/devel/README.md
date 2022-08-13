@@ -1,12 +1,6 @@
 # Development importer-cli
 
 
-## Download Solace Event Portal Open API Spec
-
-```bash
-curl https://openapi-v2.solace.cloud/api-docs-v2.json --output ../resources/sep-openapi-spec.json
-```
-
 ## Build
 
 ```bash
