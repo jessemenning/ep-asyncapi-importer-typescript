@@ -2,6 +2,11 @@
 
 Solace Event Portal Async API Importer.
 
+## Version 0.4.1-alpha
+
+**Core:**
+- **Refactor with Ep Sdk 0.8.3-alpha**
+
 ## Version 0.4.0-alpha
 
 **Core:**

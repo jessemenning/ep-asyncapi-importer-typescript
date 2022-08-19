@@ -19,7 +19,7 @@ import * as __requestLib from '@solace-labs/ep-openapi-node/dist/core/request';
 import { CliError } from "../../src/CliError";
 import { 
   EpSdkError 
-} from "@solace-iot-team/ep-sdk";
+} from "@solace-labs/ep-sdk";
 
 
 export const getUUID = (): string => {

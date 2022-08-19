@@ -1,6 +1,6 @@
 {
   "name": "@solace-iot-team/sep-async-api-importer",
-  "version": "0.4.0-alpha",
+  "version": "0.4.1-alpha",
   "description": "Solace Event Portal Async API Importer ",
   "main": "./src/index.js",
   "type": "commonjs",
@@ -34,18 +34,8 @@
     "build": "ts-node build.ts",
     "dev:start": "ts-node src/index.ts",
     "start": "npm run build && node dist/src/index.js",
-    "bin:start": "sudo npm i -g && a2sep",
-    "package": "pkg . --output ./dist/sep-async-api-importer",
     "test": ". ./test/source.env.sh && mocha --config test/.mocharc.yml test/**/**.spec.ts && unset_source_env",
     "test:pretty": ". ./test/source.env.sh && mocha --config test/.mocharc.yml test/**/**.spec.ts | pino-pretty && unset_source_env"
-  },
-  "pkg": {
-    "scripts": "dist/**/*.js",
-    "assets": "node_modules/figlet/fonts/Standard.flf",
-    "targets": [
-      "node16-macos-x64",
-      "node16-linux"
-    ]
   },
   "files": [
     "dist/**/*.js",
@@ -87,9 +77,9 @@
   },
   "dependencies": {
     "@asyncapi/parser": "^1.15.1",
-    "@solace-iot-team/ep-asyncapi": "^0.2.0-alpha",
-    "@solace-iot-team/ep-sdk": "^0.7.0-alpha",
-    "@solace-labs/ep-openapi-node": "^2.0.0-ea",
+    "@solace-labs/ep-asyncapi": "^0.3.0-alpha",
+    "@solace-labs/ep-openapi-node": "^2.0.0-alpha.2",
+    "@solace-labs/ep-sdk": "^0.8.3-alpha",
     "abort-controller": "^3.0.0",
     "chalk": "^4.1.2",
     "clear": "^0.1.0",

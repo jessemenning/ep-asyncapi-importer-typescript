@@ -27,7 +27,7 @@ import {
   IEpSdkEventApiVersionTask_ExecuteReturn,
   EpSdkEpEventVersionsService,
   EpSdkEventApiVersionsService
-} from '@solace-iot-team/ep-sdk';
+} from '@solace-labs/ep-sdk';
 import CliEPStatesService from './services/CliEPStatesService';
 import { CliUtils } from './CliUtils';
 import { 
@@ -76,7 +76,7 @@ import {
   T_EpAsyncApiChannelDocumentMap, 
   T_EpAsyncApiChannelParameterDocumentMap,
   T_EpAsyncApiEventNames,
-} from '@solace-iot-team/ep-asyncapi';
+} from '@solace-labs/ep-asyncapi';
 
 // type TCliImporter_FromTo_EventVersionId = {
 //   type: string;

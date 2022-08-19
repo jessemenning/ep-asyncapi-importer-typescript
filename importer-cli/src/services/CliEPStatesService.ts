@@ -3,7 +3,7 @@ import { CliError } from '../CliError';
 import { CliUtils } from '../CliUtils';
 import {
   EpSdkStatesService 
-} from "@solace-iot-team/ep-sdk";
+} from "@solace-labs/ep-sdk";
 
 class CliEPStatesService {
 

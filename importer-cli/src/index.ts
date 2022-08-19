@@ -12,8 +12,8 @@ import { Command, OptionValues } from 'commander';
 import { glob } from 'glob';
 import { CliUsageError } from './CliError';
 import { OpenAPI, ApplicationDomain } from '@solace-labs/ep-openapi-node';
-import { EpSdkClient } from '@solace-iot-team/ep-sdk';
-import { EpSdkApplicationDomainsService } from '@solace-iot-team/ep-sdk';
+import { EpSdkClient } from '@solace-labs/ep-sdk';
+import { EpSdkApplicationDomainsService } from '@solace-labs/ep-sdk';
 
 
 import { CliUtils } from './CliUtils';

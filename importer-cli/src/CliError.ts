@@ -1,8 +1,8 @@
 import CliConfig from "./CliConfig";
 import { CliLogger, ECliStatusCodes } from "./CliLogger";
 import { ApiError } from "@solace-labs/ep-openapi-node";
-import { EpSdkError } from "@solace-iot-team/ep-sdk";
-import { EpAsyncApiError } from "@solace-iot-team/ep-asyncapi";
+import { EpSdkError } from "@solace-labs/ep-sdk";
+import { EpAsyncApiError } from "@solace-labs/ep-asyncapi";
 
 export class CliErrorFactory {
   public static createCliError = (e: any, logName: string): CliError => {
