@@ -1,40 +1,48 @@
-import { ECliAssetsTargetState } from "./CliConfig";
 
 export enum ECliChannelOperation {
   Publish = "publish",
   Subscribe = "subscribe"
 }
-export interface ICliRunContext {
-  apiFile: string;
-  targetState: ECliAssetsTargetState;
+// - runMode = test_pass_1, test_pass_2, release
+export enum ECliRunContext_RunMode {
+  TEST_PASS_1 = "test_pass_1",
+  TEST_PASS_2 = "test_pass_2",
+  RELEASE = "release"
 }
-export interface ICliRunContext_State extends Partial<ICliRunContext> {
+export interface ICliRunContext {
+  runId: string;
+  runMode: ECliRunContext_RunMode;
+}
+export interface ICliAsyncApiRunContext extends Partial<ICliRunContext> {
+  apiFile: string;
+}
+export interface ICliAsyncApiRunContext_State extends Partial<ICliAsyncApiRunContext> {
   apiTitle: string;
   apiVersion: string;
   epApplicationDomainName: string;
 }
-export interface ICliRunContext_EventApi extends Partial<ICliRunContext_State> {
-  eventApiName: string;
-  existingEventApiName?: string;
+export interface ICliAsyncApiRunContext_EventApi extends Partial<ICliAsyncApiRunContext_State> {
+  epEventApiName: string;
+  // existingEventApiName?: string;
 }
-export interface ICliRunContext_EventApiVersion extends Partial<ICliRunContext_EventApi> {
-  latestExistingEventApiVersion?: string;
-  eventApiVersion: string;
+export interface ICliAsyncApiRunContext_EventApiVersion extends Partial<ICliAsyncApiRunContext_State> {
+  // latestExistingEventApiVersion?: string;
+  epTargetEventApiVersion: string;
 }
-export interface ICliRunContext_Channel extends Partial<ICliRunContext_State> {
+export interface ICliAsyncApiRunContext_Channel extends Partial<ICliAsyncApiRunContext_State> {
   channelTopic: string;
 }
-export interface ICliRunContext_Channel_Parameter extends Partial<ICliRunContext_Channel> {
+export interface ICliAsyncApiRunContext_Channel_Parameter extends Partial<ICliAsyncApiRunContext_Channel> {
   parameter: string;
   parameterEnumList?: Array<string>;
 }
-export interface ICliRunContext_Channel_Operation extends Partial<ICliRunContext_Channel> {
+export interface ICliAsyncApiRunContext_Channel_Operation extends Partial<ICliAsyncApiRunContext_Channel> {
   type: ECliChannelOperation;
 }
-export interface ICliRunContext_Channel_Operation_Message extends Partial<ICliRunContext_Channel_Operation> {
+export interface ICliAsyncApiRunContext_Channel_Operation_Message extends Partial<ICliAsyncApiRunContext_Channel_Operation> {
   messageName: string; 
 }
-export interface ICliRunContext_Channel_Event extends Partial<ICliRunContext_Channel> {
+export interface ICliAsyncApiRunContext_Channel_Event extends Partial<ICliAsyncApiRunContext_Channel> {
   messageName: string;
 }
 
@@ -69,6 +77,10 @@ export class CliRunContext {
   public getContext = (): ICliRunContext => {
     return this.runContext;
   };
+
+  // public getCliAsyncApiRunContext_State = (): ICliAsyncApiRunContext_State => {
+  //   return this.runContext as ICliAsyncApiRunContext_State;
+  // }
 
 }
 

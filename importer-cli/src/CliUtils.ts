@@ -3,7 +3,7 @@ import path from 'path';
 import _ from "lodash";
 import { v4 as uuidv4 } from 'uuid';
 import { EEpSdkSchemaContentType } from '@solace-labs/ep-sdk';
-import { CliImporterError } from './CliError';
+import { CliInternalCodeInconsistencyError } from './CliError';
 import { E_EpAsyncApiContentTypes } from '@solace-labs/ep-asyncapi';
 
 
@@ -52,10 +52,23 @@ export class CliUtils {
     }
   }
 
-  public static ensurePathExists = (dir: string) => {
-    const absoluteFilePath = path.resolve(dir);
-    if(!fs.existsSync(absoluteFilePath)) fs.mkdirSync(absoluteFilePath, { recursive: true });
-    fs.accessSync(absoluteFilePath, fs.constants.W_OK);
+  public static ensureDirExists = (baseDir: string, subDir?: string): string => {
+    const absoluteDir = subDir ? path.resolve(baseDir, subDir) : path.resolve(baseDir);
+    if(!fs.existsSync(absoluteDir)) fs.mkdirSync(absoluteDir, { recursive: true });
+    fs.accessSync(absoluteDir, fs.constants.W_OK);
+    return absoluteDir;
+  }
+
+  public static ensureDirOfFilePathExists = (filePath: string): string => {
+    const normalizedPath = path.normalize(filePath);
+    const dirName = path.dirname(normalizedPath);
+    const fileName = path.basename(normalizedPath)
+    const absoluteDir = CliUtils.ensureDirExists(dirName);
+    return `${absoluteDir}/${fileName}`;
+  }
+
+  public static convertStringToFilePath(str: string): string {
+    return str.replaceAll(/[^0-9a-zA-Z\/\.]+/g, '-');
   }
 
   public static readFileContentsAsJson = (filePath: string): any => {
@@ -193,8 +206,10 @@ export class CliUtils {
       default:
         CliUtils.assertNever(logName, messageContentType);
     }
-    throw new CliImporterError(logName, 'should never get here', { messageContentType: messageContentType });
+    throw new CliInternalCodeInconsistencyError(logName, {
+      message: 'map message content type', 
+      messageContentType: messageContentType 
+    });
   }
-
 
 }

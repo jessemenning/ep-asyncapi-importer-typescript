@@ -4,225 +4,118 @@ import chalk from 'chalk';
 import clear from 'clear';
 import figlet from 'figlet';
 import path from 'path';
-import CliConfig, { ECliImporterMode, TCliAppConfig } from './CliConfig';
-import { CliLogger, ECliStatusCodes } from './CliLogger';
 import dotenv from 'dotenv';
-import { CliImporter, ICliImporterRunReturn } from './CliImporter';
-import { Command, OptionValues } from 'commander';
 import { glob } from 'glob';
-import { CliUsageError } from './CliError';
-import { OpenAPI, ApplicationDomain } from '@solace-labs/ep-openapi-node';
+import { Command, Option, OptionValues } from 'commander';
+import { CliError, CliErrorFactory, CliErrorFromError, CliUsageError } from './CliError';
+import { OpenAPI } from '@solace-labs/ep-openapi-node';
 import { EpSdkClient } from '@solace-labs/ep-sdk';
-import { EpSdkApplicationDomainsService } from '@solace-labs/ep-sdk';
-
-
 import { CliUtils } from './CliUtils';
-
-dotenv.config();
-const packageJson = require('../package.json');
+import CliConfig, { TCliConfigEnvVarConfig } from './CliConfig';
+import { CliLogger, ECliStatusCodes } from './CliLogger';
+import { DefaultAppName, packageJson } from './consts';
+import { CliImporter } from './CliImporter';
+import CliRunSummary, { ECliRunSummary_Type } from './CliRunSummary';
 
 const ComponentName: string = path.basename(__filename);
+dotenv.config();
 
-const createApiSpecFileList = (filePattern: string): Array<string> => {
-  const files: Array<string> = glob.sync(filePattern);
-  return files;
-}
-
-async function rollback({ }:{
-}): Promise<void> {
-  const funcName = 'rollback';
+process.on('uncaughtException', (err: Error) => {
+  const funcName = "process.on('uncaughtException')";
   const logName = `${ComponentName}.${funcName}()`;
-
-  CliLogger.warn(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.INFO, message: 'TODO: implement rollback', details: {
-    importerMode: CliConfig.getCliAppConfig().importerMode,
-  }}));
-}
-
-async function deleteApplicationDomains({ applicationDomainNameList }:{
-  applicationDomainNameList: Array<string>;
-}): Promise<void> {
-  const funcName = 'deleteApplicationDomains';
-  const logName = `${ComponentName}.${funcName}()`;
-
-  for(const applicationDomainName of applicationDomainNameList) {
-    try {
-      const applicationDomain: ApplicationDomain = await EpSdkApplicationDomainsService.deleteByName( { 
-        applicationDomainName: applicationDomainName
-      });
-      CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.INFO, message: 'application domain deleted', details: {
-        importerMode: CliConfig.getCliAppConfig().importerMode,
-        applicationDomain: applicationDomain
-      }}));
-    } catch(e) {
-      // may already have been deleted, do nothing
-    }
+  const cliError: CliError = CliErrorFactory.createCliError({
+    logName: logName,
+    e: err
+  });
+  if(!(err instanceof CliError)) {
+    const cliLogEntry = CliLogger.createLogEntry(logName, { code: ECliStatusCodes.INTERNAL_ERROR, details: cliError.toObject()});
+    CliLogger.fatal(cliLogEntry);
   }
-}
-
-async function run_test_mode_before_release_mode() {
-  const funcName = 'run_test_mode_before_release_mode';
-  const logName = `${ComponentName}.${funcName}()`;
-
-  if(CliConfig.getCliAppConfig().importerMode === ECliImporterMode.TEST_MODE) return;
-
-  // re-configure app config for test mode
-  const copyOfCliAppConfig: TCliAppConfig = CliConfig.getCopyOfCliAppConfig();
-  const testModeAppConfig: TCliAppConfig = {
-    ...copyOfCliAppConfig,
-    importerMode: ECliImporterMode.TEST_MODE,
-  };
-  testModeAppConfig.prefixDomainName = CliConfig.createPrefixDomainName({ cliConfig: {
-    ...CliConfig.getConfig(),
-    appConfig: testModeAppConfig
-  }});
-
-  // keep track of applicationDomains 
-  const applicationDomainNameList: Array<string> = [];
-
-  try {
-    for(const asyncApiFile of CliConfig.getCliAppConfig().asyncApiFileList) {
-
-      CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.INFO, message: 'starting...', details: {
-        asyncApiFile: asyncApiFile
-      }}));
-
-      const cliAppConfig: TCliAppConfig = {
-        ...testModeAppConfig,
-        asyncApiFileName: asyncApiFile,
-        apiTransactionId: CliUtils.getUUID(),
-      };
-
-      const importer = new CliImporter(cliAppConfig);
-      const cliImporterRunReturn: ICliImporterRunReturn = await importer.run();  
-      if(cliImporterRunReturn.applicationDomainName !== undefined) applicationDomainNameList.push(cliImporterRunReturn.applicationDomainName);
-      if(cliImporterRunReturn.error !== undefined) throw cliImporterRunReturn.error;
-
-      CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.INFO, message: 'done.', details: {
-        asyncApiFile: asyncApiFile,
-      }}));
-
+  CliRunSummary.runError({
+    cliRunError: {
+      type: ECliRunSummary_Type.RunError,
+      cliError: cliError
     }
-    const xvoid: void = await deleteApplicationDomains({ applicationDomainNameList: applicationDomainNameList });
-        
-  } catch(e) {
+  });
+  process.exit(1);
+});
 
-    const xvoid: void = await deleteApplicationDomains({ applicationDomainNameList: applicationDomainNameList });
-  
-    CliLogger.error(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_ERROR, details: {
-      error: e
-    }}));
-
-    throw e;
-
+const createApiFileList = (filePattern: string): Array<string> => {
+  const funcName = 'createApiFileList';
+  const logName = `${ComponentName}.${funcName}()`;
+  const fileList: Array<string> = glob.sync(filePattern);
+  if(fileList.length === 0) throw new CliUsageError(logName, 'no files found for pattern', {
+    filePattern: filePattern,
+  });
+  for(const filePath of fileList) {
+    const x: string | undefined = CliUtils.validateFilePathWithReadPermission(filePath);
+    if(x === undefined) throw new CliUsageError(logName, 'file does not have read permissions', {
+      file: filePath,
+    });
   }
-
+  return fileList;
 }
-
 
 async function main() {
   const funcName = 'main';
   const logName = `${ComponentName}.${funcName}()`;
 
   CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.INFO, message: 'starting...', details: {
-    cliAppConfig: CliConfig.getCliAppConfig()
+    cliConfig: CliConfig.getCliConfig()
   }}));
 
-  await run_test_mode_before_release_mode();
-
-  // keep track of applicationDomains 
-  const applicationDomainNameList: Array<string> = [];
-
-  try {
-    for(const asyncApiFile of CliConfig.getCliAppConfig().asyncApiFileList) {
-
-      CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.INFO, message: 'starting...', details: {
-        asyncApiFile: asyncApiFile
-      }}));
-
-      const cliAppConfig: TCliAppConfig = {
-        ...CliConfig.getCliAppConfig(),
-        asyncApiFileName: asyncApiFile,
-        apiTransactionId: CliUtils.getUUID(),
-      };
-      const importer = new CliImporter(cliAppConfig);
-      const cliImporterRunReturn: ICliImporterRunReturn = await importer.run();  
-      if(cliImporterRunReturn.applicationDomainName !== undefined) applicationDomainNameList.push(cliImporterRunReturn.applicationDomainName);
-      if(cliImporterRunReturn.error !== undefined) throw cliImporterRunReturn.error;
-
-      CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.INFO, message: 'done.', details: {
-        asyncApiFile: asyncApiFile,
-      }}));
-
-    }
-    // if test mode then delete the application domains
-    if(CliConfig.getCliAppConfig().importerMode === ECliImporterMode.TEST_MODE) {
-      const xvoid: void = await deleteApplicationDomains({ applicationDomainNameList: applicationDomainNameList });
-    }    
-  } catch(e) {
-
-    if(CliConfig.getCliAppConfig().importerMode === ECliImporterMode.TEST_MODE) {
-      const xvoid: void = await deleteApplicationDomains({ applicationDomainNameList: applicationDomainNameList });
-    } else {
-      const xvoid: void = await rollback({ });
-    }
-  
-    CliLogger.error(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_ERROR, details: {
-      error: e
-    }}));
-
-    throw e;
-
-  }
-
+  const cliImporter = new CliImporter(CliConfig.getCliImporterOptions());
+  const xvoid: void = await cliImporter.run();
 }
 
 function initialize(commandLineOptionValues: OptionValues) {
   const funcName = 'initialize';
   const logName = `${ComponentName}.${funcName}()`;
 
-  const filePattern = commandLineOptionValues.filePattern;
-
-  CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.INITIALIZING, message: 'gathering file list' , details: {
-    filePattern: filePattern
-  }}));
-
-  const fileList = createApiSpecFileList(filePattern);
-
-  if(fileList.length === 0) throw new CliUsageError(logName, 'no files found for pattern', {
-    filePattern: filePattern,
+  // initialize with default values so we can log until initialized
+  CliLogger.initialize({
+    cliLoggerOptions: CliConfig.getDefaultLoggerOptions()
   });
-  
-  CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.INITIALIZING, message: 'file list', details: {
-    fileList: fileList
-  }}));
 
+  const filePattern = commandLineOptionValues.filePattern;
+  const fileList = createApiFileList(filePattern);
   CliConfig.initialize({
     fileList: fileList,
-    globalDomainName: commandLineOptionValues.domain,
-    apiGroupTransactionId: CliUtils.getUUID(),
+    applicationDomainName: commandLineOptionValues.domain,
+    defaultAppName: DefaultAppName
   });
-  CliLogger.initialize(CliConfig.getCliLoggerConfig());
+  CliLogger.initialize({ cliLoggerOptions: CliConfig.getCliLoggerOptions() });
   CliConfig.logConfig();
   EpSdkClient.initialize({
     globalOpenAPI: OpenAPI,
     token: CliConfig.getSolaceCloudToken(),
-    baseUrl: CliConfig.getCliEpApiConfig().epApiBaseUrl
+    baseUrl: CliConfig.getEpApiBaseUrl()
   });  
+}
 
+function getCliConfigEnvVarHelp(): string {
+  const cliConfigEnvVarConfigList: Array<TCliConfigEnvVarConfig> = CliConfig.get_CliConfigEnvVarConfigList4HelpDisplay();
+  return `
+Environment Variables:
+  Set env vars, use .env file, or a combination of both.
+${JSON.stringify(cliConfigEnvVarConfigList, null, 2)}    
+`;
 }
 
 function getCommandLineOptionValues(): OptionValues {
 
   const Program = new Command();
 
+  const domainOption: Option = Program.createOption('-d, --domain <value>', 'Application Domain Name. If not passed, application domain name extracted from $.info.x-ep-application-domain-name in Async API file.');
+  domainOption.hideHelp(true);
   Program
   .name(`npx ${packageJson.name}`)
-  .description(`${packageJson.description}`)
+  // .description(`${packageJson.description}`)
   .version(`${packageJson.version}`, '-v, --version')
-  .usage('[OPTIONS]...')
-  // .requiredOption('-f, --file <value>', 'Required: Path to AsyncAPI spec file')
-  .requiredOption('-fp, --filePattern <value>', 'Required: File pattern for Async API files')
-  .option('-d, --domain  <value>', 'Application Domain Name. If not passed, name extracted from info.x-sep-application-domain-name in api')
+  .usage('[Options]...')
+  .requiredOption('-fp, --filePattern <value>', 'Required: File pattern for Async API file(s).')
+  .addOption(domainOption)
+  .addHelpText('after', getCliConfigEnvVarHelp())
   .parse(process.argv);
   
   const ovs = Program.opts();
@@ -230,6 +123,7 @@ function getCommandLineOptionValues(): OptionValues {
   return ovs;
 }
 
+CliConfig.validate_CliConfigEnvVarConfigList();
 clear();
 console.log(chalk.red(figlet.textSync(packageJson.description, { horizontalLayout: 'full'})));
 initialize(getCommandLineOptionValues());
