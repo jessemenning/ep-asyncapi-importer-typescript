@@ -6,29 +6,27 @@
 
 unset_source_env() {
     # env vars for app
-    unset CLI_APP_ID
+    unset CLI_APP_NAME
+    unset CLI_EP_API_BASE_URL
+    unset CLI_MODE
+    unset CLI_RUN_ID
     unset CLI_LOGGER_LOG_LEVEL
-    unset CLI_ASSETS_TARGET_STATE
-    unset CLI_ASSET_IMPORT_TARGET_LIFECYLE_STATE
-    unset CLI_ASSET_IMPORT_TARGET_VERSION_STRATEGY
-    unset CLI_ASSET_OUTPUT_DIR
-    unset CLI_LOG_DIR
+    unset CLI_LOGGER_PRETTY_PRINT
     # env vars for tests
-    unset CLI_TEST_ONE
+    unset CLI_TEST_API_SPECS_ROOT_DIR
 
     # unset this function
     unset -f unset_source_env
 }
 
 # Env vars for app
-export CLI_APP_ID="@test/sep-async-api-importer"
-export CLI_LOGGER_LOG_LEVEL="trace"
-export CLI_ASSETS_TARGET_STATE="present"
-export CLI_ASSET_IMPORT_TARGET_LIFECYLE_STATE="released"
-export CLI_ASSET_IMPORT_TARGET_VERSION_STRATEGY="bump_patch"
-export CLI_ASSET_OUTPUT_DIR="output"
-export CLI_LOG_DIR="logs"
+# export CLI_APP_NAME="ep-async-api-importer-test"
 export CLI_EP_API_BASE_URL="https://ian-dev-api.mymaas.net"
+
+export CLI_RUN_ID="testing-test-id"
+
+export CLI_LOGGER_LOG_LEVEL="info"
+export CLI_LOGGER_PRETTY_PRINT="true"
 
 # ENV vars for tests
 # from project dir

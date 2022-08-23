@@ -3,7 +3,6 @@ import path from 'path';
 import fs from 'fs';
 import { 
   getMandatoryEnvVarValue,
-  getOptionalEnvVarValueAsBoolean, 
   getUUID, 
   TestContext, 
   TestLogger, 
@@ -41,10 +40,10 @@ const setTestEnv = (scriptDir: string): TTestEnv => {
   const projectRootDir = path.join(testRootDir, '../..');
   const CLI_TEST_API_SPECS_ROOT_DIR = getMandatoryEnvVarValue(scriptName, "CLI_TEST_API_SPECS_ROOT_DIR"); 
   const testEnv: TTestEnv = {
-    enableLogging: getOptionalEnvVarValueAsBoolean(scriptName, 'APIM_TEST_SERVER_ENABLE_LOGGING', true),
     projectRootDir: projectRootDir,
     testApiSpecsDir: path.join(projectRootDir, CLI_TEST_API_SPECS_ROOT_DIR),
-    globalDomainNamePrefix: `sep-async-api-importer/test/${getUUID()}`,
+    enableLogging: true,
+    // globalDomainNamePrefix: `sep-async-api-importer/test/${getUUID()}`,
     createdAppDomainNameList: [],
     testRunId: getUUID()
   }
@@ -83,16 +82,18 @@ describe(`${scriptName}`, () => {
 
     it(`${scriptName}: should initialize cli`, async () => {
       try {
-        CliConfig.initialize({ 
-          globalDomainName: TestEnv.globalDomainNamePrefix,
-          apiGroupTransactionId: TestEnv.testRunId,
+        CliConfig.validate_CliConfigEnvVarConfigList();
+        CliLogger.initialize({ cliLoggerOptions: CliConfig.getDefaultLoggerOptions() });
+        CliConfig.initialize({
+          defaultAppName: 'ep-async-api-importer-test',
+          fileList: [],
         });
-        CliLogger.initialize(CliConfig.getCliLoggerConfig());
+        CliLogger.initialize({ cliLoggerOptions: CliConfig.getCliLoggerOptions() });
         CliConfig.logConfig();
         EpSdkClient.initialize({
           globalOpenAPI: OpenAPI,
           token: CliConfig.getSolaceCloudToken(),
-          baseUrl: CliConfig.getCliEpApiConfig().epApiBaseUrl
+          baseUrl: CliConfig.getEpApiBaseUrl()
         });
         // DEBUG
         // expect(false, TestLogger.createLogMessage('OpenApi', OpenAPI )).to.be.true;

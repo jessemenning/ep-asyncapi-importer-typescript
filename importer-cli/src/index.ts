@@ -40,21 +40,21 @@ process.on('uncaughtException', (err: Error) => {
   process.exit(1);
 });
 
-const createApiFileList = (filePattern: string): Array<string> => {
-  const funcName = 'createApiFileList';
-  const logName = `${ComponentName}.${funcName}()`;
-  const fileList: Array<string> = glob.sync(filePattern);
-  if(fileList.length === 0) throw new CliUsageError(logName, 'no files found for pattern', {
-    filePattern: filePattern,
-  });
-  for(const filePath of fileList) {
-    const x: string | undefined = CliUtils.validateFilePathWithReadPermission(filePath);
-    if(x === undefined) throw new CliUsageError(logName, 'file does not have read permissions', {
-      file: filePath,
-    });
-  }
-  return fileList;
-}
+// const createApiFileList = (filePattern: string): Array<string> => {
+//   const funcName = 'createApiFileList';
+//   const logName = `${ComponentName}.${funcName}()`;
+//   const fileList: Array<string> = glob.sync(filePattern);
+//   if(fileList.length === 0) throw new CliUsageError(logName, 'no files found for pattern', {
+//     filePattern: filePattern,
+//   });
+//   for(const filePath of fileList) {
+//     const x: string | undefined = CliUtils.validateFilePathWithReadPermission(filePath);
+//     if(x === undefined) throw new CliUsageError(logName, 'file does not have read permissions', {
+//       file: filePath,
+//     });
+//   }
+//   return fileList;
+// }
 
 async function main() {
   const funcName = 'main';
@@ -78,7 +78,7 @@ function initialize(commandLineOptionValues: OptionValues) {
   });
 
   const filePattern = commandLineOptionValues.filePattern;
-  const fileList = createApiFileList(filePattern);
+  const fileList = CliUtils.createFileList(filePattern);
   CliConfig.initialize({
     fileList: fileList,
     applicationDomainName: commandLineOptionValues.domain,
@@ -106,7 +106,7 @@ function getCommandLineOptionValues(): OptionValues {
 
   const Program = new Command();
 
-  const domainOption: Option = Program.createOption('-d, --domain <value>', 'Application Domain Name. If not passed, application domain name extracted from $.info.x-ep-application-domain-name in Async API file.');
+  const domainOption: Option = Program.createOption('-d, --domain <value>', 'Application Domain Name. Overrides the application domain name extracted from each in Async API file, path=$.info.x-ep-application-domain-name.');
   domainOption.hideHelp(true);
   Program
   .name(`npx ${packageJson.name}`)

@@ -5,8 +5,8 @@ scriptName=$(basename $(test -L "$0" && readlink "$0" || echo "$0"));
 
 ############################################################################################################################
 # Prepare
-
-  LOG_DIR="$scriptDir/logs";
+  TMP_DIR="$scriptDir/tmp";
+  LOG_DIR="$TMP_DIR/logs";
   mkdir -p $LOG_DIR;
   rm -rf $LOG_DIR/*;
   FAILED=0
@@ -14,9 +14,11 @@ scriptName=$(basename $(test -L "$0" && readlink "$0" || echo "$0"));
 ############################################################################################################################
 # Run
 
-  runScript="npm run test:pretty"
-  # runScript="npm run test:devel:pretty"
-  # runScript="npm run test:devel:t"
+
+  export CLI_LOGGER_LOG_FILE="$LOG_DIR/ep-async-api-importer-test.log"
+  export CLI_IMPORT_ASSETS_OUTPUT_DIR="$TMP_DIR/output"
+
+  runScript="npm run test"
   echo "starting: $runScript ..."
   logFile="$LOG_DIR/npm.run.test.out"; mkdir -p "$(dirname "$logFile")";
   # $runScript

@@ -34,7 +34,7 @@ export class CliImporter {
   constructor(cliImporterOptions: ICliImporterOptions) { 
     this.cliImporterOptions = cliImporterOptions;
   }
-  
+
   private run_test_mode = async({ cleanUp }:{
     cleanUp: boolean;
   }): Promise<void> => {

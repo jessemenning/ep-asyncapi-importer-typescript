@@ -107,6 +107,8 @@ export class CliRunSummary {
   private applicationDomainName: string;
   private runMode: ECliRunContext_RunMode;
 
+  public getSummaryLogList(): Array<ICliRunSummary_Base> { return this.summaryLogList; }
+  
   private log = (code: ECliSummaryStatusCodes, cliRunSummary_Base: ICliRunSummary_Base, consoleOutput: string) => {
     this.summaryLogList.push(cliRunSummary_Base);
     CliLogger.summary({

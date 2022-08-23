@@ -1,9 +1,10 @@
 import fs from 'fs';
 import path from 'path';
+import glob from 'glob';
 import _ from "lodash";
 import { v4 as uuidv4 } from 'uuid';
 import { EEpSdkSchemaContentType } from '@solace-labs/ep-sdk';
-import { CliInternalCodeInconsistencyError } from './CliError';
+import { CliInternalCodeInconsistencyError, CliUsageError } from './CliError';
 import { E_EpAsyncApiContentTypes } from '@solace-labs/ep-asyncapi';
 
 
@@ -27,8 +28,6 @@ type DotNestedKeys<T> = (T extends object ?
 
 export class CliUtils {
 
-  // public static nameOf = <T>(name: keyof T) => name;
-
   public static nameOf = <T>(name: DotNestedKeys<T>) => name;
 
   public static getUUID = (): string => {
@@ -37,6 +36,22 @@ export class CliUtils {
 
   public static sleep = async(millis = 500) => {
     if(millis > 0) await new Promise(resolve => setTimeout(resolve, millis));
+  }
+  
+  public static createFileList = (filePattern: string): Array<string> => {
+    const funcName = 'createFileList';
+    const logName = `${CliUtils.name}.${funcName}()`;
+    const fileList: Array<string> = glob.sync(filePattern);
+    if(fileList.length === 0) throw new CliUsageError(logName, 'no files found for pattern', {
+      filePattern: filePattern,
+    });
+    for(const filePath of fileList) {
+      const x: string | undefined = CliUtils.validateFilePathWithReadPermission(filePath);
+      if(x === undefined) throw new CliUsageError(logName, 'file does not have read permissions', {
+        file: filePath,
+      });
+    }
+    return fileList;
   }
   
   public static validateFilePathWithReadPermission = (filePath: string): string | undefined => {

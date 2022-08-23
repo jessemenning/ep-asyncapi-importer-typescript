@@ -68,6 +68,7 @@ const DEFAULT_CLI_EP_API_BASE_URL = EpSdkClient.DEFAULT_EP_API_BASE_URL;
 
 const DEFAULT_CLI_LOGGER_LOG_LEVEL = ECliLogger_LogLevel.INFO;
 const DEFAULT_CLI_LOGGER_LOG_FILE = `./tmp/logs/${DefaultAppName}.log`;
+const create_DEFAULT_CLI_LOGGER_LOG_FILE = (appName: string) => { return `./tmp/logs/${appName}.log`; }
 // const DEFAULT_CLI_LOGGER_LOG_DIR = `./tmp/logs`;
 const DEFAULT_CLI_LOGGER_LOG_TO_STDOUT = false;
 const DEFAULT_CLI_LOGGER_EP_SDK_LOG_LEVEL = ECliLogger_EpSdkLogLevel.SILENT;
@@ -288,7 +289,7 @@ export class CliConfig {
       // const logDir = CliUtils.ensureDirExists(logDirEnvVarValue);
       // const logFile = `${logDir}/${appName}.log`;
       // const summaryLogFile = `${logDir}/${appName}.summary.log`;
-      const logFileEnvVarValue = this.getOptionalEnvVarValueAsStringWithDefault(ECliConfigEnvVarNames.CLI_LOGGER_LOG_FILE, DEFAULT_CLI_LOGGER_LOG_FILE);
+      const logFileEnvVarValue = this.getOptionalEnvVarValueAsStringWithDefault(ECliConfigEnvVarNames.CLI_LOGGER_LOG_FILE, create_DEFAULT_CLI_LOGGER_LOG_FILE(appName));
       const logFile = CliUtils.ensureDirOfFilePathExists(logFileEnvVarValue);
 
       const importAssetOutputDirEnvVarValue = this.getOptionalEnvVarValueAsStringWithDefault(ECliConfigEnvVarNames.CLI_IMPORT_ASSETS_OUTPUT_DIR, DEFAULT_CLI_IMPORT_ASSET_OUTPUT_DIR);
