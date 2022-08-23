@@ -9,8 +9,14 @@ import CliAsyncApiDocumentService from "./services/CliAsyncApiDocumentService";
 
 export enum ECliImporterMode {
   RELEASE_MODE = "release_mode",
-  TEST_MODE_CLEAN = "test_mode_clean",
+  TEST_MODE = "test_mode",
   TEST_MODE_KEEP = "test_mode_keep"
+}
+export const getCliImporterModeObjectValues4Config = (): Array<string> => {
+  return [
+    ECliImporterMode.RELEASE_MODE,
+    ECliImporterMode.TEST_MODE
+  ]
 }
 
 export interface ICliImporterOptions {
@@ -154,10 +160,10 @@ export class CliImporter {
     const logName = `${CliImporter.name}.${funcName}()`;
 
     switch(this.cliImporterOptions.cliImporterMode) {
-      case ECliImporterMode.TEST_MODE_CLEAN:
+      case ECliImporterMode.TEST_MODE:
       case ECliImporterMode.TEST_MODE_KEEP:
         await this.run_test_mode({ 
-          cleanUp: this.cliImporterOptions.cliImporterMode ===  ECliImporterMode.TEST_MODE_CLEAN
+          cleanUp: this.cliImporterOptions.cliImporterMode ===  ECliImporterMode.TEST_MODE
         });
         break;
       case ECliImporterMode.RELEASE_MODE:

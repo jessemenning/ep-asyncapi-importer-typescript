@@ -1,6 +1,3 @@
-import path from 'path';
-import fs from 'fs';
-
 import { 
   CliConfigInvalidEnvVarValueOptionError,
   CliConfigInvalidUrlEnvVarError,
@@ -20,7 +17,7 @@ import {
   TCliLogger_EpSdkLogLevel } from './CliLogger';
 import { EpSdkClient } from '@solace-labs/ep-sdk';
 import { DefaultAppName } from './consts';
-import { ECliImporterMode, ICliImporterOptions } from './CliImporter';
+import { ECliImporterMode, getCliImporterModeObjectValues4Config, ICliImporterOptions } from './CliImporter';
 import { ECliAssetImport_TargetLifecycleState } from './services/CliEPStatesService';
 import { ECliAssetImport_TargetVersionStrategy } from './CliAsyncApiFileImporter';
 import { CliUtils } from './CliUtils';
@@ -97,7 +94,7 @@ const CliConfigEnvVarConfigList: Array<TCliConfigEnvVarConfig> = [
     description: 'The operations mode for the app.',
     required: false,
     default: DEFAULT_CLI_MODE,
-    options: Object.values(ECliImporterMode)
+    options: getCliImporterModeObjectValues4Config()
   },
   {
     envVarName: ECliConfigEnvVarNames.CLI_RUN_ID,

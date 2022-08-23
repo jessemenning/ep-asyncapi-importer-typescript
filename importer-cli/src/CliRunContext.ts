@@ -26,7 +26,7 @@ export interface ICliAsyncApiRunContext_EventApi extends Partial<ICliAsyncApiRun
   // existingEventApiName?: string;
 }
 export interface ICliAsyncApiRunContext_EventApiVersion extends Partial<ICliAsyncApiRunContext_State> {
-  // latestExistingEventApiVersion?: string;
+  epLatestExistingEventApiVersion?: string;
   epTargetEventApiVersion: string;
 }
 export interface ICliAsyncApiRunContext_Channel extends Partial<ICliAsyncApiRunContext_State> {

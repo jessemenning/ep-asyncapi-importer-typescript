@@ -1,4 +1,7 @@
 import { 
+  eventApiVersion as EventApiVersion 
+} from '@solace-labs/ep-openapi-node';
+import { 
   EEpSdkTask_Action,
   IEpSdkApplicationDomainTask_ExecuteReturn,
   IEpSdkEnumTask_ExecuteReturn,
@@ -28,6 +31,7 @@ export enum ECliRunSummary_Type {
   Enum = "Enum",
   VersionObject = "VersionObject",
   VersionObjectCheck = "VersionObjectCheck",
+  VersionObjectWarning = "VersionObjectWarning",
 }
 
 // taskTransactionId: string;
@@ -70,22 +74,31 @@ interface ICliRunSummary_Task extends ICliRunSummary_Base {
   action: string;
 }
 interface ICliRunSummary_Task_ApplicationDomain extends ICliRunSummary_Task {
-  type: ECliRunSummary_Type.ApplicationDomain,
+  type: ECliRunSummary_Type.ApplicationDomain;
 }
 interface ICliRunSummary_Task_Enum extends ICliRunSummary_Task {
   type: ECliRunSummary_Type.Enum,
   name: string;
 }
 interface ICliRunSummary_Task_VersionObject extends ICliRunSummary_Task {
-  type: ECliRunSummary_Type.VersionObject,
+  type: ECliRunSummary_Type.VersionObject;
   displayName?: string;
   version?: string;
   state?: string;
   epObjectType: string;
 }
 interface ICliRunSummary_Task_VersionObject_Check extends ICliRunSummary_Task, Omit<ICliRunSummary_Task_VersionObject, "type"> {
-  type: ECliRunSummary_Type.VersionObjectCheck,
+  type: ECliRunSummary_Type.VersionObjectCheck;
   exactTargetVersion: string;
+}
+interface ICliRunSummary_Task_VersionObject_Warning extends ICliRunSummary_Task, Omit<ICliRunSummary_Task_VersionObject, "type"> {
+  type: ECliRunSummary_Type.VersionObjectWarning;
+  existingVersion: string;
+  existingVersionState: string;
+  targetVersion: string;
+  targetVersionState: string;
+  createdVersion: string;
+  createdVersionState: string;
 }
 
 export class CliRunSummary {
@@ -259,9 +272,58 @@ Start Run: ${cliRunSummary_StartRun.runMode} ------------------------
     this.processedVersionObject(ECliSummaryStatusCodes.PROCESSED_EVENT_API_VERSION, epSdkEventApiVersionTask_ExecuteReturn);
   }
 
-  public processingStartEventApiVersion = ({ exactTargetVersion, epSdkEventApiVersionTask_ExecuteReturn_Check }:{
+  public processedEventApiVersionWithWarning = ({ targetEventApiVersion, targetEventApiState, epSdkEventApiVersionTask_ExecuteReturn, latestExistingEventApiVersionObjectBefore }: { 
+    targetEventApiVersion: string;
+    targetEventApiState: string;
+    epSdkEventApiVersionTask_ExecuteReturn: IEpSdkEventApiVersionTask_ExecuteReturn;
+    latestExistingEventApiVersionObjectBefore: EventApiVersion;
+  }): void => {
+    const cliRunSummary_Task_VersionObject_Warning: ICliRunSummary_Task_VersionObject_Warning = {
+      type: ECliRunSummary_Type.VersionObjectWarning,
+      action: epSdkEventApiVersionTask_ExecuteReturn.epSdkTask_TransactionLogData.epSdkTask_Action,
+      epObjectType: epSdkEventApiVersionTask_ExecuteReturn.epSdkTask_TransactionLogData.epObjectKeys.epObjectType,
+      displayName: epSdkEventApiVersionTask_ExecuteReturn.epObject.displayName,
+      existingVersion: latestExistingEventApiVersionObjectBefore.version ? latestExistingEventApiVersionObjectBefore.version : 'undefined',
+      existingVersionState: latestExistingEventApiVersionObjectBefore.stateId ? latestExistingEventApiVersionObjectBefore.stateId : 'undefined',
+      targetVersion: targetEventApiVersion,
+      targetVersionState: targetEventApiState,
+      createdVersion: epSdkEventApiVersionTask_ExecuteReturn.epObject.version ? epSdkEventApiVersionTask_ExecuteReturn.epObject.version : 'undefined',
+      createdVersionState: epSdkEventApiVersionTask_ExecuteReturn.epObject.stateId ? epSdkEventApiVersionTask_ExecuteReturn.epObject.stateId : 'undefined', 
+    };
+    let consoleOutput: string;
+    if(cliRunSummary_Task_VersionObject_Warning.action === EEpSdkTask_Action.NO_ACTION) {
+      consoleOutput = `
+      Run Warning for ${cliRunSummary_Task_VersionObject_Warning.epObjectType}:
+        Warning:  Inconsistent Event Api Versions
+        Name:     ${cliRunSummary_Task_VersionObject_Warning.displayName}
+        Action:   ${cliRunSummary_Task_VersionObject_Warning.action}
+        Existing Version: ${cliRunSummary_Task_VersionObject_Warning.existingVersion}
+        Existing State:   ${cliRunSummary_Task_VersionObject_Warning.existingVersionState}
+        Target Version:   ${cliRunSummary_Task_VersionObject_Warning.targetVersion}
+        Target State:     ${cliRunSummary_Task_VersionObject_Warning.targetVersionState}
+      `;
+    } else {
+      consoleOutput = `
+      Run Warning for ${cliRunSummary_Task_VersionObject_Warning.epObjectType}:
+        Warning:  Inconsistent Event Api Versions
+        Name:     ${cliRunSummary_Task_VersionObject_Warning.displayName}
+        Action:   ${cliRunSummary_Task_VersionObject_Warning.action}
+        Existing Version: ${cliRunSummary_Task_VersionObject_Warning.existingVersion}
+        Existing State:   ${cliRunSummary_Task_VersionObject_Warning.existingVersionState}
+        Target Version:   ${cliRunSummary_Task_VersionObject_Warning.targetVersion}
+        Target State:     ${cliRunSummary_Task_VersionObject_Warning.targetVersionState}
+        Created Version:  ${cliRunSummary_Task_VersionObject_Warning.createdVersion}
+        Created State:    ${cliRunSummary_Task_VersionObject_Warning.createdVersionState}
+      `;
+    }
+    this.log(ECliSummaryStatusCodes.PROCESSING_START_EVENT_API_VERSION, this.addTaskElements(cliRunSummary_Task_VersionObject_Warning), consoleOutput);
+    this.processedVersionObject(ECliSummaryStatusCodes.PROCESSED_EVENT_API_VERSION, epSdkEventApiVersionTask_ExecuteReturn);
+  }
+
+  public processingStartEventApiVersion = ({ exactTargetVersion, epSdkEventApiVersionTask_ExecuteReturn_Check, latestExistingEventApiVersionObjectBefore }:{
     exactTargetVersion: string;
     epSdkEventApiVersionTask_ExecuteReturn_Check: IEpSdkEventApiVersionTask_ExecuteReturn;
+    latestExistingEventApiVersionObjectBefore?: EventApiVersion;
   }): void => {
     const cliRunSummary_Task_VersionObject_Check: ICliRunSummary_Task_VersionObject_Check = {
       type: ECliRunSummary_Type.VersionObjectCheck,
@@ -269,16 +331,16 @@ Start Run: ${cliRunSummary_StartRun.runMode} ------------------------
       action: epSdkEventApiVersionTask_ExecuteReturn_Check.epSdkTask_TransactionLogData.epSdkTask_Action,
       epObjectType: epSdkEventApiVersionTask_ExecuteReturn_Check.epSdkTask_TransactionLogData.epObjectKeys.epObjectType,
       displayName: epSdkEventApiVersionTask_ExecuteReturn_Check.epObject.displayName,
-      version: epSdkEventApiVersionTask_ExecuteReturn_Check.epObject.version,
-      state: epSdkEventApiVersionTask_ExecuteReturn_Check.epObject.stateId
+      version: latestExistingEventApiVersionObjectBefore?.version,
+      state: latestExistingEventApiVersionObjectBefore?.stateId
     };
+    const existingVersionOutput = latestExistingEventApiVersionObjectBefore ? `${cliRunSummary_Task_VersionObject_Check.version} (state: ${cliRunSummary_Task_VersionObject_Check.state})` : 'None.';
     let consoleOutput = `
       Run Check for ${cliRunSummary_Task_VersionObject_Check.epObjectType}:
-        Name:      ${cliRunSummary_Task_VersionObject_Check.displayName}
+        Name:     ${cliRunSummary_Task_VersionObject_Check.displayName}
         Action:   ${cliRunSummary_Task_VersionObject_Check.action}
-        State:    ${cliRunSummary_Task_VersionObject_Check.state}
-        Current Version:  ${cliRunSummary_Task_VersionObject_Check.version}
-        Target Version:   ${exactTargetVersion}`;
+        Exsiting Version: ${existingVersionOutput}
+        Target Version:   ${cliRunSummary_Task_VersionObject_Check.exactTargetVersion}`;
     if(cliRunSummary_Task_VersionObject_Check.action !== EEpSdkTask_Action.NO_ACTION) {
       consoleOutput += `
         Updates Required: See epSdkTask_IsUpdateRequiredFuncReturn in details.
@@ -289,7 +351,6 @@ Start Run: ${cliRunSummary_StartRun.runMode} ------------------------
     }
     this.log(ECliSummaryStatusCodes.PROCESSING_START_EVENT_API_VERSION, this.addTaskElements(cliRunSummary_Task_VersionObject_Check), consoleOutput);
   }
-
 
 }
 
