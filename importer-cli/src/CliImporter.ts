@@ -36,13 +36,24 @@ export class CliImporter {
     this.cliImporterOptions = cliImporterOptions;
   }
 
+  // expose for testing
+  public static createApplicationDomainPrefix({ appName, runId }:{
+    appName: string;
+    runId: string;
+  }): string {
+    return `${appName}/test/${runId}`;
+  }
+
   private run_test_mode = async({ cleanUp }:{
     cleanUp: boolean;
   }): Promise<void> => {
     const funcName = 'run_test_mode';
     const logName = `${CliImporter.name}.${funcName}()`;
 
-    const applicationDomainNamePrefix = `${this.cliImporterOptions.appName}/test/${this.cliImporterOptions.runId}`;
+    const applicationDomainNamePrefix = CliImporter.createApplicationDomainPrefix({ 
+      appName: this.cliImporterOptions.appName,
+      runId: this.cliImporterOptions.runId
+    });
 
     const applicationDomainNameList: Array<string> = [];
     try {
