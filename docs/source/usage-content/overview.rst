@@ -1,14 +1,12 @@
 .. _usage-content-overview:
 
-Overview
-========
+.. note::
 
-Set Solace Cloud Token
-----------------------
+  Ensure a valid Solace Cloud Token is defined:
+  
+  .. code-block:: bash
 
-.. code-block:: bash
-
-  export CLI_SOLACE_CLOUD_TOKEN={your token}
+    export CLI_SOLACE_CLOUD_TOKEN={your token}
 
 
 Api Importer
@@ -18,7 +16,7 @@ Help
 ----
 .. code-block:: bash
 
-  sep-async-api-importer -h
+  ep-async-api-importer -h
 
 
 Importing a single Api
@@ -26,7 +24,7 @@ Importing a single Api
 
 .. code-block:: bash
 
-  sep-async-api-importer -fp '{path to the api file}'
+  ep-async-api-importer -fp '{path to the api file}'
 
 Importing Apis using a File Pattern
 -----------------------------------
@@ -35,7 +33,7 @@ When using a file pattern, the importer will first create a list of api file nam
 
 .. code-block:: bash
 
-  sep-async-api-importer -fp '{glob pattern to api file(s)}'
+  ep-async-api-importer -fp '{glob pattern to api file(s)}'
 
 .. note::
 
@@ -52,28 +50,49 @@ Example Patterns
 Importing Apis into one Application Domain
 ------------------------------------------
 
-By default, the application domain is specified in the Api itself using the extension `x-sep-application-domain-name: {application-domain-name}`.
+By default, the application domain is specified in the Api itself using the extension `$.x-ep-application-domain-name: {application-domain-name}`.
 You can override the application domain name using the command line option: `-d {applicaton-domain-name}`.
 
 .. code-block:: bash
 
-  sep-async-api-importer -fp '{glob pattern to api file(s)}' -d {application-domain-name}
+  ep-async-api-importer -fp '{glob pattern to api file(s)}' -d {application-domain-name}
 
 
-Pretty print the Output
------------------------
+Log File
+--------
 
-The output is logged using `pino` logger, which comes with a pretty print utility: `pino-pretty`.
+Default log file: `./tmp/logs/ep-async-api-importer.log`.
 
-.. code-block:: bash
-
-  sep-async-api-importer -fp '{glob pattern to api file(s)}' -d {application-domain-name} | npx pino-pretty
-
-Redirect the Output to a log file
-----------------------------------
-
-Using standard shell commands, you can redirect the output to a log file.
+You can specify the log file by setting this environment variable:
 
 .. code-block:: bash
 
-  sep-async-api-importer -fp '{glob pattern to api file(s)}' -d {application-domain-name} | npx pino-pretty > {path}/logs/mylog.log 2>&1
+  export CLI_LOGGER_LOG_FILE="{path/filename.ext}"
+
+
+Generated Output
+----------------
+
+Default output directory: `./tmp/output`.
+
+You can specify the output directory by setting this environment variable:
+
+.. code-block:: bash
+
+  export CLI_IMPORT_ASSETS_OUTPUT_DIR="{path}"
+
+After each Api import the following output is generated:
+
+- {application-domain}
+
+  - Api Spec Files:
+
+    - {api-name}.yml
+    - {api-name}.json
+
+  - Schema Files:
+
+    - schemas:
+
+      - {schema-name}.json
+      - ...
