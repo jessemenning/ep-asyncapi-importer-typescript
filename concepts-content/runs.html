@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Prerequisites &mdash; Solace Event Portal Async API Importer r0.0.2 documentation</title>
+  <title>Importer Modes &mdash; Solace Event Portal Async API Importer r0.0.2 documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../_static/contentui.css" type="text/css" />
@@ -21,8 +21,8 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Usage" href="../usage.html" />
-    <link rel="prev" title="Install" href="../install.html" /> 
+    <link rel="next" title="Notes" href="notes.html" />
+    <link rel="prev" title="Overview" href="overview.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -42,14 +42,23 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Guides</span></p>
 <ul class="current">
-<li class="toctree-l1 current"><a class="reference internal" href="../install.html">Install</a><ul class="current">
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Prerequisites</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#install-globally">Install Globally</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="../install.html">Install</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../usage.html">Usage</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../examples.html">Examples</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../concepts.html">Concepts</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../concepts.html">Concepts</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Importer Modes</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#test-mode">Test Mode</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#test-pass-1">Test Pass 1:</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#test-pass-2">Test Pass 2:</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#release-mode">Release Mode</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="notes.html">Notes</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="../apis.html">Async Apis</a></li>
 </ul>
 
@@ -67,10 +76,10 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
-          <li><a href="../install.html">Install</a> &raquo;</li>
-      <li>Prerequisites</li>
+          <li><a href="../concepts.html">Concepts</a> &raquo;</li>
+      <li>Importer Modes</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../_sources/install-content/install.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/concepts-content/runs.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -78,23 +87,44 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="prerequisites">
-<span id="install-content-install"></span><h1>Prerequisites<a class="headerlink" href="#prerequisites" title="Permalink to this heading"></a></h1>
-<p>The importer requires <cite>node 16.x</cite>.</p>
-</section>
-<section id="install-globally">
-<h1>Install Globally<a class="headerlink" href="#install-globally" title="Permalink to this heading"></a></h1>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>npm install @solace-iot-team/sep-async-api-importer -g
+  <section id="importer-modes">
+<span id="importer-content-runs"></span><h1>Importer Modes<a class="headerlink" href="#importer-modes" title="Permalink to this heading"></a></h1>
+<section id="test-mode">
+<h2>Test Mode<a class="headerlink" href="#test-mode" title="Permalink to this heading"></a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span> <span class="nv">CLI_MODE</span><span class="o">=</span><span class="s2">&quot;test_mode&quot;</span>
 </pre></div>
 </div>
+<p>Testing consists of two passes:</p>
+<section id="test-pass-1">
+<h3>Test Pass 1:<a class="headerlink" href="#test-pass-1" title="Permalink to this heading"></a></h3>
+<p>Import all Apis into their respective application domains prefixed with <cite>{appName}/test/{runId}</cite>, where:</p>
+<ul class="simple">
+<li><p>{appName}: the importer name, defined by the env var: <cite>CLI_APP_NAME</cite></p></li>
+<li><p>{runId}: auto generated run id from timestamp in format: <cite>YYYY-MM-DD-HH-MM-SS-mmm</cite></p></li>
+</ul>
+</section>
+<section id="test-pass-2">
+<h3>Test Pass 2:<a class="headerlink" href="#test-pass-2" title="Permalink to this heading"></a></h3>
+<p>Import all Apis again in <cite>checkmode</cite>.</p>
+<p>Checkmode tests if anything would change but doesn’t actually change anything.</p>
+<p>This second pass detects asset definition inconsistencies within Api files and across Api files.</p>
+</section>
+</section>
+<section id="release-mode">
+<h2>Release Mode<a class="headerlink" href="#release-mode" title="Permalink to this heading"></a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span> <span class="nv">CLI_MODE</span><span class="o">=</span><span class="s2">&quot;release_mode&quot;</span>
+</pre></div>
+</div>
+<p>Performs a run in Test Mode first, then imports each Api into their respective application domains.</p>
+</section>
 </section>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="../install.html" class="btn btn-neutral float-left" title="Install" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="../usage.html" class="btn btn-neutral float-right" title="Usage" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="overview.html" class="btn btn-neutral float-left" title="Overview" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="notes.html" class="btn btn-neutral float-right" title="Notes" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
