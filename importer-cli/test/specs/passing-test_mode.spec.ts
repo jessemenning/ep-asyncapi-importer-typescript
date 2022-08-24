@@ -29,7 +29,7 @@ const setupTestOptions = (): Array<string> => {
 describe(`${scriptName}`, () => {
     
   before(async() => {
-    console.log('BEFORE: setup test & clean app domains ...');
+    console.log(`${scriptName}: BEFORE: setup test & clean app domains ...`);
     // create test specific list
     const fileList = setupTestOptions();
     //parse all specs
@@ -43,6 +43,7 @@ describe(`${scriptName}`, () => {
     });
     // ensure all app domains are absent
     const xvoid: void = await TestServices.absent_ApplicationDomains();
+    console.log(`${scriptName}: BEFORE: done.`);
   });
 
   beforeEach(() => {
@@ -50,19 +51,22 @@ describe(`${scriptName}`, () => {
   });
 
   after(async() => {
+    console.log(`${scriptName}: AFTER: check and cleanup ...`);
     let err: Error | undefined = undefined;
     try {
       // test ep assets & versions are correctly imported as in epAsyncApiDocument
       const pass: boolean = await TestServices.checkAssetsCreatedAsExpected();
-      expect(pass, 'AFTER checks not passed').to.be.true;
+      expect(pass, `${scriptName}: AFTER checks not passed`).to.be.true;
     } catch(e) {
       err = e;
     } finally {
       // ensure all app domains are absent
-      console.log('CLEAN-UP AFTER: delete all application domains');
+      console.log(`${scriptName}: AFTER: delete all application domains ...`);
       const xvoid: void = await TestServices.absent_ApplicationDomains();
+      console.log(`${scriptName}: AFTER: delete all application domains done.`);
     }
-    expect(err, TestLogger.createNotCliErrorMesssage(`${err.name}: ${err.message}`)).to.be.undefined;
+    expect(err, TestLogger.createNotCliErrorMesssage(JSON.stringify(err))).to.be.undefined;
+    console.log(`${scriptName}: AFTER: done.`);
   });
 
   it(`${scriptName}: should import specs`, async () => {

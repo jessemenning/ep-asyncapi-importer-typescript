@@ -21,6 +21,7 @@ import {
   ApplicationDomain, 
   OpenAPI 
 } from '@solace-labs/ep-openapi-node';
+import { TestServices } from "./lib/TestServices";
 
 // ensure any unhandled exception cause exit = 1
 function onUncaught(err: any){
@@ -28,6 +29,14 @@ function onUncaught(err: any){
   process.exit(1);
 }
 process.on('unhandledRejection', onUncaught);
+// // this does not catch ctrl-c
+// async function onExit() {
+//   console.log('onExit: delete all application domains');
+//   const xvoid: void = await TestServices.absent_ApplicationDomains();
+//   console.log('onExit: done');
+//   process.exit(1);
+// }
+// process.on('exit', onExit);
 
 const scriptName: string = path.basename(__filename);
 const scriptDir: string = path.dirname(__filename);
@@ -68,12 +77,14 @@ before(async() => {
 });
 
 after(async() => {
-  TestContext.newItId();
-  // disable for DEBUG
-  for(const createdDomain of TestEnv.createdAppDomainNameList) {
-    const deleted: ApplicationDomain = await EpSdkApplicationDomainsService.deleteByName({ applicationDomainName: createdDomain });
-    console.log(TestLogger.createLogMessage(`deleted application domain=${JSON.stringify(deleted, null, 2)}`));
-  }
+  console.log(`${scriptName}: AFTER ALL: start ...`);
+  // TestContext.newItId();
+  // // disable for DEBUG
+  // for(const createdDomain of TestEnv.createdAppDomainNameList) {
+  //   const deleted: ApplicationDomain = await EpSdkApplicationDomainsService.deleteByName({ applicationDomainName: createdDomain });
+  //   console.log(TestLogger.createLogMessage(`deleted application domain=${JSON.stringify(deleted, null, 2)}`));
+  // }
+  console.log(`${scriptName}: AFTER ALL: done.`);
 });
 
 describe(`${scriptName}`, () => {

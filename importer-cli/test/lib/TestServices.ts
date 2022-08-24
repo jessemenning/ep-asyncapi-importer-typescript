@@ -41,6 +41,7 @@ export class TestServices {
         return testApiSpecRecord.epAsyncApiDocument.getApplicationDomainName();
       })
     });
+    TestServices.testApiSpecRecordList = [];
   }
 
   public static getTestApiSpecRecordList(): Array<T_TestApiSpecRecord> { return TestServices.testApiSpecRecordList; }
