@@ -10,4 +10,4 @@ Install Globally
 
 .. code-block:: bash
 
-  npm install @solace-labs/sep-async-api-importer -g
+  npm install @solace-labs/ep-async-api-importer -g
