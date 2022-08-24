@@ -106,8 +106,8 @@ function getCommandLineOptionValues(): OptionValues {
 
   const Program = new Command();
 
-  const domainOption: Option = Program.createOption('-d, --domain <value>', 'Application Domain Name. Overrides the application domain name extracted from each in Async API file, path=$.info.x-ep-application-domain-name.');
-  domainOption.hideHelp(true);
+  const domainOption: Option = Program.createOption('-d, --domain <value>', 'Application Domain Name. Overrides the application domain name extracted from each in Async API file, path=$.x-ep-application-domain-name.');
+  // domainOption.hideHelp(true);
   Program
   .name(`npx ${packageJson.name}`)
   // .description(`${packageJson.description}`)

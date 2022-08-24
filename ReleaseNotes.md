@@ -2,6 +2,12 @@
 
 Solace Event Portal Async API Importer.
 
+## Version 0.5.1-alpha
+
+**Fixes:**
+- **Cli Option: -d, -domain**
+  - fixed use of the global domain overriding domains in api files
+
 ## Version 0.5.0-alpha
 
 Refactored.
