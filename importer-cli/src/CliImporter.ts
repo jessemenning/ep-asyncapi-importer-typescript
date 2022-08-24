@@ -1,6 +1,7 @@
 import { EpAsyncApiDocument } from "@solace-labs/ep-asyncapi";
 import { ICliAsyncApiFileImporterOptions } from "./CliAsyncApiFileImporter";
 import { CliEventApiImporter, ICliEventApiImporterRunReturn } from "./CliEventApiImporter";
+import { CliLogger, ECliStatusCodes } from "./CliLogger";
 import CliRunContext, { ECliRunContext_RunMode } from "./CliRunContext";
 import CliRunSummary, { ECliRunSummary_Type } from "./CliRunSummary";
 import { CliUtils } from "./CliUtils";
@@ -69,6 +70,13 @@ export class CliImporter {
         });
         applicationDomainNameList.push(epAsyncApiDocument.getApplicationDomainName());  
       }
+
+      // CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_START_TEST_MODE, details: {
+      //   applicationDomainName: this.cliImporterOptions.applicationDomainName,
+      //   applicationDomainNamePrefix: applicationDomainNamePrefix,
+      //   applicationDomainNameList: applicationDomainNameList
+      // }}));
+
       // clean application domains before test
       const xvoid: void = await CliApplicationDomainsService.absent_ApplicationDomains({ applicationDomainNameList: applicationDomainNameList });
   
