@@ -35,7 +35,7 @@ export class CliApplicationImporter extends CliEventApiImporter {
     applicationDomainId;
     checkmode;
 
-    CliLogger.fatal(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_APPLICATION, details: {
+    CliLogger.fatal(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_ERROR_APPLICATION, details: {
       cause: "not implemented"
     }}));
     throw new CliImporterFeatureNotSupportedError(logName, undefined, {
@@ -87,7 +87,7 @@ export class CliApplicationImporter extends CliEventApiImporter {
     const funcName = 'run';
     const logName = `${CliApplicationImporter.name}.${funcName}()`;
 
-    CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORT_START_APPLICATION, details: {
+    CliLogger.debug(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_START_APPLICATION, details: {
       applicationDomainName: applicationDomainName,
       applicationDomainNamePrefix: applicationDomainNamePrefix,
       checkmode: checkmode  
@@ -100,7 +100,7 @@ export class CliApplicationImporter extends CliEventApiImporter {
       checkmode: checkmode,
     });
 
-    CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORT_DONE_APPLICATION, details: {}}));
+    if(cliEventApiImporterRunReturn.error === undefined) CliLogger.debug(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_DONE_APPLICATION, details: {}}));
 
     return cliEventApiImporterRunReturn;
 

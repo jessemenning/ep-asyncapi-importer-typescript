@@ -23,7 +23,7 @@ const compile = () => {
   const funcName = 'compile';
   const logName = `${scriptDir}/${scriptName}.${funcName}()`;
   console.log(`${logName}: compiling ...`);
-  if(s.exec(`npx tsc`).code !== 0) process.exit(1);
+  if(s.exec(`npm run compile`).code !== 0) process.exit(1);
   console.log(`${logName}: success.`);
 }
 

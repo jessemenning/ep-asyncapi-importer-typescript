@@ -10,10 +10,6 @@ SKIPPING="+++ SKIPPING +++";
 
 echo " >>> Starting $scriptName ..."
 
-# if alpha release, do nothing
-if [ -n "$APIM_RELEASE_APLPHA_BUILD_NUM" ]; then echo ">>> $SKIPPING: - $scriptDir/$scriptName - APIM_RELEASE_APLPHA_BUILD_NUM=$APIM_RELEASE_APLPHA_BUILD_NUM"; exit 0; fi
-
-
 echo " >>> Build ..."
   cd $scriptDir
   runScript="$scriptDir/build.sh"

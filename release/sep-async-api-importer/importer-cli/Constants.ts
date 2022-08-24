@@ -11,7 +11,7 @@ export class Constants {
   private readonly _skipping: string;
   private _cliPackageName: string;
   private _cliPackageVersion: string;
-  private _workingCliPublishDir: string;
+  // private _workingCliPublishDir: string;
   // private _alphaVersion: string | undefined; 
 
   constructor(scriptDir: string) {
@@ -21,23 +21,13 @@ export class Constants {
     this._cliDir = `${this._gitRoot}/importer-cli`;
     this._resourcesDir = `${this._gitRoot}/resources`;
     this._workingCliDir = `${this._workingDir}/importer-cli`;
-    this._workingCliPublishDir = `${this._workingCliDir}-publish`;
+    // this._workingCliPublishDir = `${this._workingCliDir}-publish`;
     this._skipping = '+++ SKIPPING +++';
     this._cliPackageName = "not-initialized";
     this._cliPackageVersion = "not-initialized";
     // this._alphaVersion = process.env[ENV_VAR_APIM_RELEASE_ALPHA_VERSION];
   }
 
-  // private createDockerImageTag = (version: string): string => {
-  //   if(this._alphaVersion) {
-  //     return `${version}-${this._alphaVersion.replaceAll('+', '-')}`;
-  //   }
-  //   return version;
-  // }  
-  // private createLatestTag = (): string => {
-  //   if(this._alphaVersion) return 'alpha-latest';
-  //   return 'latest';
-  // }  
   public initAfterCopy() {
     const cliPackageJson = require(`${this._workingCliDir}/package.json`);
     this._cliPackageName = cliPackageJson.name;
@@ -55,7 +45,7 @@ export class Constants {
   public get Skipping() { return this._skipping; }
   public get CliPackageVersion() { return this._cliPackageVersion; }
   public get CliPacakgeName() { return this._cliPackageName; }
-  public get WorkingCliPublishDir() { return this._workingCliPublishDir; }
+  // public get WorkingCliPublishDir() { return this._workingCliPublishDir; }
   // public get AlphaVersion() { return this._alphaVersion; }
 
 }
