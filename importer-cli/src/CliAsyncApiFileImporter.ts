@@ -1,18 +1,15 @@
-import { ParserError } from '@asyncapi/parser';
 import { 
   EpAsynApiChannelPublishOperation,
   EpAsyncApiChannelDocument,
   EpAsyncApiChannelParameterDocument,
   EpAsyncApiChannelSubscribeOperation,
   EpAsyncApiDocument, 
-  EpAsyncApiError, 
   EpAsyncApiMessageDocument, 
   E_EpAsyncApiContentTypes, 
   T_EpAsyncApiChannelDocumentMap,
   T_EpAsyncApiChannelParameterDocumentMap
 } from '@solace-labs/ep-asyncapi';
 import { 
-  ApiError, 
   Enum, 
   SchemaObject, 
   SchemaVersion, 
@@ -28,7 +25,6 @@ import {
   EpSdkEnumVersionTask, 
   EpSdkEpEventTask, 
   EpSdkEpEventVersionTask, 
-  EpSdkError, 
   EpSdkSchemaTask,
   EpSdkSchemaVersionTask,
   EpSdkTask,
@@ -42,12 +38,6 @@ import {
   IEpSdkTask_ExecuteReturn,
 } from '@solace-labs/ep-sdk';
 import { 
-  CliError, 
-  CliErrorFromEpAsyncApiError, 
-  CliErrorFromEpSdkError, 
-  CliErrorFromEPApiError, 
-  CliAsyncApiParserError,
-  CliErrorFromError,
   CliImporterTestRunAssetsInconsistencyError,
   CliEPApiContentError,
   CliInternalCodeInconsistencyError,

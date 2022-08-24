@@ -34,7 +34,8 @@
     "build": "ts-node build.ts",
     "dev:start": "ts-node src/index.ts",
     "start": "npm run build && node dist/src/index.js",
-    "test": ". ./test/source.env.sh && mocha --config test/.mocharc.yml test/**/**.spec.ts && unset_source_env"
+    "test": ". ./test/source.env.sh && mocha --config test/.mocharc.yml test/**/**.spec.ts && unset_source_env",
+    "dev:test": ". ./test/source.env.sh && mocha --config test/.mocharc.yml test/**/**.dev-spec.ts && unset_source_env"
   },
   "files": [
     "dist/**/*.js",

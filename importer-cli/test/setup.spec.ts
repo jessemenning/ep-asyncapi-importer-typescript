@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import { 
   getMandatoryEnvVarValue,
+  getOptionalEnvVarValueAsBoolean,
   getUUID, 
   TestContext, 
   TestLogger, 
@@ -39,10 +40,12 @@ const setTestEnv = (scriptDir: string): TTestEnv => {
   if(!scriptDir.includes('test')) testRootDir = path.join(scriptDir, 'test');
   const projectRootDir = path.join(testRootDir, '../..');
   const CLI_TEST_API_SPECS_ROOT_DIR = getMandatoryEnvVarValue(scriptName, "CLI_TEST_API_SPECS_ROOT_DIR"); 
+  const CLI_TEST_ENABLE_API_CALL_LOGGING = getOptionalEnvVarValueAsBoolean(scriptName, "CLI_TEST_ENABLE_API_CALL_LOGGING", false);
   const testEnv: TTestEnv = {
     projectRootDir: projectRootDir,
     testApiSpecsDir: path.join(projectRootDir, CLI_TEST_API_SPECS_ROOT_DIR),
     enableLogging: true,
+    enableApiLogging: CLI_TEST_ENABLE_API_CALL_LOGGING,
     // globalDomainNamePrefix: `sep-async-api-importer/test/${getUUID()}`,
     createdAppDomainNameList: [],
     testRunId: getUUID()
