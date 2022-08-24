@@ -2,6 +2,10 @@
 
 Solace Event Portal Async API Importer.
 
+## Version 0.5.2-alpha
+
+Migrated repo to SolaceLabs.
+
 ## Version 0.5.1-alpha
 
 **Fixes:**

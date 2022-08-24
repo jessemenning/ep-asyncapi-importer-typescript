@@ -1,11 +1,11 @@
 # Async API Importer for Solace Event Portal
 
-[See Documentation for more Details](https://solace-iot-team.github.io/ep-async-api-importer/).
+[See Documentation for more Details](https://solacelabs.github.io/ep-asyncapi-importer-typescript/).
 
 ## Install Globally
 
 ```bash
-npm install @solace-iot-team/ep-async-api-importer -g
+npm install @solace-labs/ep-async-api-importer -g
 ```
 
 ## Set Solace Cloud Token

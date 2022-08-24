@@ -4,7 +4,7 @@ scriptDir=$(cd $(dirname "$0") && pwd);
 scriptName=$(basename $(test -L "$0" && readlink "$0" || echo "$0"));
 
 buildDirs=(
-  "sep-async-api-importer"
+  "ep-async-api-importer"
 )
 
 for buildDir in ${buildDirs[@]}; do

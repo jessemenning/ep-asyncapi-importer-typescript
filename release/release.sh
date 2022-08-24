@@ -6,7 +6,7 @@ scriptName=$(basename $(test -L "$0" && readlink "$0" || echo "$0"));
 SKIPPING="+++ SKIPPING +++";
 
 releaseDirs=(
-  "sep-async-api-importer"
+  "ep-async-api-importer"
 )
 
 for releaseDir in ${releaseDirs[@]}; do
