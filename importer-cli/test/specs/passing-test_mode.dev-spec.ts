@@ -29,6 +29,7 @@ const setupTestOptions = (): Array<string> => {
 describe(`${scriptName}`, () => {
     
   before(async() => {
+    console.log('BEFORE: setup test & clean app domains ...');
     // create test specific list
     const fileList = setupTestOptions();
     //parse all specs
@@ -49,14 +50,19 @@ describe(`${scriptName}`, () => {
   });
 
   after(async() => {
-    // - after import: test ep assets & versions are correctly imported as in epAsyncApiDocument
-
-    console.log(`TODO: test ep assets & versions are correctly imported as in epAsyncApiDocument`);
-
-    // ensure all app domains are absent
-    console.log('CLEAN-UP AFTER: delete all application domains');
-    const xvoid: void = await TestServices.absent_ApplicationDomains();
-
+    let err: Error | undefined = undefined;
+    try {
+      // test ep assets & versions are correctly imported as in epAsyncApiDocument
+      const pass: boolean = await TestServices.checkAssetsCreatedAsExpected();
+      expect(pass, 'AFTER checks not passed').to.be.true;
+    } catch(e) {
+      err = e;
+    } finally {
+      // ensure all app domains are absent
+      console.log('CLEAN-UP AFTER: delete all application domains');
+      const xvoid: void = await TestServices.absent_ApplicationDomains();
+    }
+    expect(err, TestLogger.createNotCliErrorMesssage(`${err.name}: ${err.message}`)).to.be.undefined;
   });
 
   it(`${scriptName}: should import specs`, async () => {
@@ -71,26 +77,6 @@ describe(`${scriptName}`, () => {
       expect(false, TestLogger.createTestFailMessageWithCliError('failed', e)).to.be.true;
     }
   });
-
-  it(`${scriptName}: should say hello and fail`, async () => {
-    expect(false, 'hello test').to.be.true;
-  });
-
-
-
-    // // // this test makes no sense
-    // // it(`${scriptName}: should import passing specs: idempotency test of specs`, async () => {
-    // //   try {
-    // //     const cliImporter = new CliImporter(CliConfig.getCliImporterOptions());
-    // //     const xvoid: void = await cliImporter.run();      
-    // //     const cliRunSummaryList: Array<ICliRunSummary_Base> = CliRunSummary.getSummaryLogList();
-    // //     // DEBUG
-    // //     // expect(false, JSON.stringify(cliRunSummaryList, null, 2)).to.be.true;
-    // //   } catch(e) {
-    // //     expect(e instanceof CliError, TestLogger.createNotCliErrorMesssage(e.message)).to.be.true;
-    // //     expect(false, TestLogger.createTestFailMessageWithCliError('failed', e)).to.be.true;
-    // //   }
-    // // });
 
 });
 

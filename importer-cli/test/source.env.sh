@@ -14,7 +14,8 @@ unset_source_env() {
     unset CLI_LOGGER_PRETTY_PRINT
     # env vars for tests
     unset CLI_TEST_API_SPECS_ROOT_DIR
-
+    unset CLI_TEST_ENABLE_API_CALL_LOGGING
+    
     # unset this function
     unset -f unset_source_env
 }
@@ -31,6 +32,7 @@ export CLI_LOGGER_PRETTY_PRINT="true"
 # ENV vars for tests
 # from project dir
 export CLI_TEST_API_SPECS_ROOT_DIR="./data"
+export CLI_TEST_ENABLE_API_CALL_LOGGING="false"
 
 ######################################################
 

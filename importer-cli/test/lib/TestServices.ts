@@ -45,4 +45,15 @@ export class TestServices {
 
   public static getTestApiSpecRecordList(): Array<T_TestApiSpecRecord> { return TestServices.testApiSpecRecordList; }
 
+  public static checkAssetsCreatedAsExpected = async(): Promise<boolean> => {
+    const funcName = 'checkAssetsCreatedAsExpected';
+    const logName = `${TestServices.name}.${funcName}()`;
+
+    // run through all specs, check assets in EP?
+    // does that really make sense?
+
+    return false;
+
+  }
+
 }

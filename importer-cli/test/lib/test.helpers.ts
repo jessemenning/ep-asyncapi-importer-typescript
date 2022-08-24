@@ -20,6 +20,7 @@ import { CliError } from "../../src/CliError";
 import { 
   EpSdkError 
 } from "@solace-labs/ep-sdk";
+import { TestEnv } from "../setup.spec";
 
 
 export const getUUID = (): string => {
@@ -261,6 +262,7 @@ export function getExpectContainedDiff(containedObject: any, object: any): Expec
 export type TTestEnv = {
   projectRootDir: string;
   enableLogging: boolean,
+  enableApiLogging: boolean;
   testApiSpecsDir: string;
   // globalDomainNamePrefix: string;
   createdAppDomainNameList: Array<string>;
@@ -351,7 +353,7 @@ export class TestContext {
   stub.callsFake((config: OpenAPIConfig, options: ApiRequestOptions): CancelablePromise<ApiResult> => {
   
       TestContext.setApiRequestOptions(options);
-      TestLogger.logApiRequestOptions(TestContext.getItId(), options);
+      if(TestEnv.enableApiLogging) TestLogger.logApiRequestOptions(TestContext.getItId(), options);
   
       TestContext.setApiResult(undefined);
       TestContext.setApiError(undefined);
@@ -361,10 +363,9 @@ export class TestContext {
       
       const cancelablePromise = customRequest(config, options) as CancelablePromise<ApiResult>;
 
-
       cancelablePromise.then((value: ApiResult) => {
           TestContext.setApiResult(value);
-          TestLogger.logApiResult(TestContext.getItId(), TestContext.getApiResult());
+          if(TestEnv.enableApiLogging) TestLogger.logApiResult(TestContext.getItId(), TestContext.getApiResult());
       }, (reason) => {
           TestContext.setApiError(reason);
           TestLogger.logApiError(TestContext.getItId(), TestContext.getApiError());
