@@ -20,7 +20,7 @@ Repos & Links
 
 
 .. _Solace Event Portal Async API Importer:
-  https://github.com/solace-iot-team/sep-async-api-importer/tree/main/importer-cli
+  https://github.com/SolaceLabs/ep-asyncapi-importer-typescript/tree/main/importer-cli
 
 .. _Release Notes:
-  https://github.com/solace-iot-team/sep-async-api-importer/blob/main/ReleaseNotes.md
+  https://github.com/SolaceLabs/ep-asyncapi-importer-typescript/blob/main/ReleaseNotes.md

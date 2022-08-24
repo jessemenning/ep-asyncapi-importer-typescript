@@ -10,4 +10,4 @@ Install Globally
 
 .. code-block:: bash
 
-  npm install @solace-iot-team/sep-async-api-importer -g
+  npm install @solace-labs/sep-async-api-importer -g
