@@ -46,7 +46,7 @@ Application Domain
 Asset Mapping & Naming
 ----------------------
 
-* assets are identified by their name and mapped as follows:
+Assets are identified by their name and mapped as follows:
 
 .. list-table:: Asset Mapping & Naming
    :widths: 25 25 50
