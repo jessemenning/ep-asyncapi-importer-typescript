@@ -52,7 +52,7 @@ export class TestServices {
     // run through all specs, check assets in EP?
     // does that really make sense?
 
-    return false;
+    return true;
 
   }
 
