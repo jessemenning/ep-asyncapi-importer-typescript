@@ -1,26 +1,29 @@
-import { ECliAssetImportTargetLifecycleState, TAssetImportTargetLifecycleState } from '../CliConfig';
 import { CliError } from '../CliError';
 import { CliUtils } from '../CliUtils';
 import {
   EpSdkStatesService 
 } from "@solace-labs/ep-sdk";
 
+export enum ECliAssetImport_TargetLifecycleState {
+  RELEASED = "released",
+  DRAFT = "draft",
+}
+
 class CliEPStatesService {
 
-  public getTargetLifecycleState({ assetImportTargetLifecycleState }:{
-    assetImportTargetLifecycleState: TAssetImportTargetLifecycleState;
+  public getTargetLifecycleState({ cliAssetImport_TargetLifecycleState }:{
+    cliAssetImport_TargetLifecycleState: ECliAssetImport_TargetLifecycleState;
   }): string {
     const funcName = 'getTargetLifecycleState';
     const logName = `${CliEPStatesService.name}.${funcName}()`;
 
-    const type: ECliAssetImportTargetLifecycleState = assetImportTargetLifecycleState.type;
-    switch(type) {
-      case ECliAssetImportTargetLifecycleState.DRAFT:
+    switch(cliAssetImport_TargetLifecycleState) {
+      case ECliAssetImport_TargetLifecycleState.DRAFT:
         return EpSdkStatesService.draftId;
-      case ECliAssetImportTargetLifecycleState.RELEASED:
+      case ECliAssetImport_TargetLifecycleState.RELEASED:
         return EpSdkStatesService.releasedId;
       default:
-        CliUtils.assertNever(logName, type);
+        CliUtils.assertNever(logName, cliAssetImport_TargetLifecycleState);
     }
     throw new CliError(logName, "should never get here");
   }

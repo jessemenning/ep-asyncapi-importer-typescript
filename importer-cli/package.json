@@ -1,11 +1,11 @@
 {
-  "name": "@solace-iot-team/sep-async-api-importer",
-  "version": "0.4.1-alpha",
-  "description": "Solace Event Portal Async API Importer ",
+  "name": "@solace-iot-team/ep-async-api-importer",
+  "version": "0.5.0-alpha",
+  "description": "Async API Importer for Solace Event Portal",
   "main": "./src/index.js",
   "type": "commonjs",
   "bin": {
-    "sep-async-api-importer": "./dist/index.js"
+    "ep-async-api-importer": "./dist/index.js"
   },
   "repository": {
     "type": "git",
@@ -24,7 +24,7 @@
       "email": "ricardo.gomez-ulmke@solace.com"
     }
   ],
-  "license": "MIT",
+  "license": "APACHE-2.0",
   "bugs": {
     "url": "https://github.com/solace-iot-team/sep-async-api-importer/issues"
   },
@@ -34,14 +34,13 @@
     "build": "ts-node build.ts",
     "dev:start": "ts-node src/index.ts",
     "start": "npm run build && node dist/src/index.js",
-    "test": ". ./test/source.env.sh && mocha --config test/.mocharc.yml test/**/**.spec.ts && unset_source_env",
-    "test:pretty": ". ./test/source.env.sh && mocha --config test/.mocharc.yml test/**/**.spec.ts | pino-pretty && unset_source_env"
+    "test": ". ./test/source.env.sh && mocha --config test/.mocharc.yml test/**/**.spec.ts && unset_source_env"
   },
   "files": [
     "dist/**/*.js",
     "LICENSE",
     "README.md",
-    "ReleaseNotes.md"
+    "package.json"
   ],
   "publishConfig": {
     "access": "public",
@@ -66,7 +65,6 @@
     "@types/uuid": "^8.3.4",
     "chai": "^4.3.6",
     "mocha": "^10.0.0",
-    "pino-pretty": "^8.1.0",
     "pkg": "^5.8.0",
     "shelljs": "^0.8.4",
     "sinon": "^14.0.0",
@@ -79,7 +77,7 @@
     "@asyncapi/parser": "^1.15.1",
     "@solace-labs/ep-asyncapi": "^0.3.0-alpha",
     "@solace-labs/ep-openapi-node": "^2.0.0-alpha.2",
-    "@solace-labs/ep-sdk": "^0.8.3-alpha",
+    "@solace-labs/ep-sdk": "^0.9.3-alpha",
     "abort-controller": "^3.0.0",
     "chalk": "^4.1.2",
     "clear": "^0.1.0",
@@ -92,7 +90,8 @@
     "jsonschema": "^1.4.1",
     "lodash": "^4.17.21",
     "node-fetch": "^2.6.7",
-    "pino": "^8.1.0",
+    "pino": "^8.4.2",
+    "pino-pretty": "^9.0.1",
     "semver": "^7.3.7",
     "uuid": "^8.3.2"
   }

@@ -8,7 +8,9 @@ Solace Event Portal Async API Importer
 
   install
   usage
-  importer
+  examples
+  concepts
+  apis
 
 Repos & Links
 -------------

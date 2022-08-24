@@ -24,12 +24,6 @@ const copySourcesToWorkingDir = () => {
   console.log(`${logName}: copying cli sources to working dir ...`);
   if(s.cp('-rf', CONSTANTS.CliDir, CONSTANTS.WorkingDir).code !== 0) process.exit(1);
 
-  // console.log(`${logName}: copying resources to working dir ...`);
-  // if(s.cp('-rf', CONSTANTS.ResourcesDir, CONSTANTS.WorkingDir).code !== 0) process.exit(1);
-
-  // // remove generated
-  // if(s.rm('-rf', `${CONSTANTS.WorkingCliDir}/_generated`).code !== 0) process.exit(1);
-
   console.log(`${logName}: success.`);
 }
 

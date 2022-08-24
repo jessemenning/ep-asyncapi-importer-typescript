@@ -1,5 +1,5 @@
 import pino from 'pino';
-import { TCliLoggerConfig } from './CliConfig';
+import PinoPretty from 'pino-pretty';
 import CliRunContext, { ICliRunContext } from './CliRunContext';
 import { 
   EEpSdkLogLevel, 
@@ -7,8 +7,9 @@ import {
   IEpSdkLogEntry, 
   IEpSdkLoggerInstance 
 } from "@solace-labs/ep-sdk";
-
-// import { EEpSdkLogLevel, EpSdkLogger, IEpSdkLogEntry, IEpSdkLoggerInstance } from "@solace-labs/ep-sdk/EpSdkLogger";
+import { CliInternalCodeInconsistencyError } from './CliError';
+import { ICliRunSummary_Base } from './CliRunSummary';
+import CliConfig from './CliConfig';
 
 export enum ECliStatusCodes {
   INFO = "INFO",
@@ -17,56 +18,84 @@ export enum ECliStatusCodes {
   INITIALIZE_ERROR = 'INITIALIZE_ERROR',
   INITIALIZED = 'INITIALIZED',
   
-  VALIDATING_SPEC = "VALIDATING_SPEC",
-  VALIDATED_SPEC = "VALIDATED_SPEC",
+  IMPORTING_START_API = "IMPORTING_START_API",
+  IMPORTING_DONE_API = "IMPORTING_DONE_API",
+  IMPORTING_ERROR_API = "IMPORTING_ERROR_API",
+  IMPORTING_START_APPLICATION = "IMPORTING_START_APPLICATION",
+  IMPORTING_DONE_APPLICATION = "IMPORTING_DONE_APPLICATION",
+  IMPORTING_ERROR_APPLICATION = "IMPORTING_ERROR_APPLICATION",
+  IMPORTING_START_VALIDATING_API = "IMPORTING_START_VALIDATING_API",
+  IMPORTING_DONE_VALIDATING_API = "IMPORTING_DONE_VALIDATING_API",
+  IMPORTING_ERROR_VALIDATING_API = "IMPORTING_ERROR_VALIDATING_API",
   
-  CHECK_EVENT_API = "CHECK_EVENT_API",
-  CHECK_EVENT_API_VERSION = "CHECK_EVENT_API_VERSION",
-  CHECK_EVENT = "CHECK_EVENT",
-  CHECK_EVENT_VERSION = "CHECK_EVENT_VERSION",
-  
-  IMPORTING = 'IMPORTING',
-  IMPORTING_ERROR = "IMPORTING_ERROR",
-  IMPORTED = "IMPORTED",
-
-  IMPORTING_EVENT_API = 'IMPORTING_EVENT_API',
-  IMPORTING_EVENT_API_VERSION = 'IMPORTING_EVENT_API_VERSION',
-  IMPORTED_EVENT_API_VERSION = 'IMPORTED_EVENT_API_VERSION',
-  SKIPPING_IMPORTING_EVENT_API_VERSION = 'SKIPPING_IMPORTING_EVENT_API_VERSION',
-
-  IMPORTING_SCHEMA_VERSION = 'IMPORTING_SCHEMA_VERSION',
-  IMPORTING_SCHEMA_VERSION_ERROR = "IMPORTING_SCHEMA_VERSION_ERROR",
-
-  IMPORTING_EVENT_VERSION = 'IMPORTING_EVENT_VERSION',
-  IMPORTING_EVENT_VERSION_ERROR = "IMPORTING_EVENT_VERSION_ERROR",
-
-  IMPORTING_CHANNEL_PARAMETERS = 'IMPORTING_CHANNEL_PARAMETERS',
-  
-  IMPORTING_ENUM_VERSION = 'IMPORTING_ENUM_VERSION',
-  IMPORTING_ENUM_VERSION_ERROR = "IMPORTING_ENUM_VERSION_ERROR",
-
-  EXECUTING_TASK = "EXECUTING_TASK",
-  EXECUTED_TASK = "EXECUTED_TASK",
-  EXECUTING_TASK_ERROR = "EXECUTING_TASK_ERROR",
-  EXECUTING_TASK_GET = "EXECUTING_TASK_GET",
-  EXECUTING_TASK_CREATE = "EXECUTING_TASK_CREATE",
-  EXECUTING_TASK_UPDATE = "EXECUTING_TASK_UPDATE",
-  EXECUTING_TASK_DELETE = "EXECUTING_TASK_DELETE",
-  EXECUTING_TASK_IS_UPDATE_REQUIRED = "EXECUTING_TASK_IS_UPDATE_REQUIRED",
-
-  SERVICE = "SERVICE",
-  SERVICE_CREATE = "SERVICE_CREATE",
-
-  GENERATING_ASSETS = "GENERATING_ASSETS"
-  
+  IMPORTING_API_CHANNEL = "IMPORTING_API_CHANNEL",
+  IMPORTING_API_CHANNEL_PARAMETERS = 'IMPORTING_API_CHANNEL_PARAMETERS',
+  IMPORTING_API_CHANNEL_PARAMETER = 'IMPORTING_API_CHANNEL_PARAMETER',
+  IMPORTING_API_CHANNEL_PUBLISH_OPERATION = "IMPORTING_API_CHANNEL_PUBLISH_OPERATION",
+  IMPORTING_API_CHANNEL_SUBSCRIBE_OPERATION = "IMPORTING_API_CHANNEL_SUBSCRIBE_OPERATION",
+  IMPORTING_API_CHANNEL_MESSAGE = "IMPORTING_CHANNEL_MESSAGE",
+  IMPORTING_EP_APPLICATION_DOMAIN = "IMPORTING_EP_APPLICATION_DOMAIN",
+  IMPORTING_EP_EVENT = "IMPORTING_EP_EVENT",
+  IMPORTING_EP_EVENT_VERSION = "IMPORTING_EP_EVENT_VERSION",
+  IMPORTING_EP_SCHEMA = "IMPORTING_EP_SCHEMA",
+  IMPORTING_EP_SCHEMA_VERSION = 'IMPORTING_EP_SCHEMA_VERSION',
+  IMPORTING_EP_ENUM = 'IMPORTING_EP_ENUM',
+  IMPORTING_EP_ENUM_VERSION = 'IMPORTING_ENUM_VERSION',
+  IMPORTING_EP_EVENT_API = 'IMPORTING_EP_EVENT_API',
+  IMPORTING_EP_EVENT_API_VERSION_CHECK = "IMPORTING_EP_EVENT_API_VERSION_CHECK",
+  IMPORTING_EP_EVENT_API_WITH_WARNING = "IMPORTING_EP_EVENT_API_WITH_WARNING",
+  // IMPORTING_EP_EVENT_API_VERSION = 'IMPORTING_EP_EVENT_API_VERSION',
+  GENERATING_ASSETS = "GENERATING_ASSETS",
+}
+export enum ECliSummaryStatusCodes {
+  START_RUN = "START_RUN",
+  RUN_ERROR = "RUN_ERROR",
+  VALIDATING_API = "VALIDATING_API",
+  PROCESSING_API_FILE = "PROCESSING_API_FILE",
+  PROCESSING_API = "PROCESSING_API",
+  PROCESSING_API_CHANNEL = "PROCESSING_API_CHANNEL",
+  PROCESSING_API_CHANNEL_OPERATION = "PROCESSING_API_CHANNEL_OPERATION",
+  PROCESSED_APPLICATION_DOMAIN = "PROCESSED_APPLICATION_DOMAIN",
+  PROCESSED_ENUM = "PROCESSED_ENUM",
+  PROCESSED_ENUM_VERSION = "PROCESSED_ENUM_VERSION",
+  PROCESSED_SCHEMA_VERSION = "PROCESSED_SCHEMA_VERSION",
+  PROCESSED_EVENT_VERSION = "PROCESSED_EVENT_VERSION",
+  PROCESSING_START_EVENT_API_VERSION = "PROCESSING_START_EVENT_API_VERSION",
+  PROCESSED_EVENT_API_VERSION = "PROCESSED_EVENT_API_VERSION"
 }
 
-// export interface IEpSdkLogDetails {
-//   module: string;
-//   code: string;
-//   message?: string;
-//   details?: any;
-// }
+export enum ECliLogger_LogLevel {
+  FATAL = "fatal",
+  ERROR = "error",
+  INFO = "info",
+  DEBUG = "debug",
+  TRACE = "trace",
+}
+export enum ECliLogger_EpSdkLogLevel {
+  SILENT = "silent",
+}
+export type TCliLogger_EpSdkLogLevel  = ECliLogger_LogLevel | ECliLogger_EpSdkLogLevel;
+export const ObjectValues_TCliLogger_EpSdkLogLevel: Array<string> = [
+  ...Object.values(ECliLogger_LogLevel),
+  ...Object.values(ECliLogger_EpSdkLogLevel)
+];
+const Map_TCliLogger_EpSdkLogLevel_to_EEpSdkLogLevel = new Map<TCliLogger_EpSdkLogLevel, EEpSdkLogLevel>([
+  [ECliLogger_EpSdkLogLevel.SILENT, EEpSdkLogLevel.Silent],
+  [ECliLogger_LogLevel.FATAL, EEpSdkLogLevel.FatalError], 
+  [ECliLogger_LogLevel.ERROR, EEpSdkLogLevel.Error], 
+  [ECliLogger_LogLevel.INFO, EEpSdkLogLevel.Info], 
+  [ECliLogger_LogLevel.DEBUG, EEpSdkLogLevel.Debug], 
+  [ECliLogger_LogLevel.TRACE, EEpSdkLogLevel.Trace], 
+]);
+
+export interface ICliLoggerOptions {
+  appName: string;
+  level: ECliLogger_LogLevel;
+  logFile?: string;
+  log2Stdout: boolean;
+  cliLogger_EpSdkLogLevel: TCliLogger_EpSdkLogLevel;
+  prettyPrint: boolean;
+};
 
 export interface ICliLogDetails {
   code: string;
@@ -78,7 +107,7 @@ export interface ICliLogEntry extends IEpSdkLogEntry {
   runContext: ICliRunContext;
 }
 
-class CliPinoLogger implements IEpSdkLoggerInstance {
+class CliEpSdkPinoLogger implements IEpSdkLoggerInstance {
   appId: string;
   epSdkLogLevel: EEpSdkLogLevel;
 
@@ -86,66 +115,118 @@ class CliPinoLogger implements IEpSdkLoggerInstance {
     this.appId = appId;
   }
 
-  public setLogLevel: (epSdkLogLevel: EEpSdkLogLevel) => void;
+  public setLogLevel = (epSdkLogLevel: EEpSdkLogLevel): void => {
+    this.epSdkLogLevel = epSdkLogLevel;
+  };
 
   public createLogEntry = (logName: string, details: ICliLogDetails): ICliLogEntry => {
     return CliLogger.createLogEntry(logName, details);
   }
 
   public fatal = (logEntry: IEpSdkLogEntry): void => {
+    if(this.epSdkLogLevel < EEpSdkLogLevel.FatalError) return;
     CliLogger.fatal(CliLogger.createLogEntry(logEntry.logName, logEntry));
   }
 
   public error = (logEntry: IEpSdkLogEntry): void => {
+    if(this.epSdkLogLevel < EEpSdkLogLevel.Error) return;
     CliLogger.error(CliLogger.createLogEntry(logEntry.logName, logEntry));
   }
 
   public warn = (logEntry: IEpSdkLogEntry): void => {
+    if(this.epSdkLogLevel < EEpSdkLogLevel.Warn) return;
     CliLogger.warn(CliLogger.createLogEntry(logEntry.logName, logEntry));
   }
 
   public info = (logEntry: IEpSdkLogEntry): void => {
+    if(this.epSdkLogLevel < EEpSdkLogLevel.Info) return;
     CliLogger.info(CliLogger.createLogEntry(logEntry.logName, logEntry));
   }
 
   public debug = (logEntry: IEpSdkLogEntry): void => {
+    if(this.epSdkLogLevel < EEpSdkLogLevel.Debug) return;
     CliLogger.debug(CliLogger.createLogEntry(logEntry.logName, logEntry));
   }
 
   public trace = (logEntry: IEpSdkLogEntry): void => {
+    if(this.epSdkLogLevel < EEpSdkLogLevel.Trace) return;
     CliLogger.trace(CliLogger.createLogEntry(logEntry.logName, logEntry));
   }
 
 }
 
-
 export class CliLogger {
-  private static appId: string;
+  private static appName: string;
 
   public static L = pino({
-    name: process.env.CLI_APP_ID || "sep-async-api-importer",
-    level: process.env.CLI_LOGGER_LOG_LEVEL || "info",
+    name: 'uninitializedAppId',
+    level: ECliLogger_LogLevel.TRACE,    
   });
 
-  public static initialize = (config: TCliLoggerConfig): void => {
+  public static initialize = ({ cliLoggerOptions }:{
+    cliLoggerOptions: ICliLoggerOptions;
+  }): void => {
+    const funcName = 'initialize';
+    const logName = `${CliLogger.name}.${funcName}()`;
 
-    CliLogger.appId = config.appId;
+    CliLogger.appName = cliLoggerOptions.appName;
+    
     // setup epSdk logger with a pino logger
-    const cliPinoLogger: CliPinoLogger = new CliPinoLogger(config.appId);
-    EpSdkLogger.initialize({ epSdkLoggerInstance: cliPinoLogger });
-
-    CliLogger.L = pino({
-      name: config.appId,
-      level: config.level
+    const cliEpSdkPinoLogger: CliEpSdkPinoLogger = new CliEpSdkPinoLogger(cliLoggerOptions.appName);
+    const epSdkLogLevel: EEpSdkLogLevel | undefined = Map_TCliLogger_EpSdkLogLevel_to_EEpSdkLogLevel.get(cliLoggerOptions.cliLogger_EpSdkLogLevel);
+    if(epSdkLogLevel === undefined) throw new CliInternalCodeInconsistencyError(logName, { 
+      cause: 'cannot map cliLogger_EpSdkLogLevel to EEpSdkLogLevel',
+      cliLogger_EpSdkLogLevel: cliLoggerOptions.cliLogger_EpSdkLogLevel,
+      Map_TCliLogger_EpSdkLogLevel_to_EEpSdkLogLevel: JSON.stringify(Object.fromEntries(Map_TCliLogger_EpSdkLogLevel_to_EEpSdkLogLevel))
     });
+    cliEpSdkPinoLogger.setLogLevel(epSdkLogLevel);
+    EpSdkLogger.initialize({ epSdkLoggerInstance: cliEpSdkPinoLogger });
+
+    const streams: Array<pino.StreamEntry> = [];
+    if(cliLoggerOptions.logFile !== undefined) {
+      if(cliLoggerOptions.prettyPrint) {
+        streams.push({
+          level: 'trace',
+          stream: PinoPretty({
+            append: false,
+            destination: pino.destination({ 
+              append: false,
+              dest: cliLoggerOptions.logFile,
+              sync: true
+            }) 
+          })
+        });
+      } else {
+        streams.push({
+          level: 'trace', 
+          stream: pino.destination({ 
+            append: false,
+            dest: cliLoggerOptions.logFile,
+            sync: true
+          })
+        });
+      }    
+    }
+    if(cliLoggerOptions.log2Stdout) {
+      if(cliLoggerOptions.prettyPrint) streams.push({level: 'trace', stream: PinoPretty()});
+      else streams.push({level: 'trace', stream: process.stdout});
+    }
+
+    CliLogger.L = pino(
+      {
+        name: cliLoggerOptions.appName,
+        level: cliLoggerOptions.level
+      },
+      pino.multistream(streams)
+    );  
   }
 
   public static createLogEntry = (logName: string, cliLogDetails: ICliLogDetails): ICliLogEntry => {
     const d = new Date();
     return {
-      logger: CliPinoLogger.name,
+      logger: CliLogger.name,
       module: logName,
-      appId: this.appId,
+      appId: this.appName,
       logName: logName,
       timestamp: d.toUTCString(),
       runContext: CliRunContext.getContext(),
@@ -175,6 +256,35 @@ export class CliLogger {
 
   public static trace = (logEntry: ICliLogEntry): void => {
     CliLogger.L.trace(logEntry);
+  }
+
+  // private static createSummaryLogEntry = (cliRunSummary_Base: ICliRunSummary_Base): any => {
+  //   const d = new Date();
+  //   return {
+  //     logger: CliLogger.name,
+  //     appId: this.appName,
+  //     timestamp: d.toUTCString(),
+  //     ...cliRunSummary_Base
+  //   };
+  // }
+
+  public static summary = ({ cliRunSummary_Base, consoleOutput, code }:{
+    cliRunSummary_Base: ICliRunSummary_Base;
+    consoleOutput: string;
+    code: ECliSummaryStatusCodes;
+  }): void => {
+    console.log(consoleOutput.replace(/^\n+|\n+$/g, ''));
+    // define custom level and route to logFile.summary.log
+    // CliLogger.L.summary(CliLogger.createSummaryLogEntry(cliRunSummary));
+    if(code.toLowerCase().includes('error')) {
+      CliLogger.L.error(CliLogger.createLogEntry(CliConfig.getAppName(), { code: code, details: {
+        summary: cliRunSummary_Base
+      }}));
+    } else {
+      CliLogger.L.info(CliLogger.createLogEntry(CliConfig.getAppName(), { code: code, details: {
+        summary: cliRunSummary_Base
+      }}));  
+    }
   }
 
 }

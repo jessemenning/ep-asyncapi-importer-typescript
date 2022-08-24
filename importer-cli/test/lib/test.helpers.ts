@@ -262,7 +262,7 @@ export type TTestEnv = {
   projectRootDir: string;
   enableLogging: boolean,
   testApiSpecsDir: string;
-  globalDomainNamePrefix: string;
+  // globalDomainNamePrefix: string;
   createdAppDomainNameList: Array<string>;
   testRunId: string;
 }

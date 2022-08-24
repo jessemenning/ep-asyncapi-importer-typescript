@@ -1,9 +1,10 @@
 import fs from 'fs';
 import path from 'path';
+import glob from 'glob';
 import _ from "lodash";
 import { v4 as uuidv4 } from 'uuid';
 import { EEpSdkSchemaContentType } from '@solace-labs/ep-sdk';
-import { CliImporterError } from './CliError';
+import { CliInternalCodeInconsistencyError, CliUsageError } from './CliError';
 import { E_EpAsyncApiContentTypes } from '@solace-labs/ep-asyncapi';
 
 
@@ -27,8 +28,6 @@ type DotNestedKeys<T> = (T extends object ?
 
 export class CliUtils {
 
-  // public static nameOf = <T>(name: keyof T) => name;
-
   public static nameOf = <T>(name: DotNestedKeys<T>) => name;
 
   public static getUUID = (): string => {
@@ -37,6 +36,22 @@ export class CliUtils {
 
   public static sleep = async(millis = 500) => {
     if(millis > 0) await new Promise(resolve => setTimeout(resolve, millis));
+  }
+  
+  public static createFileList = (filePattern: string): Array<string> => {
+    const funcName = 'createFileList';
+    const logName = `${CliUtils.name}.${funcName}()`;
+    const fileList: Array<string> = glob.sync(filePattern);
+    if(fileList.length === 0) throw new CliUsageError(logName, 'no files found for pattern', {
+      filePattern: filePattern,
+    });
+    for(const filePath of fileList) {
+      const x: string | undefined = CliUtils.validateFilePathWithReadPermission(filePath);
+      if(x === undefined) throw new CliUsageError(logName, 'file does not have read permissions', {
+        file: filePath,
+      });
+    }
+    return fileList;
   }
   
   public static validateFilePathWithReadPermission = (filePath: string): string | undefined => {
@@ -52,10 +67,23 @@ export class CliUtils {
     }
   }
 
-  public static ensurePathExists = (dir: string) => {
-    const absoluteFilePath = path.resolve(dir);
-    if(!fs.existsSync(absoluteFilePath)) fs.mkdirSync(absoluteFilePath, { recursive: true });
-    fs.accessSync(absoluteFilePath, fs.constants.W_OK);
+  public static ensureDirExists = (baseDir: string, subDir?: string): string => {
+    const absoluteDir = subDir ? path.resolve(baseDir, subDir) : path.resolve(baseDir);
+    if(!fs.existsSync(absoluteDir)) fs.mkdirSync(absoluteDir, { recursive: true });
+    fs.accessSync(absoluteDir, fs.constants.W_OK);
+    return absoluteDir;
+  }
+
+  public static ensureDirOfFilePathExists = (filePath: string): string => {
+    const normalizedPath = path.normalize(filePath);
+    const dirName = path.dirname(normalizedPath);
+    const fileName = path.basename(normalizedPath)
+    const absoluteDir = CliUtils.ensureDirExists(dirName);
+    return `${absoluteDir}/${fileName}`;
+  }
+
+  public static convertStringToFilePath(str: string): string {
+    return str.replaceAll(/[^0-9a-zA-Z\/\.]+/g, '-');
   }
 
   public static readFileContentsAsJson = (filePath: string): any => {
@@ -193,8 +221,10 @@ export class CliUtils {
       default:
         CliUtils.assertNever(logName, messageContentType);
     }
-    throw new CliImporterError(logName, 'should never get here', { messageContentType: messageContentType });
+    throw new CliInternalCodeInconsistencyError(logName, {
+      message: 'map message content type', 
+      messageContentType: messageContentType 
+    });
   }
-
 
 }
