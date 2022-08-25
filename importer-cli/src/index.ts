@@ -5,17 +5,16 @@ import clear from 'clear';
 import figlet from 'figlet';
 import path from 'path';
 import dotenv from 'dotenv';
-import { glob } from 'glob';
 import { Command, Option, OptionValues } from 'commander';
-import { CliError, CliErrorFactory, CliErrorFromError, CliUsageError } from './CliError';
+import { CliError, CliErrorFactory } from './CliError';
 import { OpenAPI } from '@solace-labs/ep-openapi-node';
 import { EpSdkClient } from '@solace-labs/ep-sdk';
 import { CliUtils } from './CliUtils';
 import CliConfig, { TCliConfigEnvVarConfig } from './CliConfig';
 import { CliLogger, ECliStatusCodes } from './CliLogger';
 import { DefaultAppName, packageJson } from './consts';
-import { CliImporter } from './CliImporter';
 import CliRunSummary, { ECliRunSummary_Type } from './CliRunSummary';
+import { CliImporterManager } from './CliImporterManager';
 
 const ComponentName: string = path.basename(__filename);
 dotenv.config();
@@ -40,22 +39,6 @@ process.on('uncaughtException', (err: Error) => {
   process.exit(1);
 });
 
-// const createApiFileList = (filePattern: string): Array<string> => {
-//   const funcName = 'createApiFileList';
-//   const logName = `${ComponentName}.${funcName}()`;
-//   const fileList: Array<string> = glob.sync(filePattern);
-//   if(fileList.length === 0) throw new CliUsageError(logName, 'no files found for pattern', {
-//     filePattern: filePattern,
-//   });
-//   for(const filePath of fileList) {
-//     const x: string | undefined = CliUtils.validateFilePathWithReadPermission(filePath);
-//     if(x === undefined) throw new CliUsageError(logName, 'file does not have read permissions', {
-//       file: filePath,
-//     });
-//   }
-//   return fileList;
-// }
-
 async function main() {
   const funcName = 'main';
   const logName = `${ComponentName}.${funcName}()`;
@@ -64,7 +47,7 @@ async function main() {
     cliConfig: CliConfig.getCliConfig()
   }}));
 
-  const cliImporter = new CliImporter(CliConfig.getCliImporterOptions());
+  const cliImporter = new CliImporterManager(CliConfig.getCliImporterManagerOptions());
   const xvoid: void = await cliImporter.run();
 }
 

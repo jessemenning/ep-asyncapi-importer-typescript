@@ -17,10 +17,14 @@ import {
   TCliLogger_EpSdkLogLevel } from './CliLogger';
 import { EpSdkClient } from '@solace-labs/ep-sdk';
 import { DefaultAppName } from './consts';
-import { ECliImporterMode, getCliImporterModeObjectValues4Config, ICliImporterOptions } from './CliImporter';
 import { ECliAssetImport_TargetLifecycleState } from './services/CliEPStatesService';
-import { ECliAssetImport_TargetVersionStrategy } from './CliAsyncApiFileImporter';
+import { ECliAssetImport_TargetVersionStrategy } from './importers/CliImporter';
 import { CliUtils } from './CliUtils';
+import { 
+  ECliImporterManagerMode,
+  getCliImporterManagerModeObjectValues4Config,
+  ICliImporterManagerOptions
+ } from './CliImporterManager';
 
 
 enum ECliConfigBooleanOptions {
@@ -60,9 +64,10 @@ enum ECliConfigEnvVarNames {
   CLI_IMPORT_ASSETS_TARGET_LIFECYLE_STATE = "CLI_IMPORT_ASSETS_TARGET_LIFECYLE_STATE",
   CLI_IMPORT_ASSETS_TARGET_VERSION_STRATEGY = "CLI_IMPORT_ASSETS_TARGET_VERSION_STRATEGY",
   CLI_IMPORT_ASSETS_OUTPUT_DIR = "CLI_IMPORT_ASSETS_OUTPUT_DIR",
+  CLI_IMPORT_CREATE_API_APPLICATION = "CLI_IMPORT_CREATE_API_APPLICATION",
 };
 
-const DEFAULT_CLI_MODE = ECliImporterMode.RELEASE_MODE;
+const DEFAULT_CLI_MODE = ECliImporterManagerMode.RELEASE_MODE;
 const DEFAULT_CLI_RUN_ID = ECliConfigRunIdGeneration.AUTO;
 const DEFAULT_CLI_EP_API_BASE_URL = EpSdkClient.DEFAULT_EP_API_BASE_URL;
 
@@ -77,6 +82,7 @@ const DEFAULT_CLI_LOGGER_PRETTY_PRINT = false;
 const DEFAULT_CLI_IMPORT_ASSETS_TARGET_LIFECYLE_STATE = ECliAssetImport_TargetLifecycleState.RELEASED;
 const DEFAULT_CLI_IMPORT_ASSETS_TARGET_VERSION_STRATEGY = ECliAssetImport_TargetVersionStrategy.BUMP_PATCH;
 const DEFAULT_CLI_IMPORT_ASSET_OUTPUT_DIR = "./tmp/output";
+const DEFAULT_CLI_IMPORT_CREATE_API_APPLICATION = false;
 
 const CliConfigEnvVarConfigList: Array<TCliConfigEnvVarConfig> = [
   {
@@ -95,7 +101,7 @@ const CliConfigEnvVarConfigList: Array<TCliConfigEnvVarConfig> = [
     description: 'The operations mode for the app.',
     required: false,
     default: DEFAULT_CLI_MODE,
-    options: getCliImporterModeObjectValues4Config()
+    options: getCliImporterManagerModeObjectValues4Config()
   },
   {
     envVarName: ECliConfigEnvVarNames.CLI_RUN_ID,
@@ -174,10 +180,17 @@ const CliConfigEnvVarConfigList: Array<TCliConfigEnvVarConfig> = [
     required: false,
     default: DEFAULT_CLI_IMPORT_ASSET_OUTPUT_DIR,
   },
+  {
+    envVarName: ECliConfigEnvVarNames.CLI_IMPORT_CREATE_API_APPLICATION,
+    description: 'Flag to create also an application representing the Event API.',
+    required: false,
+    default: String(DEFAULT_CLI_IMPORT_CREATE_API_APPLICATION),
+    options: Object.values(ECliConfigBooleanOptions),
+  },  
 ];
 
 export type TCliLoggerConfig = ICliLoggerOptions;
-export type TCliImporterConfig = ICliImporterOptions;
+export type TCliImporterConfig = ICliImporterManagerOptions;
 
 export type TCliConfig = {
   appName: string;
@@ -312,9 +325,10 @@ export class CliConfig {
           appName: appName,
           runId: runId,
           asyncApiFileList: fileList,
-          cliImporterMode: this.getOptionalEnvVarValueAsString_From_Options_WithDefault(ECliConfigEnvVarNames.CLI_MODE, Object.values(ECliImporterMode), DEFAULT_CLI_MODE) as ECliImporterMode,
+          cliImporterManagerMode: this.getOptionalEnvVarValueAsString_From_Options_WithDefault(ECliConfigEnvVarNames.CLI_MODE, Object.values(ECliImporterManagerMode), DEFAULT_CLI_MODE) as ECliImporterManagerMode,
           applicationDomainName: applicationDomainName,
-          cliAsyncApiFileImporterOptions: {
+          createEventApiApplication: this.getOptionalEnvVarValueAsBoolean_WithDefault(ECliConfigEnvVarNames.CLI_IMPORT_CREATE_API_APPLICATION, DEFAULT_CLI_IMPORT_CREATE_API_APPLICATION),
+          cliImporterOptions: {
             runId: runId,
             cliAssetImport_TargetLifecycleState: this.getOptionalEnvVarValueAsString_From_Options_WithDefault(ECliConfigEnvVarNames.CLI_IMPORT_ASSETS_TARGET_LIFECYLE_STATE, Object.values(ECliAssetImport_TargetLifecycleState), DEFAULT_CLI_IMPORT_ASSETS_TARGET_LIFECYLE_STATE) as ECliAssetImport_TargetLifecycleState,
             cliAssetImport_TargetVersionStrategy: this.getOptionalEnvVarValueAsString_From_Options_WithDefault(ECliConfigEnvVarNames.CLI_IMPORT_ASSETS_TARGET_VERSION_STRATEGY, Object.values(ECliAssetImport_TargetVersionStrategy) as Array<string>, DEFAULT_CLI_IMPORT_ASSETS_TARGET_VERSION_STRATEGY as unknown as string) as unknown as ECliAssetImport_TargetVersionStrategy,
@@ -365,7 +379,7 @@ export class CliConfig {
     this.assertIsInitialized();
     return this.config.cliLoggerConfig;
   }
-  public getCliImporterOptions = (): ICliImporterOptions => {
+  public getCliImporterManagerOptions = (): ICliImporterManagerOptions => {
     this.assertIsInitialized();
     return this.config.cliImporterConfig;
 
