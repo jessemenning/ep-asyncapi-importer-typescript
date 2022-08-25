@@ -17,9 +17,7 @@ import {
 } from '@solace-labs/ep-openapi-node';
 import { 
   EEpSdkSchemaType,
-  EEpSdkTask_Action,
   EEpSdkTask_TargetState,
-  EEpSdk_VersionTaskStrategy, 
   EpSdkApplicationDomainTask, 
   EpSdkEnumTask, 
   EpSdkEnumVersionTask, 
@@ -27,7 +25,6 @@ import {
   EpSdkEpEventVersionTask, 
   EpSdkSchemaTask,
   EpSdkSchemaVersionTask,
-  EpSdkTask,
   IEpSdkApplicationDomainTask_ExecuteReturn,
   IEpSdkEnumTask_ExecuteReturn,
   IEpSdkEnumVersionTask_ExecuteReturn,
@@ -35,16 +32,22 @@ import {
   IEpSdkEpEventVersionTask_ExecuteReturn,
   IEpSdkSchemaTask_ExecuteReturn,
   IEpSdkSchemaVersionTask_ExecuteReturn,
-  IEpSdkTask_ExecuteReturn,
 } from '@solace-labs/ep-sdk';
 import { 
-  CliImporterTestRunAssetsInconsistencyError,
   CliEPApiContentError,
-  CliInternalCodeInconsistencyError,
   CliAsyncApiSpecFeatureNotSupportedError,
   CliErrorFactory
-} from './CliError';
-import { CliLogger, ECliStatusCodes } from './CliLogger';
+} from '../CliError';
+import { 
+  CliImporter, 
+  ICliImporterGenerateAssetsOptions, 
+  ICliImporterOptions, 
+  ICliImporterRunOptions, 
+  ICliImporterRunPresentOptions,
+  ICliImporterRunPresentReturn,
+  ICliImporterRunReturn, 
+} from './CliImporter';
+import { CliLogger, ECliStatusCodes } from '../CliLogger';
 import CliRunContext, { 
   ECliChannelOperation, 
   ICliAsyncApiRunContext, 
@@ -54,53 +57,33 @@ import CliRunContext, {
   ICliAsyncApiRunContext_Channel_Operation_Message, 
   ICliAsyncApiRunContext_Channel_Parameter, 
   ICliAsyncApiRunContext_State, 
-} from './CliRunContext';
-import CliRunSummary, { ECliChannelOperationType, ECliRunSummary_Type } from './CliRunSummary';
-import { CliUtils } from './CliUtils';
-import CliAsyncApiDocumentService from './services/CliAsyncApiDocumentService';
-import CliEPStatesService, { ECliAssetImport_TargetLifecycleState } from './services/CliEPStatesService';
+} from '../CliRunContext';
+import CliRunSummary, { ECliChannelOperationType, ECliRunSummary_Type } from '../CliRunSummary';
+import { CliUtils } from '../CliUtils';
+import CliAsyncApiDocumentService from '../services/CliAsyncApiDocumentService';
 
-export enum ECliAssetImport_TargetVersionStrategy {
-  BUMP_PATCH = EEpSdk_VersionTaskStrategy.BUMP_PATCH,
-  BUMP_MINOR = EEpSdk_VersionTaskStrategy.BUMP_MINOR,
+export interface ICliAssetsImporterOptions extends ICliImporterOptions {
+}
+export interface ICliAssetsImporterGenerateAssetsOptions extends ICliImporterGenerateAssetsOptions {
+  epAsyncApiDocument: EpAsyncApiDocument;
+}
+export interface ICliAssetsImporterRunPresentOptions extends ICliImporterRunPresentOptions {
+  epAsyncApiDocument: EpAsyncApiDocument;
+}
+export interface ICliAssetsImporterRunPresentReturn extends ICliImporterRunPresentReturn {
+}
+export interface ICliAssetsImporterRunOptions extends ICliImporterRunOptions {
+}
+export interface ICliAssetsImporterRunReturn extends ICliImporterRunReturn {
 }
 
-export interface ICliAsyncApiFileImporterOptions {
-  runId: string;
-  assetOutputDir: string;
-  cliAssetImport_TargetLifecycleState: ECliAssetImport_TargetLifecycleState;
-  cliAssetImport_TargetVersionStrategy: ECliAssetImport_TargetVersionStrategy;
-}
+export class CliAssetsImporter extends CliImporter {
 
-export interface ICliAsyncApiFileImporterRunReturn {
-  applicationDomainName: string | undefined;
-  error: any;
-}
-export interface ICliAsyncApiFileImporterRunPresentReturn {
-  applicationDomainId: string;
-}
-
-export class CliAsyncApiFileImporter {
-  protected cliAsyncApiFileImporterOptions: ICliAsyncApiFileImporterOptions;
-  protected apiTransactionId: string;
-
-  constructor(cliAsyncApiFileImporterOptions: ICliAsyncApiFileImporterOptions) { 
-    this.cliAsyncApiFileImporterOptions = cliAsyncApiFileImporterOptions;
-    this.apiTransactionId = CliUtils.getUUID();
+  constructor(cliAssetImporterOptions: ICliAssetsImporterOptions) { 
+    super(cliAssetImporterOptions);
   }
 
-  private get_EEpSdk_VersionTaskStrategy = (): EEpSdk_VersionTaskStrategy => {
-    const funcName = 'get_EEpSdk_VersionTaskStrategy';
-    const logName = `${CliAsyncApiFileImporter.name}.${funcName}()`;
-    switch(this.cliAsyncApiFileImporterOptions.cliAssetImport_TargetVersionStrategy) {
-      case ECliAssetImport_TargetVersionStrategy.BUMP_PATCH:
-        return EEpSdk_VersionTaskStrategy.BUMP_PATCH;
-      case ECliAssetImport_TargetVersionStrategy.BUMP_MINOR:
-        return EEpSdk_VersionTaskStrategy.BUMP_MINOR;
-      default:
-        throw new CliInternalCodeInconsistencyError(logName, { cliAssetImport_TargetVersionStrategy: this.cliAsyncApiFileImporterOptions.cliAssetImport_TargetVersionStrategy });
-    }
-  }
+  private get_cliAssetsImporterOptions(): ICliAssetsImporterOptions { return this.cliImporterOptions; }
 
   private run_present_event_version = async({ channelTopic, eventObject, specVersion, epAsyncApiMessageDocument, schemaVersionId, applicationDomainId, checkmode }: {
     channelTopic: string;
@@ -112,7 +95,7 @@ export class CliAsyncApiFileImporter {
     checkmode: boolean;
   }): Promise<void> => {
     const funcName = 'run_present_event_version';
-    const logName = `${CliAsyncApiFileImporter.name}.${funcName}()`;
+    const logName = `${CliAssetsImporter.name}.${funcName}()`;
 
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_API_CHANNEL_MESSAGE, details: {
       eventObject: eventObject,
@@ -137,12 +120,9 @@ export class CliAsyncApiFileImporter {
         description: epAsyncApiMessageDocument.getDescription(),
         displayName: epAsyncApiMessageDocument.getMessageName(),
         schemaVersionId: schemaVersionId,
-        stateId: CliEPStatesService.getTargetLifecycleState({cliAssetImport_TargetLifecycleState: this.cliAsyncApiFileImporterOptions.cliAssetImport_TargetLifecycleState}),
+        stateId: this.get_EpSdkTask_StateId(),
       },
-      epSdkTask_TransactionConfig: {
-        groupTransactionId: this.cliAsyncApiFileImporterOptions.runId,
-        parentTransactionId: this.apiTransactionId
-      },
+      epSdkTask_TransactionConfig: this.get_IEpSdkTask_TransactionConfig(),
       checkmode: checkmode
     });
     const epSdkEpEventVersionTask_ExecuteReturn: IEpSdkEpEventVersionTask_ExecuteReturn = await this.executeTask({
@@ -165,7 +145,7 @@ export class CliAsyncApiFileImporter {
     checkmode: boolean;
   }): Promise<void> => {
     const funcName = 'run_present_channel_event';
-    const logName = `${CliAsyncApiFileImporter.name}.${funcName}()`;
+    const logName = `${CliAssetsImporter.name}.${funcName}()`;
 
     const rctxt: ICliAsyncApiRunContext_Channel_Event = {
       messageName: epAsyncApiMessageDocument.getMessageName()
@@ -187,10 +167,7 @@ export class CliAsyncApiFileImporter {
       eventObjectSettings: {
         shared: true,
       },
-      epSdkTask_TransactionConfig: {
-        groupTransactionId: this.cliAsyncApiFileImporterOptions.runId,
-        parentTransactionId: this.apiTransactionId
-      },
+      epSdkTask_TransactionConfig: this.get_IEpSdkTask_TransactionConfig(),
       checkmode: checkmode
     });
     const epSdkEpEventTask_ExecuteReturn: IEpSdkEpEventTask_ExecuteReturn = await this.executeTask({
@@ -222,7 +199,7 @@ export class CliAsyncApiFileImporter {
     checkmode: boolean;
   }): Promise<IEpSdkSchemaVersionTask_ExecuteReturn> => {
     const funcName = 'run_present_schema_version';
-    const logName = `${CliAsyncApiFileImporter.name}.${funcName}()`;
+    const logName = `${CliAssetsImporter.name}.${funcName}()`;
 
     CliLogger.debug(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_API_CHANNEL_MESSAGE, details: {
     }}));
@@ -246,12 +223,9 @@ export class CliAsyncApiFileImporter {
         content: JSON.stringify(epAsyncApiMessageDocument.getSchemaAsSanitizedJson()),
         description: epAsyncApiMessageDocument.getDescription(),
         displayName: epAsyncApiMessageDocument.getMessageName(),
-        stateId: CliEPStatesService.getTargetLifecycleState({cliAssetImport_TargetLifecycleState: this.cliAsyncApiFileImporterOptions.cliAssetImport_TargetLifecycleState}),
+        stateId: this.get_EpSdkTask_StateId(),
       },
-      epSdkTask_TransactionConfig: {
-        groupTransactionId: this.cliAsyncApiFileImporterOptions.runId,
-        parentTransactionId: this.apiTransactionId
-      },
+      epSdkTask_TransactionConfig: this.get_IEpSdkTask_TransactionConfig(),
       checkmode: checkmode
     });
     const epSdkSchemaVersionTask_ExecuteReturn: IEpSdkSchemaVersionTask_ExecuteReturn = await this.executeTask({
@@ -273,7 +247,7 @@ export class CliAsyncApiFileImporter {
     checkmode: boolean;
   }): Promise<SchemaVersion> => {
     const funcName = 'run_present_channel_message';
-    const logName = `${CliAsyncApiFileImporter.name}.${funcName}()`;
+    const logName = `${CliAssetsImporter.name}.${funcName}()`;
 
     const rctxt: ICliAsyncApiRunContext_Channel_Operation_Message = {
       messageName: epAsyncApiMessageDocument.getMessageName()
@@ -296,11 +270,8 @@ export class CliAsyncApiFileImporter {
         schemaType: EEpSdkSchemaType.JSON_SCHEMA,
         shared: true,
       },
+      epSdkTask_TransactionConfig: this.get_IEpSdkTask_TransactionConfig(),
       checkmode: checkmode,
-      epSdkTask_TransactionConfig: {
-        groupTransactionId: this.cliAsyncApiFileImporterOptions.runId,
-        parentTransactionId: this.apiTransactionId
-      }
     });
     const epSdkSchemaTask_ExecuteReturn: IEpSdkSchemaTask_ExecuteReturn = await this.executeTask({
       epSdkTask: epSdkSchemaTask,
@@ -329,7 +300,7 @@ export class CliAsyncApiFileImporter {
     checkmode: boolean;
   }): Promise<void> => {
     const funcName = 'run_present_enum_version';
-    const logName = `${CliAsyncApiFileImporter.name}.${funcName}()`;
+    const logName = `${CliAssetsImporter.name}.${funcName}()`;
     CliLogger.debug(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_API_CHANNEL_PARAMETER, details: {
     }}));
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_API_CHANNEL_PARAMETER, details: {
@@ -353,12 +324,9 @@ export class CliAsyncApiFileImporter {
       enumVersionSettings: {
         description: epAsyncApiChannelParameterDocument.getDescription(),
         displayName: epAsyncApiChannelParameterDocument.getDisplayName(),
-        stateId: CliEPStatesService.getTargetLifecycleState({cliAssetImport_TargetLifecycleState: this.cliAsyncApiFileImporterOptions.cliAssetImport_TargetLifecycleState}),
+        stateId: this.get_EpSdkTask_StateId(),
       },
-      epSdkTask_TransactionConfig: {
-        groupTransactionId: this.cliAsyncApiFileImporterOptions.runId,
-        parentTransactionId: this.apiTransactionId
-      },
+      epSdkTask_TransactionConfig: this.get_IEpSdkTask_TransactionConfig(),
       checkmode: checkmode
     });
     const epSdkEnumVersionTask_ExecuteReturn: IEpSdkEnumVersionTask_ExecuteReturn = await this.executeTask({
@@ -380,7 +348,7 @@ export class CliAsyncApiFileImporter {
     checkmode: boolean;
   }): Promise<void> => {
     const funcName = 'run_present_channel_parameters';
-    const logName = `${CliAsyncApiFileImporter.name}.${funcName}()`;
+    const logName = `${CliAssetsImporter.name}.${funcName}()`;
 
     if(epAsyncApiChannelParameterDocumentMap === undefined) {
       CliLogger.debug(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_API_CHANNEL_PARAMETERS, details: {
@@ -413,10 +381,8 @@ export class CliAsyncApiFileImporter {
           enumObjectSettings: {
             shared: true
           },
-          epSdkTask_TransactionConfig: {
-            groupTransactionId: this.cliAsyncApiFileImporterOptions.runId,
-            parentTransactionId: this.apiTransactionId
-          }    
+          epSdkTask_TransactionConfig: this.get_IEpSdkTask_TransactionConfig(),
+          // TODO: checkmode?
         });
         const epSdkEnumTask_ExecuteReturn: IEpSdkEnumTask_ExecuteReturn = await this.executeTask({
           epSdkTask: epSdkEnumTask,
@@ -452,7 +418,7 @@ export class CliAsyncApiFileImporter {
     checkmode: boolean;
   }): Promise<void> => {
     const funcName = 'run_present_channel';
-    const logName = `${CliAsyncApiFileImporter.name}.${funcName}()`;
+    const logName = `${CliAssetsImporter.name}.${funcName}()`;
 
     const rctxt: ICliAsyncApiRunContext_Channel = {
       channelTopic: channelTopic
@@ -551,119 +517,17 @@ export class CliAsyncApiFileImporter {
     }
   }
 
-  protected async executeTask({ epSdkTask, expectNoAction }:{
-    epSdkTask: EpSdkTask;
-    expectNoAction: boolean;
-  }): Promise<IEpSdkTask_ExecuteReturn> {
-    const funcName = 'executeTask';
-    const logName = `${CliAsyncApiFileImporter.name}.${funcName}()`;
-
-    const epSdkTask_ExecuteReturn: IEpSdkTask_ExecuteReturn = await epSdkTask.execute();
-
-    if(expectNoAction && epSdkTask_ExecuteReturn.epSdkTask_TransactionLogData.epSdkTask_Action !== EEpSdkTask_Action.NO_ACTION) {
-      throw new CliImporterTestRunAssetsInconsistencyError(logName, {
-        message: `expect epSdkTask_TransactionLogData.epSdkTask_Action = '${EEpSdkTask_Action.NO_ACTION}', instead got '${epSdkTask_ExecuteReturn.epSdkTask_TransactionLogData.epSdkTask_Action}'`,
-        epSdkTask_TransactionLogData: epSdkTask_ExecuteReturn.epSdkTask_TransactionLogData
-      });
-    }
-    return epSdkTask_ExecuteReturn;
-  }
-
-  protected async run_present({ epAsyncApiDocument, checkmode }:{
-    epAsyncApiDocument: EpAsyncApiDocument;
-    checkmode: boolean;
-  }): Promise<ICliAsyncApiFileImporterRunPresentReturn> {
-    const funcName = 'run_present';
-    const logName = `${CliAsyncApiFileImporter.name}.${funcName}()`;
-
-    const rctxt: ICliAsyncApiRunContext_State = {
-      apiTitle: epAsyncApiDocument.getTitle(),
-      apiVersion: epAsyncApiDocument.getVersion(),
-      epApplicationDomainName: epAsyncApiDocument.getApplicationDomainName(),
-    };
-    CliRunContext.updateContext({ runContext: rctxt });
-    CliRunSummary.processingApi({ cliRunSummary_Api: {
-      type: ECliRunSummary_Type.Api,
-      apiName: epAsyncApiDocument.getTitle(),
-      apiVersion: epAsyncApiDocument.getVersion(),
-      applicationDomainName: epAsyncApiDocument.getApplicationDomainName(),
-    }});
-    CliLogger.debug(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_START_API, details: {
-      epAsyncApiDocument: epAsyncApiDocument,
-      checkmode: checkmode  
-    }}));
-
-
-    // use for type validation when calling async functions
-    let xvoid: void;
-    
-    // application domain present
-    const applicationDomainsTask = new EpSdkApplicationDomainTask({
-      epSdkTask_TargetState: EEpSdkTask_TargetState.PRESENT,
-      applicationDomainName: epAsyncApiDocument.getApplicationDomainName(),
-      applicationDomainSettings: {
-        // description: "a new description x"
-      },
-      epSdkTask_TransactionConfig: {
-        groupTransactionId: this.cliAsyncApiFileImporterOptions.runId,
-        parentTransactionId: this.apiTransactionId
-      },
-      checkmode: checkmode
-    });
-    const epSdkApplicationDomainTask_ExecuteReturn: IEpSdkApplicationDomainTask_ExecuteReturn = await this.executeTask({
-      epSdkTask: applicationDomainsTask,
-      expectNoAction: checkmode
-    });
-    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_EP_APPLICATION_DOMAIN, message: 'application domain', details: {
-      epSdkApplicationDomainTask_ExecuteReturn: epSdkApplicationDomainTask_ExecuteReturn
-    }}));
-    // create summary log
-    CliRunSummary.processedApplicationDomain({ epSdkApplicationDomainTask_ExecuteReturn: epSdkApplicationDomainTask_ExecuteReturn });
-
-    // we need the id in subsequent calls
-    if(epSdkApplicationDomainTask_ExecuteReturn.epObject.id === undefined) throw new CliEPApiContentError(logName, 'epSdkApplicationDomainTask_ExecuteReturn.epObject.id === undefined', {
-      applicationDomainObject: epSdkApplicationDomainTask_ExecuteReturn.epObject,
-    });
-    // const applicationDomainId: string = epSdkApplicationDomainTask_ExecuteReturn.epObject.id;
-    const cliAsyncApiFileImporterRunPresentReturn: ICliAsyncApiFileImporterRunPresentReturn = {
-      applicationDomainId: epSdkApplicationDomainTask_ExecuteReturn.epObject.id
-    };
-
-    // present all channels
-    const epAsyncApiChannelDocumentMap: T_EpAsyncApiChannelDocumentMap = epAsyncApiDocument.getEpAsyncApiChannelDocumentMap();
-    for(let [topic, epAsyncApiChannelDocument] of epAsyncApiChannelDocumentMap) {
-      // CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
-      //   topic: topic,
-      //   channelDocument: channelDocument
-      // }}));
-      xvoid = await this.run_present_channel({
-        applicationDomainId: cliAsyncApiFileImporterRunPresentReturn.applicationDomainId,
-        channelTopic: topic,
-        epAsyncApiChannelDocument: epAsyncApiChannelDocument,
-        specVersion: epAsyncApiDocument.getVersion(),
-        checkmode: checkmode
-      });
-    }
-
-    CliLogger.debug(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_DONE_API, details: {
-      context: CliRunContext.getContext(),
-    }}));
-
-    // throw new Error(`${logName}: test error handling in test_mode`);
-    return cliAsyncApiFileImporterRunPresentReturn;
-
-  }
-
-  protected generate_asset_ouput = ({ epAsyncApiDocument }:{
-    epAsyncApiDocument: EpAsyncApiDocument;
+  protected generate_asset_ouput = ({ cliImporterGenerateAssetsOptions }:{
+    cliImporterGenerateAssetsOptions: ICliAssetsImporterGenerateAssetsOptions;
   }): void => {
     const funcName = 'generate_asset_ouput';
-    const logName = `${CliAsyncApiFileImporter.name}.${funcName}()`;
+    const logName = `${CliAssetsImporter.name}.${funcName}()`;
 
+    const epAsyncApiDocument = cliImporterGenerateAssetsOptions.epAsyncApiDocument;
     // calculate the asset output dir
     const applicationDomainNameAsFilePath: string = CliUtils.convertStringToFilePath(epAsyncApiDocument.getApplicationDomainName());
     const apiTitleAsFilePath = epAsyncApiDocument.getTitleAsFilePath();
-    const assetOutputRootDir: string = CliUtils.ensureDirExists(this.cliAsyncApiFileImporterOptions.assetOutputDir, applicationDomainNameAsFilePath + '/' + apiTitleAsFilePath);
+    const assetOutputRootDir: string = CliUtils.ensureDirExists(this.get_cliAssetsImporterOptions().assetOutputDir, applicationDomainNameAsFilePath + '/' + apiTitleAsFilePath);
     const schemasOutputDir = CliUtils.ensureDirExists(assetOutputRootDir, 'schemas');
 
     const asyncApiSpecFileNameJson = assetOutputRootDir + "/" + epAsyncApiDocument.getTitleAsFileName("json");
@@ -721,55 +585,133 @@ export class CliAsyncApiFileImporter {
     }
   }
 
-  protected async run({ apiFile, applicationDomainName, applicationDomainNamePrefix, checkmode }:{
-    apiFile: string;
-    applicationDomainName: string | undefined;
-    applicationDomainNamePrefix: string | undefined;
-    checkmode: boolean;
-  }): Promise<ICliAsyncApiFileImporterRunReturn> {
+  protected async run_present({ cliImporterRunPresentOptions }:{
+    cliImporterRunPresentOptions: ICliAssetsImporterRunPresentOptions;
+  }): Promise<ICliAssetsImporterRunPresentReturn> {
+    const funcName = 'run_present';
+    const logName = `${CliAssetsImporter.name}.${funcName}()`;
+
+    const apiTitle: string = cliImporterRunPresentOptions.epAsyncApiDocument.getTitle();
+    const apiVersion: string = cliImporterRunPresentOptions.epAsyncApiDocument.getVersion();
+    const epApplicationDomainName: string = cliImporterRunPresentOptions.epAsyncApiDocument.getApplicationDomainName();
+
+    const rctxt: ICliAsyncApiRunContext_State = {
+      apiTitle: apiTitle,
+      apiVersion: apiVersion,
+      epApplicationDomainName: epApplicationDomainName
+    };
+    CliRunContext.updateContext({ runContext: rctxt });
+    CliRunSummary.processingApi({ cliRunSummary_Api: {
+      type: ECliRunSummary_Type.Api,
+      apiName: apiTitle,
+      apiVersion: apiVersion,
+      applicationDomainName: epApplicationDomainName,
+    }});
+    CliLogger.debug(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_START_API_ASSETS, details: {
+      cliImporterRunPresentOptions: cliImporterRunPresentOptions
+    }}));
+
+    // use for type validation when calling async functions
+    let xvoid: void;
+    
+    // application domain present
+    const applicationDomainsTask = new EpSdkApplicationDomainTask({
+      epSdkTask_TargetState: EEpSdkTask_TargetState.PRESENT,
+      applicationDomainName: epApplicationDomainName,
+      applicationDomainSettings: {
+        // description: "a new description x"
+      },
+      epSdkTask_TransactionConfig: this.get_IEpSdkTask_TransactionConfig(),
+      checkmode: cliImporterRunPresentOptions.checkmode
+    });
+    const epSdkApplicationDomainTask_ExecuteReturn: IEpSdkApplicationDomainTask_ExecuteReturn = await this.executeTask({
+      epSdkTask: applicationDomainsTask,
+      expectNoAction: cliImporterRunPresentOptions.checkmode
+    });
+    CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_EP_APPLICATION_DOMAIN, message: 'application domain', details: {
+      epSdkApplicationDomainTask_ExecuteReturn: epSdkApplicationDomainTask_ExecuteReturn
+    }}));
+    // create summary log
+    CliRunSummary.processedApplicationDomain({ epSdkApplicationDomainTask_ExecuteReturn: epSdkApplicationDomainTask_ExecuteReturn });
+
+    // we need the id in subsequent calls
+    if(epSdkApplicationDomainTask_ExecuteReturn.epObject.id === undefined) throw new CliEPApiContentError(logName, 'epSdkApplicationDomainTask_ExecuteReturn.epObject.id === undefined', {
+      applicationDomainObject: epSdkApplicationDomainTask_ExecuteReturn.epObject,
+    });
+    // const applicationDomainId: string = epSdkApplicationDomainTask_ExecuteReturn.epObject.id;
+    const cliAssetsImporterRunPresentReturn: ICliAssetsImporterRunPresentReturn = {
+      applicationDomainId: epSdkApplicationDomainTask_ExecuteReturn.epObject.id
+    };
+
+    // present all channels
+    const epAsyncApiChannelDocumentMap: T_EpAsyncApiChannelDocumentMap = cliImporterRunPresentOptions.epAsyncApiDocument.getEpAsyncApiChannelDocumentMap();
+    for(let [topic, epAsyncApiChannelDocument] of epAsyncApiChannelDocumentMap) {
+      // CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING, details: {
+      //   topic: topic,
+      //   channelDocument: channelDocument
+      // }}));
+      xvoid = await this.run_present_channel({
+        applicationDomainId: cliAssetsImporterRunPresentReturn.applicationDomainId,
+        channelTopic: topic,
+        epAsyncApiChannelDocument: epAsyncApiChannelDocument,
+        specVersion: cliImporterRunPresentOptions.epAsyncApiDocument.getVersion(),
+        checkmode: cliImporterRunPresentOptions.checkmode
+      });
+    }
+
+    CliLogger.debug(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_DONE_API_ASSEETS, details: {
+      context: CliRunContext.getContext(),
+    }}));
+
+    // throw new Error(`${logName}: test error handling in test_mode`);
+    return cliAssetsImporterRunPresentReturn;
+
+  }
+
+  protected async run({ cliImporterRunOptions }:{
+    cliImporterRunOptions: ICliAssetsImporterRunOptions;    
+  }): Promise<ICliAssetsImporterRunReturn> {
     const funcName = 'run';
-    const logName = `${CliAsyncApiFileImporter.name}.${funcName}()`;
+    const logName = `${CliAssetsImporter.name}.${funcName}()`;
 
     const rctxt: ICliAsyncApiRunContext = {
-      apiFile: apiFile
+      apiFile: cliImporterRunOptions.apiFile
     };
     CliRunContext.updateContext({ runContext: rctxt });
     CliRunSummary.processingApiFile({ cliRunSummary_ApiFile: { 
       type: ECliRunSummary_Type.ApiFile, 
-      apiFile: apiFile,
+      apiFile: cliImporterRunOptions.apiFile,
     }});
-    CliLogger.debug(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_START_API, details: {
-      applicationDomainName: applicationDomainName,
-      applicationDomainNamePrefix: applicationDomainNamePrefix,
-      checkmode: checkmode  
+    CliLogger.debug(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_START_API_ASSETS, details: {
+      cliImporterRunOptions: cliImporterRunOptions
     }}));
 
-    const cliAsyncApiFileImporterRunReturn: ICliAsyncApiFileImporterRunReturn = {
+    const cliAssetsImporterRunReturn: ICliAssetsImporterRunReturn = {
       applicationDomainName: undefined,
       error: undefined
-    }
+    };
 
     try {
 
       const epAsyncApiDocument: EpAsyncApiDocument = await CliAsyncApiDocumentService.parse_and_validate({
-        apiFile: apiFile,
-        applicationDomainName: applicationDomainName,
-        applicationDomainNamePrefix: applicationDomainNamePrefix
+        apiFile: cliImporterRunOptions.apiFile,
+        applicationDomainName: cliImporterRunOptions.applicationDomainName,
+        applicationDomainNamePrefix: cliImporterRunOptions.applicationDomainNamePrefix
       });
-      cliAsyncApiFileImporterRunReturn.applicationDomainName = epAsyncApiDocument.getApplicationDomainName();
-      const cliAsyncApiFileImporterRunPresentReturn: ICliAsyncApiFileImporterRunPresentReturn = await this.run_present({ 
-        epAsyncApiDocument: epAsyncApiDocument,
-        checkmode: checkmode
-      });
+      cliAssetsImporterRunReturn.applicationDomainName = epAsyncApiDocument.getApplicationDomainName();
+      const cliAssetsImporterRunPresentReturn: ICliAssetsImporterRunPresentReturn = await this.run_present({ cliImporterRunPresentOptions: {
+          epAsyncApiDocument: epAsyncApiDocument,
+          checkmode: cliImporterRunOptions.checkmode  
+      }});
 
-      this.generate_asset_ouput({
-        epAsyncApiDocument: epAsyncApiDocument,
-      });
+      this.generate_asset_ouput({ cliImporterGenerateAssetsOptions: {
+          epAsyncApiDocument: epAsyncApiDocument,
+      }});
 
       CliLogger.debug(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_DONE_API, details: {}}));
 
     } catch(e: any) {
-      cliAsyncApiFileImporterRunReturn.error = CliErrorFactory.createCliError({
+      cliAssetsImporterRunReturn.error = CliErrorFactory.createCliError({
         logName: logName,
         e: e
       });
@@ -787,12 +729,12 @@ export class CliAsyncApiFileImporter {
       //   cliAsyncApiFileImporterRunReturn.error = new CliErrorFromError(logName, e);
       // }
     } finally {
-      if(cliAsyncApiFileImporterRunReturn.error !== undefined) {
-        CliLogger.error(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_ERROR_API, details: {
-          error: cliAsyncApiFileImporterRunReturn.error
+      if(cliAssetsImporterRunReturn.error !== undefined) {
+        CliLogger.error(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_ERROR_API_ASSETS, details: {
+          error: cliAssetsImporterRunReturn.error
         }}));  
       }
-      return cliAsyncApiFileImporterRunReturn;
+      return cliAssetsImporterRunReturn;
     }
 
   }

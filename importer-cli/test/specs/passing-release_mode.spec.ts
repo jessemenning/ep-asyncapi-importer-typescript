@@ -3,12 +3,12 @@ import { expect } from 'chai';
 import path from 'path';
 import { TestContext, TestLogger } from '../lib/test.helpers';
 import CliConfig from '../../src/CliConfig';
-import { CliImporter, ECliImporterMode } from '../../src/CliImporter';
 import { CliError } from '../../src/CliError';
 import { TestEnv } from '../setup.spec';
 import CliRunSummary, { ICliRunSummary_Base } from '../../src/CliRunSummary';
 import { CliUtils } from '../../src/CliUtils';
 import { TestServices, T_TestApiSpecRecord } from '../lib/TestServices';
+import { CliImporterManager, ECliImporterManagerMode } from '../../src/CliImporterManager';
 
 const scriptName: string = path.basename(__filename);
 TestLogger.logMessage(scriptName, ">>> starting ...");
@@ -17,9 +17,10 @@ const setupTestOptions = (): Array<string> => {
   // create test specific list
   const fileList = CliUtils.createFileList(`${TestEnv.testApiSpecsDir}/passing/**/*.spec.yml`);
   // set test specific importer options
-  CliConfig.getCliImporterOptions().asyncApiFileList = fileList;
-  CliConfig.getCliImporterOptions().cliImporterMode = ECliImporterMode.RELEASE_MODE;
-  CliConfig.getCliImporterOptions().applicationDomainName = 'release_mode';
+  CliConfig.getCliImporterManagerOptions().asyncApiFileList = fileList;
+  CliConfig.getCliImporterManagerOptions().cliImporterManagerMode = ECliImporterManagerMode.RELEASE_MODE;
+  CliConfig.getCliImporterManagerOptions().applicationDomainName = 'release_mode';
+  CliConfig.getCliImporterManagerOptions().createEventApiApplication = false;
   return fileList;
 }
 
@@ -32,10 +33,10 @@ describe(`${scriptName}`, () => {
     //parse all specs
     const testApiSpecRecordList: Array<T_TestApiSpecRecord> = await TestServices.createTestApiSpecRecordList({
       apiFileList: fileList,
-      overrideApplicationDomainName: CliConfig.getCliImporterOptions().applicationDomainName,
-      prefixApplicationDomainName: CliImporter.createApplicationDomainPrefix({
-        appName: CliConfig.getCliImporterOptions().appName,
-        runId: CliConfig.getCliImporterOptions().runId
+      overrideApplicationDomainName: CliConfig.getCliImporterManagerOptions().applicationDomainName,
+      prefixApplicationDomainName: CliImporterManager.createApplicationDomainPrefix({
+        appName: CliConfig.getCliImporterManagerOptions().appName,
+        runId: CliConfig.getCliImporterManagerOptions().runId
       })
     });
     // ensure all app domains are absent
@@ -68,7 +69,7 @@ describe(`${scriptName}`, () => {
 
   it(`${scriptName}: should import specs`, async () => {
     try {
-      const cliImporter = new CliImporter(CliConfig.getCliImporterOptions());
+      const cliImporter = new CliImporterManager(CliConfig.getCliImporterManagerOptions());
       const xvoid: void = await cliImporter.run();      
       const cliRunSummaryList: Array<ICliRunSummary_Base> = CliRunSummary.getSummaryLogList();
       // DEBUG
@@ -81,7 +82,22 @@ describe(`${scriptName}`, () => {
 
   it(`${scriptName}: should import specs: idempotency`, async () => {
     try {
-      const cliImporter = new CliImporter(CliConfig.getCliImporterOptions());
+      const cliImporter = new CliImporterManager(CliConfig.getCliImporterManagerOptions());
+      const xvoid: void = await cliImporter.run();      
+      const cliRunSummaryList: Array<ICliRunSummary_Base> = CliRunSummary.getSummaryLogList();
+      // DEBUG
+      // expect(false, JSON.stringify(cliRunSummaryList, null, 2)).to.be.true;
+    } catch(e) {
+      expect(e instanceof CliError, TestLogger.createNotCliErrorMesssage(e.message)).to.be.true;
+      expect(false, TestLogger.createTestFailMessageWithCliError('failed', e)).to.be.true;
+    }
+  });
+
+  it(`${scriptName}: should import specs with application / version`, async () => {
+    try {
+      CliConfig.getCliImporterManagerOptions().createEventApiApplication = true;
+
+      const cliImporter = new CliImporterManager(CliConfig.getCliImporterManagerOptions());
       const xvoid: void = await cliImporter.run();      
       const cliRunSummaryList: Array<ICliRunSummary_Base> = CliRunSummary.getSummaryLogList();
       // DEBUG

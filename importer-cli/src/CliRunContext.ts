@@ -29,6 +29,10 @@ export interface ICliAsyncApiRunContext_EventApiVersion extends Partial<ICliAsyn
   epLatestExistingEventApiVersion?: string;
   epTargetEventApiVersion: string;
 }
+export interface ICliAsyncApiRunContext_ApplicationVersion extends Partial<ICliAsyncApiRunContext_State> {
+  epLatestExistingApplicationVersion?: string;
+  epTargetApplicationVersion: string;
+}
 export interface ICliAsyncApiRunContext_Channel extends Partial<ICliAsyncApiRunContext_State> {
   channelTopic: string;
 }
@@ -44,6 +48,13 @@ export interface ICliAsyncApiRunContext_Channel_Operation_Message extends Partia
 }
 export interface ICliAsyncApiRunContext_Channel_Event extends Partial<ICliAsyncApiRunContext_Channel> {
   messageName: string;
+}
+export interface ICliAsyncApiRunContext_Application extends Partial<ICliAsyncApiRunContext_State> {
+  epApplicationName: string;
+}
+export interface ICliAsyncApiRunContext_ApplicationVersion extends Partial<ICliAsyncApiRunContext_State> {
+  epLatestExistingApplicationVersion?: string;
+  epTargetApplicationVersion: string;
 }
 
 
