@@ -56,11 +56,15 @@ Assets are identified by their name and mapped as follows:
      - Event Portal Asset
      - Naming
    * - Title
-     - Event Api / Event Api Version
-     - event api name = $.info.title
+     - - Event Api / Event Api Version
+       - Application / Application Version
+     - - event api name = $.info.title
+       - application name = $.info.title
    * - Version
-     - Event Api Version
-     - event api version = $.info.version
+     - - Event Api Version
+       - Application Version
+     - - event api version = $.info.version
+       - application version = $.info.version
    * - Channel
      - Event / Event Version
      - Event topic = $.channels[n]
@@ -75,12 +79,12 @@ Assets are identified by their name and mapped as follows:
 Asset Versioning Strategy
 -------------------------
 
-Event API
-+++++++++
+Event API Version / Application Version
++++++++++++++++++++++++++++++++++++++++
 
-The version of an Event Api strictly under control of the user - i.e. the version specified in the Api file is exactly the version of the Event Api.
+The version of an Event Api / Application are strictly under control of the user - i.e. the version specified in the Api file is exactly the version of the Event Api / Application.
 
-However, in order to complete a run and avoid inconsistencies, the importer will create an Event Api Version with a bumped patch version number and issue a warning.
+However, in order to complete a run and avoid inconsistencies, the importer will create an Event Api Version / Application Version with a bumped patch version number and issue a warning.
 (scan the log files for `WARN`)
 
 
