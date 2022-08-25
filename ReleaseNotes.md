@@ -2,6 +2,14 @@
 
 Solace Event Portal Async API Importer.
 
+## Version 0.5.3-alpha
+
+**New Features:**
+- added support for creating an application based on the api as well
+
+**Known Issues:**
+- the created application version is missing the pub/sub events info.
+
 ## Version 0.5.2-alpha
 
 Migrated repo to SolaceLabs.
