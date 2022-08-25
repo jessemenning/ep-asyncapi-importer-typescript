@@ -56,7 +56,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#application-domain">Application Domain</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#asset-mapping-naming">Asset Mapping &amp; Naming</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#asset-versioning-strategy">Asset Versioning Strategy</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#event-api">Event API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#event-api-version-application-version">Event API Version / Application Version</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#all-other-assets">All Other Assets</a></li>
 </ul>
 </li>
@@ -151,12 +151,28 @@ do a release run overriding the application domains defined in the Api.</p>
 </thead>
 <tbody>
 <tr class="row-even"><td><p>Title</p></td>
-<td><p>Event Api / Event Api Version</p></td>
-<td><p>event api name = $.info.title</p></td>
+<td><ul class="simple">
+<li><p>Event Api / Event Api Version</p></li>
+<li><p>Application / Application Version</p></li>
+</ul>
+</td>
+<td><ul class="simple">
+<li><p>event api name = $.info.title</p></li>
+<li><p>application name = $.info.title</p></li>
+</ul>
+</td>
 </tr>
 <tr class="row-odd"><td><p>Version</p></td>
-<td><p>Event Api Version</p></td>
-<td><p>event api version = $.info.version</p></td>
+<td><ul class="simple">
+<li><p>Event Api Version</p></li>
+<li><p>Application Version</p></li>
+</ul>
+</td>
+<td><ul class="simple">
+<li><p>event api version = $.info.version</p></li>
+<li><p>application version = $.info.version</p></li>
+</ul>
+</td>
 </tr>
 <tr class="row-even"><td><p>Channel</p></td>
 <td><p>Event / Event Version</p></td>
@@ -175,10 +191,10 @@ do a release run overriding the application domains defined in the Api.</p>
 </section>
 <section id="asset-versioning-strategy">
 <h2>Asset Versioning Strategy<a class="headerlink" href="#asset-versioning-strategy" title="Permalink to this heading"></a></h2>
-<section id="event-api">
-<h3>Event API<a class="headerlink" href="#event-api" title="Permalink to this heading"></a></h3>
-<p>The version of an Event Api strictly under control of the user - i.e. the version specified in the Api file is exactly the version of the Event Api.</p>
-<p>However, in order to complete a run and avoid inconsistencies, the importer will create an Event Api Version with a bumped patch version number and issue a warning.
+<section id="event-api-version-application-version">
+<h3>Event API Version / Application Version<a class="headerlink" href="#event-api-version-application-version" title="Permalink to this heading"></a></h3>
+<p>The version of an Event Api / Application are strictly under control of the user - i.e. the version specified in the Api file is exactly the version of the Event Api / Application.</p>
+<p>However, in order to complete a run and avoid inconsistencies, the importer will create an Event Api Version / Application Version with a bumped patch version number and issue a warning.
 (scan the log files for <cite>WARN</cite>)</p>
 </section>
 <section id="all-other-assets">
@@ -219,7 +235,7 @@ The asset state is controlled using the environment variable:</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright 2022, Solace Corporation, Ricardo Gomez-Ulmke, &lt;ricardo.gomez-ulmke@solace.com&gt;.
-      <span class="lastupdated">Last updated on 24 Aug 2022 at 15:23.
+      <span class="lastupdated">Last updated on 25 Aug 2022 at 13:23.
       </span></p>
   </div>
 
