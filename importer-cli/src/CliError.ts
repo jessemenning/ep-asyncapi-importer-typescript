@@ -2,8 +2,7 @@ import CliConfig from "./CliConfig";
 import { CliLogger, ECliStatusCodes } from "./CliLogger";
 import { ApiError } from "@solace-labs/ep-openapi-node";
 import { EpSdkError } from "@solace-labs/ep-sdk";
-import { EpAsyncApiError } from "@solace-labs/ep-asyncapi";
-import { ParserError } from "@asyncapi/parser";
+import { EpAsyncApiError, EpAsyncApiParserError } from "@solace-labs/ep-asyncapi";
 
 export class CliErrorFactory {
   public static createCliError = ({ logName, e}: {
@@ -15,12 +14,12 @@ export class CliErrorFactory {
       return e;
     } else if(e instanceof EpAsyncApiError) {
       cliError = new CliErrorFromEpAsyncApiError(logName, e);
+    } else if(e instanceof EpAsyncApiParserError) {
+      cliError = new CliAsyncApiParserError(logName, e);
     } else if(e instanceof EpSdkError) {
       cliError = new CliErrorFromEpSdkError(logName, e);
     } else if(e instanceof ApiError) {
       cliError = new CliErrorFromEPApiError(logName, e);
-    } else if(e instanceof ParserError) {
-      cliError = new CliAsyncApiParserError(logName, e);
     } else {
       cliError = new CliErrorFromError(logName, e);
     }

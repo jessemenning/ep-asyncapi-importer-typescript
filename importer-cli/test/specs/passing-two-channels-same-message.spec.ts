@@ -15,11 +15,13 @@ TestLogger.logMessage(scriptName, ">>> starting ...");
 
 const setupTestOptions = (): Array<string> => {
   // create test specific list
-  const fileList = CliUtils.createFileList(`${TestEnv.testApiSpecsDir}/passing/**/*.spec.yml`);
+  const fileList = CliUtils.createFileList(`${TestEnv.testApiSpecsDir}/passing/misc/two-channels-same-message.spec.yml`);
   // set test specific importer options
   CliConfig.getCliImporterManagerOptions().asyncApiFileList = fileList;
   CliConfig.getCliImporterManagerOptions().cliImporterManagerMode = ECliImporterManagerMode.RELEASE_MODE;
-  CliConfig.getCliImporterManagerOptions().applicationDomainName = 'release_mode';
+  // // DEBUG
+  // CliConfig.getCliImporterManagerOptions().cliImporterManagerMode = ECliImporterManagerMode.TEST_MODE_KEEP;
+  // CliConfig.getCliImporterManagerOptions().applicationDomainName = 'release_mode';
   CliConfig.getCliImporterManagerOptions().createEventApiApplication = false;
   return fileList;
 }
@@ -30,8 +32,8 @@ describe(`${scriptName}`, () => {
     console.log(`${scriptName}: BEFORE: setup test & clean app domains ...`);
     // create test specific list
     const fileList = setupTestOptions();
+    //parse all specs
     try {
-      //parse all specs
       const testApiSpecRecordList: Array<T_TestApiSpecRecord> = await TestServices.createTestApiSpecRecordList({
         apiFileList: fileList,
         overrideApplicationDomainName: CliConfig.getCliImporterManagerOptions().applicationDomainName,
@@ -87,21 +89,6 @@ describe(`${scriptName}`, () => {
 
   it(`${scriptName}: should import specs: idempotency`, async () => {
     try {
-      const cliImporter = new CliImporterManager(CliConfig.getCliImporterManagerOptions());
-      const xvoid: void = await cliImporter.run();      
-      const cliRunSummaryList: Array<ICliRunSummary_Base> = CliRunSummary.getSummaryLogList();
-      // DEBUG
-      // expect(false, JSON.stringify(cliRunSummaryList, null, 2)).to.be.true;
-    } catch(e) {
-      expect(e instanceof CliError, TestLogger.createNotCliErrorMesssage(e.message)).to.be.true;
-      expect(false, TestLogger.createTestFailMessageWithCliError('failed', e)).to.be.true;
-    }
-  });
-
-  it(`${scriptName}: should import specs with application / version`, async () => {
-    try {
-      CliConfig.getCliImporterManagerOptions().createEventApiApplication = true;
-
       const cliImporter = new CliImporterManager(CliConfig.getCliImporterManagerOptions());
       const xvoid: void = await cliImporter.run();      
       const cliRunSummaryList: Array<ICliRunSummary_Base> = CliRunSummary.getSummaryLogList();

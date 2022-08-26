@@ -30,17 +30,22 @@ describe(`${scriptName}`, () => {
     console.log(`${scriptName}: BEFORE: setup test & clean app domains ...`);
     // create test specific list
     const fileList = setupTestOptions();
-    //parse all specs
-    const testApiSpecRecordList: Array<T_TestApiSpecRecord> = await TestServices.createTestApiSpecRecordList({
-      apiFileList: fileList,
-      overrideApplicationDomainName: CliConfig.getCliImporterManagerOptions().applicationDomainName,
-      prefixApplicationDomainName: CliImporterManager.createApplicationDomainPrefix({
-        appName: CliConfig.getCliImporterManagerOptions().appName,
-        runId: CliConfig.getCliImporterManagerOptions().runId
-      })
-    });
-    // ensure all app domains are absent
-    const xvoid: void = await TestServices.absent_ApplicationDomains();
+    try {
+      //parse all specs
+      const testApiSpecRecordList: Array<T_TestApiSpecRecord> = await TestServices.createTestApiSpecRecordList({
+        apiFileList: fileList,
+        overrideApplicationDomainName: CliConfig.getCliImporterManagerOptions().applicationDomainName,
+        prefixApplicationDomainName: CliImporterManager.createApplicationDomainPrefix({
+          appName: CliConfig.getCliImporterManagerOptions().appName,
+          runId: CliConfig.getCliImporterManagerOptions().runId
+        })
+      });
+      // ensure all app domains are absent
+      const xvoid: void = await TestServices.absent_ApplicationDomains(false);
+    } catch(e) {
+      expect(e instanceof CliError, TestLogger.createNotCliErrorMesssage(e.message)).to.be.true;
+      expect(false, TestLogger.createTestFailMessageWithCliError('failed', e)).to.be.true;
+    }
     console.log(`${scriptName}: BEFORE: done.`);
   });
 
@@ -60,7 +65,7 @@ describe(`${scriptName}`, () => {
     } finally {
       // ensure all app domains are absent
       console.log(`${scriptName}: AFTER: delete all application domains ...`);
-      const xvoid: void = await TestServices.absent_ApplicationDomains();
+      const xvoid: void = await TestServices.absent_ApplicationDomains(CliConfig.getCliImporterManagerOptions().cliImporterManagerMode === ECliImporterManagerMode.TEST_MODE_KEEP);
       console.log(`${scriptName}: AFTER: delete all application domains done.`);
     }
     expect(err, TestLogger.createNotCliErrorMesssage(JSON.stringify(err))).to.be.undefined;

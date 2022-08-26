@@ -35,13 +35,13 @@ export class TestServices {
     return TestServices.testApiSpecRecordList;
   }
 
-  public static absent_ApplicationDomains = async(): Promise<void> => {
+  public static absent_ApplicationDomains = async(keep: boolean): Promise<void> => {
+    if(keep) return;
     const xvoid: void = await CliApplicationDomainsService.absent_ApplicationDomains({ 
       applicationDomainNameList: TestServices.testApiSpecRecordList.map( (testApiSpecRecord: T_TestApiSpecRecord) => {
         return testApiSpecRecord.epAsyncApiDocument.getApplicationDomainName();
       })
     });
-    TestServices.testApiSpecRecordList = [];
   }
 
   public static getTestApiSpecRecordList(): Array<T_TestApiSpecRecord> { return TestServices.testApiSpecRecordList; }

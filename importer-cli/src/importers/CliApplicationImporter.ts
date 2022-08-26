@@ -74,11 +74,6 @@ export class CliApplicationImporter extends CliImporter {
     CliRunContext.updateContext({ runContext: rctxtVersion });
 
     // because of exact version, test first and add to summary
-
-    // TODO
-    // producedEventVersionIds: (cliPubSubEventVersionIds.publishEventVersionIdList as unknown) as EventApiVersion.producedEventVersionIds,
-    // consumedEventVersionIds: (cliPubSubEventVersionIds.subscribeEventVersionIdList as unknown) as EventApiVersion.consumedEventVersionIds,
-
     const epSdkApplicationVersionTask_Check = new EpSdkApplicationVersionTask({
       epSdkTask_TargetState: EEpSdkTask_TargetState.PRESENT,
       applicationDomainId: applicationDomainId,
@@ -89,6 +84,8 @@ export class CliApplicationImporter extends CliImporter {
         description: epAsyncApiDocument.getDescription(),
         displayName: epAsyncApiDocument.getTitle(),
         stateId: this.get_EpSdkTask_StateId(),
+        declaredConsumedEventVersionIds: (cliPubSubEventVersionIds.publishEventVersionIdList as unknown) as ApplicationVersion.declaredConsumedEventVersionIds,
+        declaredProducedEventVersionIds: (cliPubSubEventVersionIds.subscribeEventVersionIdList as unknown) as ApplicationVersion.declaredProducedEventVersionIds,
       },
       epSdkTask_TransactionConfig: this.get_IEpSdkTask_TransactionConfig(),
       checkmode: true,
@@ -118,12 +115,6 @@ export class CliApplicationImporter extends CliImporter {
       });
   
       // create a new application version and issue warning
-
-      // TODO:
-      // producedEventVersionIds: (cliPubSubEventVersionIds.publishEventVersionIdList as unknown) as EventApiVersion.producedEventVersionIds,
-      // consumedEventVersionIds: (cliPubSubEventVersionIds.subscribeEventVersionIdList as unknown) as EventApiVersion.consumedEventVersionIds,
-
-
       const epSdkApplicationVersionTask = new EpSdkApplicationVersionTask({
         epSdkTask_TargetState: EEpSdkTask_TargetState.PRESENT,
         applicationDomainId: applicationDomainId,
@@ -134,6 +125,8 @@ export class CliApplicationImporter extends CliImporter {
           description: epAsyncApiDocument.getDescription(),
           displayName: epAsyncApiDocument.getTitle(),
           stateId: this.get_EpSdkTask_StateId(),
+          declaredConsumedEventVersionIds: (cliPubSubEventVersionIds.publishEventVersionIdList as unknown) as ApplicationVersion.declaredConsumedEventVersionIds,
+          declaredProducedEventVersionIds: (cliPubSubEventVersionIds.subscribeEventVersionIdList as unknown) as ApplicationVersion.declaredProducedEventVersionIds,  
         },
         epSdkTask_TransactionConfig: this.get_IEpSdkTask_TransactionConfig(),
         checkmode: checkmode,
@@ -160,11 +153,6 @@ export class CliApplicationImporter extends CliImporter {
       });
     } else {
       // create the target version in release state as intended
-
-      // TODO:
-      // producedEventVersionIds: (cliPubSubEventVersionIds.publishEventVersionIdList as unknown) as EventApiVersion.producedEventVersionIds,
-      // consumedEventVersionIds: (cliPubSubEventVersionIds.subscribeEventVersionIdList as unknown) as EventApiVersion.consumedEventVersionIds,
-
       const epSdkApplicationVersionTask = new EpSdkApplicationVersionTask({
         epSdkTask_TargetState: EEpSdkTask_TargetState.PRESENT,
         applicationDomainId: applicationDomainId,
@@ -175,6 +163,8 @@ export class CliApplicationImporter extends CliImporter {
           description: epAsyncApiDocument.getDescription(),
           displayName: epAsyncApiDocument.getTitle(),
           stateId: this.get_EpSdkTask_StateId(),
+          declaredConsumedEventVersionIds: (cliPubSubEventVersionIds.publishEventVersionIdList as unknown) as ApplicationVersion.declaredConsumedEventVersionIds,
+          declaredProducedEventVersionIds: (cliPubSubEventVersionIds.subscribeEventVersionIdList as unknown) as ApplicationVersion.declaredProducedEventVersionIds,  
         },
         epSdkTask_TransactionConfig: this.get_IEpSdkTask_TransactionConfig(),
         checkmode: checkmode,

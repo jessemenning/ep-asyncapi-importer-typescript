@@ -47,7 +47,7 @@ export interface ICliAsyncApiRunContext_Channel_Operation_Message extends Partia
   messageName: string; 
 }
 export interface ICliAsyncApiRunContext_Channel_Event extends Partial<ICliAsyncApiRunContext_Channel> {
-  messageName: string;
+  epEventName: string;
 }
 export interface ICliAsyncApiRunContext_Application extends Partial<ICliAsyncApiRunContext_State> {
   epApplicationName: string;

@@ -15,7 +15,7 @@ unset_source_env() {
     # env vars for tests
     unset CLI_TEST_API_SPECS_ROOT_DIR
     unset CLI_TEST_ENABLE_API_CALL_LOGGING
-    
+
     # unset this function
     unset -f unset_source_env
 }
@@ -24,7 +24,7 @@ unset_source_env() {
 # export CLI_APP_NAME="ep-async-api-importer-test"
 export CLI_EP_API_BASE_URL="https://ian-dev-api.mymaas.net"
 
-export CLI_RUN_ID="testing-test-id"
+# export CLI_RUN_ID="testing-test-id"
 
 export CLI_LOGGER_LOG_LEVEL="info"
 export CLI_LOGGER_PRETTY_PRINT="true"
