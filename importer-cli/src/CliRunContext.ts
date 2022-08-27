@@ -3,7 +3,6 @@ export enum ECliChannelOperation {
   Publish = "publish",
   Subscribe = "subscribe"
 }
-// - runMode = test_pass_1, test_pass_2, release
 export enum ECliRunContext_RunMode {
   TEST_PASS_1 = "test_pass_1",
   TEST_PASS_2 = "test_pass_2",
@@ -13,85 +12,90 @@ export interface ICliRunContext {
   runId: string;
   runMode: ECliRunContext_RunMode;
 }
-export interface ICliAsyncApiRunContext extends Partial<ICliRunContext> {
+export interface ICliApiFileRunContext extends Partial<ICliRunContext> {
   apiFile: string;
 }
-export interface ICliAsyncApiRunContext_State extends Partial<ICliAsyncApiRunContext> {
+export interface ICliApiRunContext extends Partial<ICliApiFileRunContext> {
   apiTitle: string;
   apiVersion: string;
-  epApplicationDomainName: string;
+  applicationDomainName: string;
 }
-export interface ICliAsyncApiRunContext_EventApi extends Partial<ICliAsyncApiRunContext_State> {
-  epEventApiName: string;
-  // existingEventApiName?: string;
-}
-export interface ICliAsyncApiRunContext_EventApiVersion extends Partial<ICliAsyncApiRunContext_State> {
-  epLatestExistingEventApiVersion?: string;
-  epTargetEventApiVersion: string;
-}
-export interface ICliAsyncApiRunContext_ApplicationVersion extends Partial<ICliAsyncApiRunContext_State> {
-  epLatestExistingApplicationVersion?: string;
-  epTargetApplicationVersion: string;
-}
-export interface ICliAsyncApiRunContext_Channel extends Partial<ICliAsyncApiRunContext_State> {
+export interface ICliApiRunContext_Channel extends Partial<ICliApiRunContext> {
   channelTopic: string;
+  epEventName: string;
 }
-export interface ICliAsyncApiRunContext_Channel_Parameter extends Partial<ICliAsyncApiRunContext_Channel> {
+export interface ICliApiRunContext_Channel_Parameter extends Partial<ICliApiRunContext_Channel> {
   parameter: string;
   parameterEnumList?: Array<string>;
 }
-export interface ICliAsyncApiRunContext_Channel_Operation extends Partial<ICliAsyncApiRunContext_Channel> {
+export interface ICliApiRunContext_Channel_Operation extends Partial<ICliApiRunContext_Channel> {
   type: ECliChannelOperation;
 }
-export interface ICliAsyncApiRunContext_Channel_Operation_Message extends Partial<ICliAsyncApiRunContext_Channel_Operation> {
+export interface ICliApiRunContext_Channel_Operation_Message extends Partial<ICliApiRunContext_Channel_Operation> {
   messageName: string; 
 }
-export interface ICliAsyncApiRunContext_Channel_Event extends Partial<ICliAsyncApiRunContext_Channel> {
-  epEventName: string;
-}
-export interface ICliAsyncApiRunContext_Application extends Partial<ICliAsyncApiRunContext_State> {
-  epApplicationName: string;
-}
-export interface ICliAsyncApiRunContext_ApplicationVersion extends Partial<ICliAsyncApiRunContext_State> {
-  epLatestExistingApplicationVersion?: string;
-  epTargetApplicationVersion: string;
-}
 
+// export interface ICliEpRunContext_EventApi extends Partial<ICliApiRunContext> {
+//   epEventApiName: string;
+// }
+// export interface ICliEpRunContext_EventApiVersion extends Partial<ICliEpRunContext_EventApi> {
+//   epLatestExistingEventApiVersion?: string;
+//   epTargetEventApiVersion: string;
+// }
+// export interface ICliEpRunContext_Channel_Event extends Partial<ICliEpRunContext_EventApiVersion> {
+//   epEventName: string;
+// }
+// export interface ICliEpRunContext_Application extends Partial<ICliApiRunContext> {
+//   epApplicationName: string;
+// }
+// export interface ICliEpRunContext_ApplicationVersion extends Partial<ICliEpRunContext_Application> {
+//   epLatestExistingApplicationVersion?: string;
+//   epTargetApplicationVersion: string;
+// }
+
+
+const LogMe = false;
 
 export class CliRunContext {
-  private runContext: ICliRunContext; 
+  private runContextStack: Array<ICliRunContext> = []; 
 
-  private setContext = ({ runContext }: {
-    runContext: ICliRunContext;
-  }): ICliRunContext => {
-    this.runContext = runContext;
-    return runContext;
+  public set = (runContext: ICliRunContext) => {
+    this.runContextStack = [runContext];
+    if(LogMe) console.log(`${CliRunContext.name}.set(): ${JSON.stringify(this.runContextStack, null, 2)}`);
   }
 
-  public setRunContext = ({ runContext }: {
-    runContext: ICliRunContext;
-  }): ICliRunContext => {
-    this.runContext = runContext;
-    return runContext;
+  public unset = () => {
+    this.runContextStack = [];
+    if(LogMe) console.log(`${CliRunContext.name}.unset(): ${JSON.stringify(this.runContextStack, null, 2)}`);
   }
 
-  public updateContext = ({ runContext }:{
-    runContext: Partial<ICliRunContext>;
-  }): ICliRunContext => {
-    const newContext: ICliRunContext = {
-      ...this.runContext,
+  public push = (runContext: Partial<ICliRunContext>) => {
+    const rctxt: ICliRunContext = {
+      ...this.get(),
       ...runContext
     };
-    return this.setContext({ runContext: newContext });
+    this.runContextStack.push(rctxt);
+    if(LogMe) console.log(`${CliRunContext.name}.push(): ${JSON.stringify(this.runContextStack, null, 2)}`);
   }
 
-  public getContext = (): ICliRunContext => {
-    return this.runContext;
-  };
-
-  // public getCliAsyncApiRunContext_State = (): ICliAsyncApiRunContext_State => {
-  //   return this.runContext as ICliAsyncApiRunContext_State;
+  public pop = (): ICliRunContext | undefined => {
+    const last =  this.runContextStack.pop();
+    if(LogMe) console.log(`${CliRunContext.name}.pop(): ${JSON.stringify(this.runContextStack, null, 2)}`);
+    return last;
+  }
+  // public updateContext = ({ runContext }:{
+  //   runContext: Partial<ICliRunContext>;
+  // }): ICliRunContext => {
+  //   const newContext: ICliRunContext = {
+  //     ...this.runContext,
+  //     ...runContext
+  //   };
+  //   return this.setContext({ runContext: newContext });
   // }
+
+  public get = (): ICliRunContext => {
+    return this.runContextStack[this.runContextStack.length-1];
+  };
 
 }
 

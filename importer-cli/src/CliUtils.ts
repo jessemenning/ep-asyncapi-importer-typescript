@@ -42,12 +42,12 @@ export class CliUtils {
     const funcName = 'createFileList';
     const logName = `${CliUtils.name}.${funcName}()`;
     const fileList: Array<string> = glob.sync(filePattern);
-    if(fileList.length === 0) throw new CliUsageError(logName, 'no files found for pattern', {
+    if(fileList.length === 0) throw new CliUsageError(logName, 'No files found for pattern', {
       filePattern: filePattern,
     });
     for(const filePath of fileList) {
       const x: string | undefined = CliUtils.validateFilePathWithReadPermission(filePath);
-      if(x === undefined) throw new CliUsageError(logName, 'file does not have read permissions', {
+      if(x === undefined) throw new CliUsageError(logName, 'File does not have read permissions', {
         file: filePath,
       });
     }

@@ -1,10 +1,22 @@
 
 import { EpAsyncApiDocument } from '@solace-labs/ep-asyncapi';
-import { ApplicationDomain, ApplicationDomainsService, ApplicationVersion } from '@solace-labs/ep-openapi-node';
-import { EEpSdkTask_Action, EEpSdkTask_TargetState, EEpSdk_VersionTaskStrategy, EpSdkApplicationDomainsService, EpSdkApplicationTask, EpSdkApplicationVersionsService, EpSdkApplicationVersionTask, EpSdkEventApiTask, IEpSdkApplicationTask_ExecuteReturn, IEpSdkApplicationVersionTask_ExecuteReturn } from '@solace-labs/ep-sdk';
-import { CliEPApiContentError, CliErrorFactory, CliImporterFeatureNotSupportedError, CliInternalCodeInconsistencyError } from '../CliError';
+import { ApplicationDomain, ApplicationVersion } from '@solace-labs/ep-openapi-node';
+import { 
+  EEpSdkTask_Action, 
+  EEpSdkTask_TargetState, 
+  EEpSdk_VersionTaskStrategy, 
+  EpSdkApplicationDomainsService, 
+  EpSdkApplicationTask, 
+  EpSdkApplicationVersionsService, 
+  EpSdkApplicationVersionTask, 
+  IEpSdkApplicationTask_ExecuteReturn, 
+  IEpSdkApplicationVersionTask_ExecuteReturn 
+} from '@solace-labs/ep-sdk';
+import { CliEPApiContentError, CliErrorFactory, CliInternalCodeInconsistencyError } from '../CliError';
 import { CliLogger, ECliStatusCodes } from '../CliLogger';
-import CliRunContext, { ECliRunContext_RunMode, ICliAsyncApiRunContext, ICliAsyncApiRunContext_Application, ICliAsyncApiRunContext_ApplicationVersion } from '../CliRunContext';
+import CliRunContext, { 
+  ECliRunContext_RunMode
+} from '../CliRunContext';
 import CliRunSummary, { ECliRunSummary_Type } from '../CliRunSummary';
 import CliAsyncApiDocumentService, { ICliPubSubEventVersionIds } from '../services/CliAsyncApiDocumentService';
 import { 
@@ -60,18 +72,18 @@ export class CliApplicationImporter extends CliImporter {
       applicationDomainId: applicationDomainId,
       applicationName: epAsyncApiDocument.getTitle()
     });
-    const latestExistingApplicationVersionString: string | undefined = latestExistingApplicationVersionObjectBefore?.version;
+    // const latestExistingApplicationVersionString: string | undefined = latestExistingApplicationVersionObjectBefore?.version;
 
     // get the list of pub and sub events
     const cliPubSubEventVersionIds: ICliPubSubEventVersionIds = await CliAsyncApiDocumentService.get_pub_sub_event_version_ids({
       applicationDomainId: applicationDomainId,
       epAsyncApiDocument: epAsyncApiDocument
     });
-    const rctxtVersion: ICliAsyncApiRunContext_ApplicationVersion = {
-      epTargetApplicationVersion: epAsyncApiDocument.getVersion(),
-      epLatestExistingApplicationVersion: latestExistingApplicationVersionString
-    };
-    CliRunContext.updateContext({ runContext: rctxtVersion });
+    // const rctxtVersion: ICliAsyncApiRunContext_ApplicationVersion = {
+    //   epTargetApplicationVersion: epAsyncApiDocument.getVersion(),
+    //   epLatestExistingApplicationVersion: latestExistingApplicationVersionString
+    // };
+    // CliRunContext.updateContext({ runContext: rctxtVersion });
 
     // because of exact version, test first and add to summary
     const epSdkApplicationVersionTask_Check = new EpSdkApplicationVersionTask({
@@ -105,7 +117,7 @@ export class CliApplicationImporter extends CliImporter {
 
     // different strategies for release mode and test mode
     if(
-      CliRunContext.getContext().runMode === ECliRunContext_RunMode.RELEASE &&
+      CliRunContext.get().runMode === ECliRunContext_RunMode.RELEASE &&
       epSdkApplicationVersionTask_ExecuteReturn_Check.epSdkTask_TransactionLogData.epSdkTask_Action === EEpSdkTask_Action.WOULD_FAIL_CREATE_NEW_VERSION_ON_EXACT_VERSION_REQUIREMENT      
     ) {      
       if(latestExistingApplicationVersionObjectBefore === undefined) throw new CliInternalCodeInconsistencyError(logName, {
@@ -189,11 +201,6 @@ export class CliApplicationImporter extends CliImporter {
     const funcName = 'run_present_application';
     const logName = `${CliApplicationImporter.name}.${funcName}()`;
 
-    const applicationName: string = epAsyncApiDocument.getTitle();
-    const rctxt: ICliAsyncApiRunContext_Application = {
-      epApplicationName: applicationName
-    };
-    CliRunContext.updateContext({ runContext: rctxt });
     CliLogger.debug(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_START_APPLICATION, details: {
     }}));
 
@@ -201,7 +208,7 @@ export class CliApplicationImporter extends CliImporter {
     const epSdkApplicationTask = new EpSdkApplicationTask({
       epSdkTask_TargetState: EEpSdkTask_TargetState.PRESENT,
       applicationDomainId: applicationDomainId,
-      applicationName: applicationName,
+      applicationName: epAsyncApiDocument.getTitle(),
       applicationObjectSettings: {
         applicationType: "standard",
       },
@@ -267,10 +274,10 @@ export class CliApplicationImporter extends CliImporter {
     const funcName = 'run';
     const logName = `${CliApplicationImporter.name}.${funcName}()`;
 
-    const rctxt: ICliAsyncApiRunContext = {
-      apiFile: cliImporterRunOptions.apiFile
-    };
-    CliRunContext.updateContext({ runContext: rctxt });
+    // const rctxt: ICliAsyncApiRunContext = {
+    //   apiFile: cliImporterRunOptions.apiFile
+    // };
+    // CliRunContext.updateContext({ runContext: rctxt });
     CliRunSummary.processingApiFileApplication({ cliRunSummary_ApiFileApplication: { 
       type: ECliRunSummary_Type.ApiFileApplication, 
       apiFile: cliImporterRunOptions.apiFile,

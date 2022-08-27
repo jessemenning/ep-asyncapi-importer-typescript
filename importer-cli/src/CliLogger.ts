@@ -59,6 +59,7 @@ export enum ECliStatusCodes {
   GENERATING_ASSETS = "GENERATING_ASSETS",
 }
 export enum ECliSummaryStatusCodes {
+  USAGE_ERROR = "USAGE_ERROR",
   START_RUN = "START_RUN",
   RUN_ERROR = "RUN_ERROR",
   VALIDATING_API = "VALIDATING_API",
@@ -243,7 +244,7 @@ export class CliLogger {
       appId: this.appName,
       logName: logName,
       timestamp: d.toUTCString(),
-      runContext: CliRunContext.getContext(),
+      runContext: CliRunContext.get(),
       ...cliLogDetails
     };
   }
@@ -282,22 +283,25 @@ export class CliLogger {
   //   };
   // }
 
-  public static summary = ({ cliRunSummary_Base, consoleOutput, code }:{
+  public static summary = ({ cliRunSummary_Base, consoleOutput, code, useCliLogger = true }:{
     cliRunSummary_Base: ICliRunSummary_Base;
     consoleOutput: string;
     code: ECliSummaryStatusCodes;
+    useCliLogger?: boolean;
   }): void => {
     console.log(consoleOutput.replace(/^\n+|\n+$/g, ''));
     // define custom level and route to logFile.summary.log
     // CliLogger.L.summary(CliLogger.createSummaryLogEntry(cliRunSummary));
-    if(code.toLowerCase().includes('error')) {
-      CliLogger.L.error(CliLogger.createLogEntry(CliConfig.getAppName(), { code: code, details: {
-        summary: cliRunSummary_Base
-      }}));
-    } else {
-      CliLogger.L.info(CliLogger.createLogEntry(CliConfig.getAppName(), { code: code, details: {
-        summary: cliRunSummary_Base
-      }}));  
+    if(useCliLogger) {
+      if(code.toLowerCase().includes('error')) {
+        CliLogger.L.error(CliLogger.createLogEntry(CliConfig.getAppName(), { code: code, details: {
+          summary: cliRunSummary_Base
+        }}));
+      } else {
+        CliLogger.L.info(CliLogger.createLogEntry(CliConfig.getAppName(), { code: code, details: {
+          summary: cliRunSummary_Base
+        }}));  
+      }
     }
   }
 

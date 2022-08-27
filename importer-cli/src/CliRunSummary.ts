@@ -13,7 +13,7 @@ import {
   IEpSdkSchemaVersionTask_ExecuteReturn, 
   IEpSdkTask_ExecuteReturn 
 } from "@solace-labs/ep-sdk";
-import { CliError } from "./CliError";
+import { CliError, CliUsageError } from "./CliError";
 import { CliLogger, ECliSummaryStatusCodes } from "./CliLogger";
 import { ECliRunContext_RunMode } from "./CliRunContext";
 
@@ -116,12 +116,13 @@ export class CliRunSummary {
 
   public getSummaryLogList(): Array<ICliRunSummary_Base> { return this.summaryLogList; }
   
-  private log = (code: ECliSummaryStatusCodes, cliRunSummary_Base: ICliRunSummary_Base, consoleOutput: string) => {
+  private log = (code: ECliSummaryStatusCodes, cliRunSummary_Base: ICliRunSummary_Base, consoleOutput: string, consoleOutputOnly: boolean = false) => {
     this.summaryLogList.push(cliRunSummary_Base);
     CliLogger.summary({
       cliRunSummary_Base: cliRunSummary_Base,
       consoleOutput: consoleOutput,
       code: code,
+      useCliLogger: !consoleOutputOnly
     })
   }
 
@@ -143,13 +144,24 @@ export class CliRunSummary {
   public runError = ({ cliRunError }:{
     cliRunError: ICliRunError;
   }): void => {
-    const consoleOutput = `
-Run Error: ------------------------
-  See log file for more details.
+    if(cliRunError.cliError instanceof CliUsageError) {
+      const consoleOutput = `
 
-${cliRunError.cliError}
-    `;
-    this.log(ECliSummaryStatusCodes.RUN_ERROR, cliRunError, consoleOutput);
+  Usage Error: ------------------------  
+  
+  ${cliRunError.cliError.message}
+  ${JSON.stringify(cliRunError.cliError.details, null, 2)}
+      `;
+      this.log(ECliSummaryStatusCodes.USAGE_ERROR, cliRunError, consoleOutput, true);  
+    } else {
+      const consoleOutput = `
+  Run Error: ------------------------
+    See log file for more details.
+  
+  ${cliRunError.cliError}
+      `;
+      this.log(ECliSummaryStatusCodes.RUN_ERROR, cliRunError, consoleOutput);  
+    }
   }
 
   public startRun = ({ cliRunSummary_StartRun }:{
