@@ -250,18 +250,24 @@ export class CliImporterManager {
     const funcName = 'run';
     const logName = `${CliImporterManager.name}.${funcName}()`;
 
-    switch(this.cliImporterManagerOptions.cliImporterManagerMode) {
-      case ECliImporterManagerMode.TEST_MODE:
-      case ECliImporterManagerMode.TEST_MODE_KEEP:
-        await this.run_test_mode({ 
-          cleanUp: this.cliImporterManagerOptions.cliImporterManagerMode ===  ECliImporterManagerMode.TEST_MODE
-        });
-        break;
-      case ECliImporterManagerMode.RELEASE_MODE:
-        await this.run_release_mode({});
-        break;
-      default:
-        CliUtils.assertNever(logName, this.cliImporterManagerOptions.cliImporterManagerMode);
+    try {
+      switch(this.cliImporterManagerOptions.cliImporterManagerMode) {
+        case ECliImporterManagerMode.TEST_MODE:
+        case ECliImporterManagerMode.TEST_MODE_KEEP:
+          await this.run_test_mode({ 
+            cleanUp: this.cliImporterManagerOptions.cliImporterManagerMode ===  ECliImporterManagerMode.TEST_MODE
+          });
+          break;
+        case ECliImporterManagerMode.RELEASE_MODE:
+          await this.run_release_mode({});
+          break;
+        default:
+          CliUtils.assertNever(logName, this.cliImporterManagerOptions.cliImporterManagerMode);
+      }
+      CliRunSummary.processedImport(logName);
+    } catch(e) {
+      CliRunSummary.processedImport(logName);
+      throw e;
     }
 
   }

@@ -14,7 +14,7 @@ import {
   IEpSdkTask_ExecuteReturn 
 } from "@solace-labs/ep-sdk";
 import { CliError, CliUsageError } from "./CliError";
-import { CliLogger, ECliSummaryStatusCodes } from "./CliLogger";
+import { CliLogger, ECliStatusCodes, ECliSummaryStatusCodes } from "./CliLogger";
 import { ECliRunContext_RunMode } from "./CliRunContext";
 
 export enum ECliChannelOperationType {
@@ -148,7 +148,7 @@ export class CliRunSummary {
       const consoleOutput = `
 
   Usage Error: ------------------------  
-  
+
   ${cliRunError.cliError.message}
   ${JSON.stringify(cliRunError.cliError.details, null, 2)}
       `;
@@ -466,6 +466,54 @@ Start Run: ${cliRunSummary_StartRun.runMode} ------------------------
     epSdkApplicationVersionTask_ExecuteReturn: IEpSdkApplicationVersionTask_ExecuteReturn;
   }): void => {
     this.processedVersionObject(ECliSummaryStatusCodes.PROCESSED_APPLICATION_VERSION, epSdkApplicationVersionTask_ExecuteReturn);
+  }
+
+  public processedImport = (logName: string) => {
+    const importSummary = {
+      processedApis: 100,
+      createdEventApiVersions: 10,
+      processedChannels: 4,
+      createdEventVersions: 3,
+      createdSchemaVersions: 7,
+      createdEnumVersions: 2,
+      warnings: [
+        {
+          warning: 'todo'
+        }
+      ] 
+
+    }
+
+    const consoleOutput = `
+------------------------------------------------------------------------------------------------    
+Import Summary:
+
+  Processed Apis: ${importSummary.processedApis}
+    Created Event Apis Versions:  ${importSummary.createdEventApiVersions}
+  Processed Channels: ${importSummary.processedChannels}
+    Created Event Versions:       ${importSummary.createdEventVersions}
+    Created Schema Versions:      ${importSummary.createdSchemaVersions}
+    Created Enum Versions:        ${importSummary.createdEnumVersions}
+  
+  Warnings: ${importSummary.warnings.length}
+    
+${JSON.stringify(importSummary.warnings, null, 2)}
+
+------------------------------------------------------------------------------------------------    
+    `;
+    console.log(consoleOutput);
+    CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_DONE_API, details: {
+      importSummary: importSummary
+    }}));
+
+    // DEBUG
+    console.log(`${JSON.stringify(this.summaryLogList, null, 2)}`);
+    CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_DONE_API, details: {
+      applicationDomainName: this.applicationDomainName,
+      runMode: this.runMode,
+      summaryLogList: this.summaryLogList
+    }}));
+
   }
 
 }
