@@ -8,7 +8,7 @@ import {
   IEpSdkLoggerInstance 
 } from "@solace-labs/ep-sdk";
 import { CliInternalCodeInconsistencyError } from './CliError';
-import { ICliRunSummary_Base } from './CliRunSummary';
+import { ICliRunSummary_Base, ICliRunSummary_LogBase } from './CliRunSummary';
 import CliConfig from './CliConfig';
 
 export enum ECliStatusCodes {
@@ -284,8 +284,8 @@ export class CliLogger {
   //   };
   // }
 
-  public static summary = ({ cliRunSummary_Base, consoleOutput, code, useCliLogger = true }:{
-    cliRunSummary_Base: ICliRunSummary_Base;
+  public static summary = ({ cliRunSummary_LogBase, consoleOutput, code, useCliLogger = true }:{
+    cliRunSummary_LogBase: ICliRunSummary_LogBase;
     consoleOutput: string;
     code: ECliSummaryStatusCodes;
     useCliLogger?: boolean;
@@ -296,11 +296,11 @@ export class CliLogger {
     if(useCliLogger) {
       if(code.toLowerCase().includes('error')) {
         CliLogger.L.error(CliLogger.createLogEntry(CliConfig.getAppName(), { code: code, details: {
-          summary: cliRunSummary_Base
+          summary: cliRunSummary_LogBase
         }}));
       } else {
         CliLogger.L.info(CliLogger.createLogEntry(CliConfig.getAppName(), { code: code, details: {
-          summary: cliRunSummary_Base
+          summary: cliRunSummary_LogBase
         }}));  
       }
     }

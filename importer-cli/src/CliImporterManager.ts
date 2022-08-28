@@ -38,8 +38,7 @@ export class CliImporterManager {
     this.cliImporterManagerOptions = cliImporterManagerOptions;
   }
 
-  // expose for testing
-  public static createApplicationDomainPrefix({ appName, runId }:{
+  private static createApplicationDomainPrefix4TestMode({ appName, runId }:{
     appName: string;
     runId: string;
   }): string {
@@ -52,7 +51,7 @@ export class CliImporterManager {
     const funcName = 'run_test_mode';
     const logName = `${CliImporterManager.name}.${funcName}()`;
 
-    const applicationDomainNamePrefix = CliImporterManager.createApplicationDomainPrefix({ 
+    const applicationDomainNamePrefix = CliImporterManager.createApplicationDomainPrefix4TestMode({ 
       appName: this.cliImporterManagerOptions.appName,
       runId: this.cliImporterManagerOptions.runId
     });
@@ -264,9 +263,9 @@ export class CliImporterManager {
         default:
           CliUtils.assertNever(logName, this.cliImporterManagerOptions.cliImporterManagerMode);
       }
-      CliRunSummary.processedImport(logName);
+      CliRunSummary.processedImport(logName, this.cliImporterManagerOptions);
     } catch(e) {
-      CliRunSummary.processedImport(logName);
+      CliRunSummary.processedImport(logName, this.cliImporterManagerOptions);
       throw e;
     }
 

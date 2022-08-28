@@ -1,6 +1,5 @@
 asyncapi: '2.4.0'
-id: urn:com:solace-labs:ep-asyncapi:test
-x-ep-application-domain-name: solace-labs/ep-asyncapi/test
+x-ep-application-domain-name: ep-asyncapi-importer/test/passing/misc/non-alpha-title.spec
 info:
   title: b slash=/,amp;=&,star=*,quotes="" e
   version: '1.2.9'

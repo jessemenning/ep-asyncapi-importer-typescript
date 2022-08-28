@@ -10,12 +10,11 @@ export type T_TestApiSpecRecord = {
 
 
 export class TestServices {
-  private static testApiSpecRecordList: Array<T_TestApiSpecRecord> = [];
+  public static testApiSpecRecordList: Array<T_TestApiSpecRecord> = [];
 
-  public static createTestApiSpecRecordList = async({ apiFileList, overrideApplicationDomainName, prefixApplicationDomainName }:{
+  public static createTestApiSpecRecordList = async({ apiFileList, overrideApplicationDomainName }:{
     apiFileList: Array<string>;
     overrideApplicationDomainName: string;
-    prefixApplicationDomainName: string;
   }): Promise<Array<T_TestApiSpecRecord>> => {
     const funcName = 'createTestApiSpecRecordList';
     const logName = `${TestServices.name}.${funcName}()`;
@@ -25,7 +24,7 @@ export class TestServices {
       const epAsyncApiDocument: EpAsyncApiDocument = await CliAsyncApiDocumentService.parse_and_validate({
         apiFile: apiFile,
         applicationDomainName: overrideApplicationDomainName,
-        applicationDomainNamePrefix: prefixApplicationDomainName,
+        applicationDomainNamePrefix: undefined,
       });
       TestServices.testApiSpecRecordList.push({
         apiFile: apiFile,

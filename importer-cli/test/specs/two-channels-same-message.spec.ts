@@ -15,7 +15,7 @@ TestLogger.logMessage(scriptName, ">>> starting ...");
 
 const setupTestOptions = (): Array<string> => {
   // create test specific list
-  const fileList = CliUtils.createFileList(`${TestEnv.testApiSpecsDir}/passing/misc/two-channels-same-message.spec.yml`);
+  const fileList = CliUtils.createFileList(`${TestEnv.testApiSpecsDir}/single-tests/two-channels-same-message.spec.yml`);
   // set test specific importer options
   CliConfig.getCliImporterManagerOptions().asyncApiFileList = fileList;
   CliConfig.getCliImporterManagerOptions().cliImporterManagerMode = ECliImporterManagerMode.RELEASE_MODE;
@@ -37,10 +37,10 @@ describe(`${scriptName}`, () => {
       const testApiSpecRecordList: Array<T_TestApiSpecRecord> = await TestServices.createTestApiSpecRecordList({
         apiFileList: fileList,
         overrideApplicationDomainName: CliConfig.getCliImporterManagerOptions().applicationDomainName,
-        prefixApplicationDomainName: CliImporterManager.createApplicationDomainPrefix({
-          appName: CliConfig.getCliImporterManagerOptions().appName,
-          runId: CliConfig.getCliImporterManagerOptions().runId
-        })
+        // prefixApplicationDomainName: CliImporterManager.createApplicationDomainPrefix({
+        //   appName: CliConfig.getCliImporterManagerOptions().appName,
+        //   runId: CliConfig.getCliImporterManagerOptions().runId
+        // })
       });
       // ensure all app domains are absent
       const xvoid: void = await TestServices.absent_ApplicationDomains(false);
