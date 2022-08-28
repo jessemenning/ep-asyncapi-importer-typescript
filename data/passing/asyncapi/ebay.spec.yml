@@ -1,5 +1,5 @@
 asyncapi: 2.0.0
-x-ep-application-domain-name: ebay
+x-ep-application-domain-name: ep-asyncapi-importer/test/passing/asyncapi/ebay.spec
 info:
   title: eBay Notifications
   version: 1.0.0

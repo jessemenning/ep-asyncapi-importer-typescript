@@ -2,6 +2,21 @@
 
 Solace Event Portal Async API Importer.
 
+## Version 0.5.4-alpha
+
+**Enhancements:**
+- improved logging of run context in log file
+- improved logging of usage errors
+- add a run summary to console output and log file
+
+**Fixes:**
+- added support for relative file references in api spec
+- handle case of same message for different channels:
+  - introduced a new extension: $.channels.{topic}.x-ep-event-name
+  - event name = $.channels.{topic}.x-ep-event-name or if absent: $.channels.{topic}
+  - event version name = $.channels.{topic}.x-ep-event-name or EMTPY
+
+
 ## Version 0.5.3-alpha
 
 **New Features:**

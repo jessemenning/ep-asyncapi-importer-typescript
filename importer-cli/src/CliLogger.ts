@@ -8,7 +8,7 @@ import {
   IEpSdkLoggerInstance 
 } from "@solace-labs/ep-sdk";
 import { CliInternalCodeInconsistencyError } from './CliError';
-import { ICliRunSummary_Base } from './CliRunSummary';
+import { ICliRunSummary_Base, ICliRunSummary_LogBase } from './CliRunSummary';
 import CliConfig from './CliConfig';
 
 export enum ECliStatusCodes {
@@ -59,6 +59,7 @@ export enum ECliStatusCodes {
   GENERATING_ASSETS = "GENERATING_ASSETS",
 }
 export enum ECliSummaryStatusCodes {
+  USAGE_ERROR = "USAGE_ERROR",
   START_RUN = "START_RUN",
   RUN_ERROR = "RUN_ERROR",
   VALIDATING_API = "VALIDATING_API",
@@ -76,6 +77,7 @@ export enum ECliSummaryStatusCodes {
   PROCESSED_EVENT_API_VERSION = "PROCESSED_EVENT_API_VERSION",
   PROCESSING_START_APPLICATION_VERSION = "PROCESSING_START_APPLICATION_VERSION",
   PROCESSED_APPLICATION_VERSION = "PROCESSED_APPLICATION_VERSION",
+  PROCESSED_IMPORT = "PROCESSED_IMPORT",
 }
 
 export enum ECliLogger_LogLevel {
@@ -243,7 +245,7 @@ export class CliLogger {
       appId: this.appName,
       logName: logName,
       timestamp: d.toUTCString(),
-      runContext: CliRunContext.getContext(),
+      runContext: CliRunContext.get(),
       ...cliLogDetails
     };
   }
@@ -282,22 +284,25 @@ export class CliLogger {
   //   };
   // }
 
-  public static summary = ({ cliRunSummary_Base, consoleOutput, code }:{
-    cliRunSummary_Base: ICliRunSummary_Base;
+  public static summary = ({ cliRunSummary_LogBase, consoleOutput, code, useCliLogger = true }:{
+    cliRunSummary_LogBase: ICliRunSummary_LogBase;
     consoleOutput: string;
     code: ECliSummaryStatusCodes;
+    useCliLogger?: boolean;
   }): void => {
     console.log(consoleOutput.replace(/^\n+|\n+$/g, ''));
     // define custom level and route to logFile.summary.log
     // CliLogger.L.summary(CliLogger.createSummaryLogEntry(cliRunSummary));
-    if(code.toLowerCase().includes('error')) {
-      CliLogger.L.error(CliLogger.createLogEntry(CliConfig.getAppName(), { code: code, details: {
-        summary: cliRunSummary_Base
-      }}));
-    } else {
-      CliLogger.L.info(CliLogger.createLogEntry(CliConfig.getAppName(), { code: code, details: {
-        summary: cliRunSummary_Base
-      }}));  
+    if(useCliLogger) {
+      if(code.toLowerCase().includes('error')) {
+        CliLogger.L.error(CliLogger.createLogEntry(CliConfig.getAppName(), { code: code, details: {
+          summary: cliRunSummary_LogBase
+        }}));
+      } else {
+        CliLogger.L.info(CliLogger.createLogEntry(CliConfig.getAppName(), { code: code, details: {
+          summary: cliRunSummary_LogBase
+        }}));  
+      }
     }
   }
 

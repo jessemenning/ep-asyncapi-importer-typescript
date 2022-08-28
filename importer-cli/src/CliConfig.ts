@@ -290,7 +290,7 @@ export class CliConfig {
   }): void => {
     const funcName = 'initialize';
     const logName = `${CliConfig.name}.${funcName}()`;
-    try {
+    // try {
       // handle solace cloud token separately
       this.solaceCloudToken = this.getMandatoryEnvVarValueAsString(ECliConfigEnvVarNames.CLI_SOLACE_CLOUD_TOKEN);
       const appName: string = this.getOptionalEnvVarValueAsStringWithDefault(ECliConfigEnvVarNames.CLI_APP_NAME, defaultAppName);
@@ -336,15 +336,15 @@ export class CliConfig {
           }
         }
       }
-    } catch(e) {
-      if(e instanceof CliError) {
-        const cliError: CliError = e as CliError;
-        CliLogger.error(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.INITIALIZING, message: 'config', details: cliError.toObject() }));
-      } else {
-        CliLogger.fatal(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.INITIALIZING, message: 'config', details: (e as Error).toString() }));
-      }
-      throw new CliErrorFromError(logName, e as Error);
-    }
+    // } catch(e) {
+    //   if(e instanceof CliError) {
+    //     const cliError: CliError = e as CliError;
+    //     CliLogger.error(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.INITIALIZING, message: 'config', details: cliError.toObject() }));
+    //   } else {
+    //     CliLogger.fatal(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.INITIALIZING, message: 'config', details: (e as Error).toString() }));
+    //   }
+    //   throw new CliErrorFromError(logName, e as Error);
+    // }
   }
 
   public logConfig = (): void => {

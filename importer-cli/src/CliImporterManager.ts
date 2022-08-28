@@ -1,6 +1,6 @@
 import { EpAsyncApiDocument } from "@solace-labs/ep-asyncapi";
 import { CliInternalCodeInconsistencyError } from "./CliError";
-import CliRunContext, { ECliRunContext_RunMode } from "./CliRunContext";
+import CliRunContext, { ECliRunContext_RunMode, ICliApiFileRunContext, ICliRunContext } from "./CliRunContext";
 import CliRunSummary, { ECliRunSummary_Type } from "./CliRunSummary";
 import { CliUtils } from "./CliUtils";
 import { CliApplicationImporter, ICliApplicationImporterRunReturn } from "./importers/CliApplicationImporter";
@@ -38,8 +38,7 @@ export class CliImporterManager {
     this.cliImporterManagerOptions = cliImporterManagerOptions;
   }
 
-  // expose for testing
-  public static createApplicationDomainPrefix({ appName, runId }:{
+  private static createApplicationDomainPrefix4TestMode({ appName, runId }:{
     appName: string;
     runId: string;
   }): string {
@@ -52,7 +51,7 @@ export class CliImporterManager {
     const funcName = 'run_test_mode';
     const logName = `${CliImporterManager.name}.${funcName}()`;
 
-    const applicationDomainNamePrefix = CliImporterManager.createApplicationDomainPrefix({ 
+    const applicationDomainNamePrefix = CliImporterManager.createApplicationDomainPrefix4TestMode({ 
       appName: this.cliImporterManagerOptions.appName,
       runId: this.cliImporterManagerOptions.runId
     });
@@ -60,18 +59,21 @@ export class CliImporterManager {
     const applicationDomainNameList: Array<string> = [];
     try {
       // test first pass
-      CliRunContext.setRunContext({ 
-        runContext: {
-          runId: this.cliImporterManagerOptions.runId,
-          runMode: ECliRunContext_RunMode.TEST_PASS_1
-        }
-      });
+      let rctxt: ICliRunContext = {
+        runId: this.cliImporterManagerOptions.runId,
+        runMode: ECliRunContext_RunMode.TEST_PASS_1
+      }
+      CliRunContext.push(rctxt);
       CliRunSummary.startRun({ cliRunSummary_StartRun: { 
         type: ECliRunSummary_Type.StartRun,
         runMode: ECliRunContext_RunMode.TEST_PASS_1,
       }});
       // get a list of application domain names
       for(const asyncApiFile of this.cliImporterManagerOptions.asyncApiFileList) {
+        const rctxt: ICliApiFileRunContext = {
+          apiFile: asyncApiFile
+        }
+        CliRunContext.push(rctxt);
         CliRunSummary.validatingApi({ cliRunSummary_ValidatingApi: { 
           type: ECliRunSummary_Type.ValidatingApi,
           apiFile: asyncApiFile
@@ -82,6 +84,7 @@ export class CliImporterManager {
           applicationDomainNamePrefix: applicationDomainNamePrefix,
         });
         applicationDomainNameList.push(epAsyncApiDocument.getApplicationDomainName());  
+        CliRunContext.pop();
       }
 
       // CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_START_TEST_MODE, details: {
@@ -94,6 +97,11 @@ export class CliImporterManager {
       const xvoid: void = await CliApplicationDomainsService.absent_ApplicationDomains({ applicationDomainNameList: applicationDomainNameList });
   
       for(const asyncApiFile of this.cliImporterManagerOptions.asyncApiFileList) {
+        const rctxt: ICliApiFileRunContext = {
+          apiFile: asyncApiFile
+        }
+        CliRunContext.push(rctxt);
+  
         const cliEventApiImporter = new CliEventApiImporter(this.cliImporterManagerOptions.cliImporterOptions);
         const cliEventApiImporterRunReturn: ICliEventApiImporterRunReturn = await cliEventApiImporter.run({ cliImporterRunOptions: {
           apiFile: asyncApiFile,
@@ -117,20 +125,27 @@ export class CliImporterManager {
           }});
           if(cliApplicationImporterRunReturn.error !== undefined) throw cliApplicationImporterRunReturn.error;            
         }    
+        CliRunContext.pop();
       }
+      CliRunContext.pop();
 
       // test second pass
-      CliRunContext.setRunContext({ 
-        runContext: {
-          runId: this.cliImporterManagerOptions.runId,
-          runMode: ECliRunContext_RunMode.TEST_PASS_2
-        }
-      });  
+      rctxt = {
+        runId: this.cliImporterManagerOptions.runId,
+        runMode: ECliRunContext_RunMode.TEST_PASS_2
+      }
+      CliRunContext.push(rctxt);
       CliRunSummary.startRun({ cliRunSummary_StartRun: { 
         type: ECliRunSummary_Type.StartRun,
         runMode: ECliRunContext_RunMode.TEST_PASS_2,
       }});
+
       for(const asyncApiFile of this.cliImporterManagerOptions.asyncApiFileList) {
+        const rctxt: ICliApiFileRunContext = {
+          apiFile: asyncApiFile
+        }
+        CliRunContext.push(rctxt);
+
         const cliEventApiImporter = new CliEventApiImporter(this.cliImporterManagerOptions.cliImporterOptions);
         const cliEventApiImporterRunReturn: ICliEventApiImporterRunReturn = await cliEventApiImporter.run({ cliImporterRunOptions: {
           apiFile: asyncApiFile,
@@ -154,15 +169,18 @@ export class CliImporterManager {
           }});
           if(cliApplicationImporterRunReturn.error !== undefined) throw cliApplicationImporterRunReturn.error;            
         }
+        CliRunContext.pop();
       }
       // clean up if specified
       if(cleanUp) {
         const xvoid: void = await CliApplicationDomainsService.absent_ApplicationDomains({ applicationDomainNameList: applicationDomainNameList });
       }
+      CliRunContext.pop();
     } catch(e) {
       if(cleanUp) {
         const xvoid: void = await CliApplicationDomainsService.absent_ApplicationDomains({ applicationDomainNameList: applicationDomainNameList });
       }
+      CliRunContext.pop();
       // already logged
       // CliLogger.error(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_ERROR, details: {
       //   error: e
@@ -176,23 +194,29 @@ export class CliImporterManager {
     const funcName = 'run_release_mode';
     const logName = `${CliImporterManager.name}.${funcName}()`;
 
-    await this.run_test_mode({ 
-      cleanUp: true 
-    });
+    await this.run_test_mode({ cleanUp: true });
 
-    CliRunContext.setRunContext({ 
-      runContext: {
-        runId: this.cliImporterManagerOptions.runId,
-        runMode: ECliRunContext_RunMode.RELEASE,
-      }
-    });  
-
+    const rctxt: ICliRunContext = {
+      runId: this.cliImporterManagerOptions.runId,
+      runMode: ECliRunContext_RunMode.RELEASE,
+    }
+    CliRunContext.push(rctxt);
     CliRunSummary.startRun({ cliRunSummary_StartRun: { 
       type: ECliRunSummary_Type.StartRun,
       runMode: ECliRunContext_RunMode.RELEASE,
     }});
 
     for(const asyncApiFile of this.cliImporterManagerOptions.asyncApiFileList) {
+      
+      const rctxt: ICliApiFileRunContext = {
+        apiFile: asyncApiFile
+      };
+      CliRunContext.push(rctxt);
+      CliRunSummary.processingApiFile({ cliRunSummary_ApiFile: { 
+        type: ECliRunSummary_Type.ApiFile, 
+        apiFile: asyncApiFile
+      }});
+  
       const cliEventApiImporter = new CliEventApiImporter(this.cliImporterManagerOptions.cliImporterOptions);
       const cliEventApiImporterRunReturn: ICliEventApiImporterRunReturn = await cliEventApiImporter.run({ cliImporterRunOptions: {
         apiFile: asyncApiFile,
@@ -216,25 +240,33 @@ export class CliImporterManager {
         }});
         if(cliApplicationImporterRunReturn.error !== undefined) throw cliApplicationImporterRunReturn.error;            
       }          
+      CliRunContext.pop();
     }
+    CliRunContext.pop();
   }
 
   public run = async(): Promise<void> => {
     const funcName = 'run';
     const logName = `${CliImporterManager.name}.${funcName}()`;
 
-    switch(this.cliImporterManagerOptions.cliImporterManagerMode) {
-      case ECliImporterManagerMode.TEST_MODE:
-      case ECliImporterManagerMode.TEST_MODE_KEEP:
-        await this.run_test_mode({ 
-          cleanUp: this.cliImporterManagerOptions.cliImporterManagerMode ===  ECliImporterManagerMode.TEST_MODE
-        });
-        break;
-      case ECliImporterManagerMode.RELEASE_MODE:
-        await this.run_release_mode({});
-        break;
-      default:
-        CliUtils.assertNever(logName, this.cliImporterManagerOptions.cliImporterManagerMode);
+    try {
+      switch(this.cliImporterManagerOptions.cliImporterManagerMode) {
+        case ECliImporterManagerMode.TEST_MODE:
+        case ECliImporterManagerMode.TEST_MODE_KEEP:
+          await this.run_test_mode({ 
+            cleanUp: this.cliImporterManagerOptions.cliImporterManagerMode ===  ECliImporterManagerMode.TEST_MODE
+          });
+          break;
+        case ECliImporterManagerMode.RELEASE_MODE:
+          await this.run_release_mode({});
+          break;
+        default:
+          CliUtils.assertNever(logName, this.cliImporterManagerOptions.cliImporterManagerMode);
+      }
+      CliRunSummary.processedImport(logName, this.cliImporterManagerOptions);
+    } catch(e) {
+      CliRunSummary.processedImport(logName, this.cliImporterManagerOptions);
+      throw e;
     }
 
   }

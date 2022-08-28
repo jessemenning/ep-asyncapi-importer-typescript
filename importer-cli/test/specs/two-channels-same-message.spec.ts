@@ -15,11 +15,13 @@ TestLogger.logMessage(scriptName, ">>> starting ...");
 
 const setupTestOptions = (): Array<string> => {
   // create test specific list
-  const fileList = CliUtils.createFileList(`${TestEnv.testApiSpecsDir}/passing/**/*.spec.yml`);
+  const fileList = CliUtils.createFileList(`${TestEnv.testApiSpecsDir}/single-tests/two-channels-same-message.spec.yml`);
   // set test specific importer options
   CliConfig.getCliImporterManagerOptions().asyncApiFileList = fileList;
-  CliConfig.getCliImporterManagerOptions().cliImporterManagerMode = ECliImporterManagerMode.TEST_MODE_KEEP;
-  CliConfig.getCliImporterManagerOptions().applicationDomainName = undefined;
+  CliConfig.getCliImporterManagerOptions().cliImporterManagerMode = ECliImporterManagerMode.RELEASE_MODE;
+  // // DEBUG
+  // CliConfig.getCliImporterManagerOptions().cliImporterManagerMode = ECliImporterManagerMode.TEST_MODE_KEEP;
+  // CliConfig.getCliImporterManagerOptions().applicationDomainName = 'release_mode';
   CliConfig.getCliImporterManagerOptions().createEventApiApplication = false;
   return fileList;
 }
@@ -31,16 +33,21 @@ describe(`${scriptName}`, () => {
     // create test specific list
     const fileList = setupTestOptions();
     //parse all specs
-    const testApiSpecRecordList: Array<T_TestApiSpecRecord> = await TestServices.createTestApiSpecRecordList({
-      apiFileList: fileList,
-      overrideApplicationDomainName: CliConfig.getCliImporterManagerOptions().applicationDomainName,
-      prefixApplicationDomainName: CliImporterManager.createApplicationDomainPrefix({
-        appName: CliConfig.getCliImporterManagerOptions().appName,
-        runId: CliConfig.getCliImporterManagerOptions().runId
-      })
-    });
-    // ensure all app domains are absent
-    const xvoid: void = await TestServices.absent_ApplicationDomains();
+    try {
+      const testApiSpecRecordList: Array<T_TestApiSpecRecord> = await TestServices.createTestApiSpecRecordList({
+        apiFileList: fileList,
+        overrideApplicationDomainName: CliConfig.getCliImporterManagerOptions().applicationDomainName,
+        // prefixApplicationDomainName: CliImporterManager.createApplicationDomainPrefix({
+        //   appName: CliConfig.getCliImporterManagerOptions().appName,
+        //   runId: CliConfig.getCliImporterManagerOptions().runId
+        // })
+      });
+      // ensure all app domains are absent
+      const xvoid: void = await TestServices.absent_ApplicationDomains(false);
+    } catch(e) {
+      expect(e instanceof CliError, TestLogger.createNotCliErrorMesssage(e.message)).to.be.true;
+      expect(false, TestLogger.createTestFailMessageWithCliError('failed', e)).to.be.true;
+    }
     console.log(`${scriptName}: BEFORE: done.`);
   });
 
@@ -60,7 +67,7 @@ describe(`${scriptName}`, () => {
     } finally {
       // ensure all app domains are absent
       console.log(`${scriptName}: AFTER: delete all application domains ...`);
-      const xvoid: void = await TestServices.absent_ApplicationDomains();
+      const xvoid: void = await TestServices.absent_ApplicationDomains(CliConfig.getCliImporterManagerOptions().cliImporterManagerMode === ECliImporterManagerMode.TEST_MODE_KEEP);
       console.log(`${scriptName}: AFTER: delete all application domains done.`);
     }
     expect(err, TestLogger.createNotCliErrorMesssage(JSON.stringify(err))).to.be.undefined;
@@ -80,10 +87,8 @@ describe(`${scriptName}`, () => {
     }
   });
 
-  it(`${scriptName}: should import specs with application / version`, async () => {
+  it(`${scriptName}: should import specs: idempotency`, async () => {
     try {
-      CliConfig.getCliImporterManagerOptions().createEventApiApplication = true;
-
       const cliImporter = new CliImporterManager(CliConfig.getCliImporterManagerOptions());
       const xvoid: void = await cliImporter.run();      
       const cliRunSummaryList: Array<ICliRunSummary_Base> = CliRunSummary.getSummaryLogList();

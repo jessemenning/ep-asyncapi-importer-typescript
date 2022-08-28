@@ -71,7 +71,10 @@ class CliAsyncApiDocumentService {
         eventName: publishEventName,
         applicationDomainId: applicationDomainId
       });
-      if(eventVersion === undefined) throw new CliImporterError(logName, 'eventVersion === undefined', {});
+      if(eventVersion === undefined) throw new CliImporterError(logName, 'eventVersion === undefined', {
+        eventName: publishEventName,
+        applicationDomainId: applicationDomainId
+      });
       if(eventVersion.id === undefined) throw new CliEPApiContentError(logName, 'eventVersion.id === undefined', {
         eventVersion: eventVersion
       });
@@ -83,7 +86,10 @@ class CliAsyncApiDocumentService {
         eventName: subscribeEventName,
         applicationDomainId: applicationDomainId
       });
-      if(eventVersion === undefined) throw new CliImporterError(logName, 'eventVersion === undefined', {});
+      if(eventVersion === undefined) throw new CliImporterError(logName, 'eventVersion === undefined', {
+        eventName: subscribeEventName,
+        applicationDomainId: applicationDomainId
+      });
       if(eventVersion.id === undefined) throw new CliEPApiContentError(logName, 'eventVersion.id === undefined', {
         eventVersion: eventVersion
       });

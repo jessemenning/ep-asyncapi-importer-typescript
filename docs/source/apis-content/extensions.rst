@@ -12,4 +12,11 @@ The importer uses the following extensions:
    * - Async Api Extension
      - Description
    * - $.x-ep-application-domain
-     - The Event Portal application domain 
+     - The Event Portal application domain
+   * - $.channels.{topic}.x-ep-event-name
+     - The name to use for Event Portal Events and Event Versions.
+
+       If not specified, falls back to:
+
+       - Event Name = $.channel.{topic}
+       - Event Version Name = EMPTY

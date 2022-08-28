@@ -50,13 +50,12 @@ import {
 import { CliLogger, ECliStatusCodes } from '../CliLogger';
 import CliRunContext, { 
   ECliChannelOperation, 
-  ICliAsyncApiRunContext, 
-  ICliAsyncApiRunContext_Channel, 
-  ICliAsyncApiRunContext_Channel_Event, 
-  ICliAsyncApiRunContext_Channel_Operation, 
-  ICliAsyncApiRunContext_Channel_Operation_Message, 
-  ICliAsyncApiRunContext_Channel_Parameter, 
-  ICliAsyncApiRunContext_State, 
+  ICliApiFileRunContext, 
+  ICliApiRunContext, 
+  ICliApiRunContext_Channel, 
+  ICliApiRunContext_Channel_Operation, 
+  ICliApiRunContext_Channel_Operation_Message, 
+  ICliApiRunContext_Channel_Parameter, 
 } from '../CliRunContext';
 import CliRunSummary, { ECliChannelOperationType, ECliRunSummary_Type } from '../CliRunSummary';
 import { CliUtils } from '../CliUtils';
@@ -85,11 +84,11 @@ export class CliAssetsImporter extends CliImporter {
 
   private get_cliAssetsImporterOptions(): ICliAssetsImporterOptions { return this.cliImporterOptions; }
 
-  private run_present_event_version = async({ channelTopic, eventObject, specVersion, epAsyncApiMessageDocument, schemaVersionId, applicationDomainId, checkmode }: {
-    channelTopic: string;
+  private run_present_event_version = async({ epAsyncApiChannelDocument, eventObject, specVersion, epAsyncApiMessageDocument, schemaVersionId, applicationDomainId, checkmode }: {
+    epAsyncApiChannelDocument: EpAsyncApiChannelDocument;
+    epAsyncApiMessageDocument: EpAsyncApiMessageDocument;
     eventObject: EPEvent;
     specVersion: string;
-    epAsyncApiMessageDocument: EpAsyncApiMessageDocument;
     schemaVersionId: string;
     applicationDomainId: string;
     checkmode: boolean;
@@ -108,6 +107,8 @@ export class CliAssetsImporter extends CliImporter {
     });
 
     const eventId: string = eventObject.id;
+    const eventVersionDisplayName: string = epAsyncApiChannelDocument.getEpEventVersionDisplayName();
+    const channelTopic: string = epAsyncApiChannelDocument.getAsyncApiChannelKey();
 
     const epSdkEpEventVersionTask = new EpSdkEpEventVersionTask({
       epSdkTask_TargetState: EEpSdkTask_TargetState.PRESENT,
@@ -118,7 +119,7 @@ export class CliAssetsImporter extends CliImporter {
       topicString: channelTopic,
       eventVersionSettings: {
         description: epAsyncApiMessageDocument.getDescription(),
-        displayName: epAsyncApiMessageDocument.getMessageName(),
+        displayName: eventVersionDisplayName,
         schemaVersionId: schemaVersionId,
         stateId: this.get_EpSdkTask_StateId(),
       },
@@ -136,24 +137,30 @@ export class CliAssetsImporter extends CliImporter {
     CliRunSummary.processedEventVersion({ epSdkEpEventVersionTask_ExecuteReturn: epSdkEpEventVersionTask_ExecuteReturn });
   }
 
-  private run_present_channel_event = async({ applicationDomainId, epAsyncApiMessageDocument, specVersion, channelTopic, schemaVersionId, checkmode }:{
+  private run_present_channel_event = async({ applicationDomainId, epAsyncApiChannelDocument, epAsyncApiMessageDocument, specVersion, schemaVersionId, checkmode }:{
     applicationDomainId: string;
+    epAsyncApiChannelDocument: EpAsyncApiChannelDocument;
     epAsyncApiMessageDocument: EpAsyncApiMessageDocument;
     specVersion: string;
-    channelTopic: string;
     schemaVersionId: string;
     checkmode: boolean;
   }): Promise<void> => {
     const funcName = 'run_present_channel_event';
     const logName = `${CliAssetsImporter.name}.${funcName}()`;
 
-    const rctxt: ICliAsyncApiRunContext_Channel_Event = {
-      messageName: epAsyncApiMessageDocument.getMessageName()
-    };
-    CliRunContext.updateContext({ 
-      runContext: rctxt
-    });  
+    const epEventName: string = epAsyncApiChannelDocument.getEpEventName();
+    const channelTopic: string = epAsyncApiChannelDocument.getAsyncApiChannelKey();
+
+    // const rctxt: ICliApiRunContext_Channel_Event = {
+    //   channelTopic: channelTopic,
+    //   epEventName: epEventName 
+    // };
+    // CliRunContext.updateContext({ 
+    //   runContext: rctxt
+    // });  
     CliLogger.debug(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_API_CHANNEL_MESSAGE, details: {
+      epEventName: epEventName,
+      channelTopic: channelTopic
     }}));
     CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_API_CHANNEL_MESSAGE, details: {
       epAsyncApiMessageDocument: epAsyncApiMessageDocument
@@ -163,7 +170,7 @@ export class CliAssetsImporter extends CliImporter {
     const epSdkEpEventTask = new EpSdkEpEventTask({
       epSdkTask_TargetState: EEpSdkTask_TargetState.PRESENT,
       applicationDomainId: applicationDomainId,
-      eventName: epAsyncApiMessageDocument.getMessageName(),
+      eventName: epEventName,
       eventObjectSettings: {
         shared: true,
       },
@@ -182,9 +189,9 @@ export class CliAssetsImporter extends CliImporter {
     // present the event version
     const xvoid: void = await this.run_present_event_version({
       applicationDomainId: applicationDomainId,
-      channelTopic: channelTopic,
       eventObject: epSdkEpEventTask_ExecuteReturn.epObject,
       specVersion: specVersion,
+      epAsyncApiChannelDocument: epAsyncApiChannelDocument,
       epAsyncApiMessageDocument: epAsyncApiMessageDocument,
       schemaVersionId: schemaVersionId,
       checkmode: checkmode
@@ -249,10 +256,10 @@ export class CliAssetsImporter extends CliImporter {
     const funcName = 'run_present_channel_message';
     const logName = `${CliAssetsImporter.name}.${funcName}()`;
 
-    const rctxt: ICliAsyncApiRunContext_Channel_Operation_Message = {
+    const rctxt: ICliApiRunContext_Channel_Operation_Message = {
       messageName: epAsyncApiMessageDocument.getMessageName()
     };
-    CliRunContext.updateContext({ runContext: rctxt });  
+    CliRunContext.push(rctxt);  
 
     CliLogger.debug(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_API_CHANNEL_MESSAGE, details: {
     }}));
@@ -289,6 +296,7 @@ export class CliAssetsImporter extends CliImporter {
       applicationDomainId: applicationDomainId,
       checkmode: checkmode
     });
+    CliRunContext.pop();  
     return epSdkSchemaVersionTask_ExecuteReturn.epObject;
   }
 
@@ -361,11 +369,11 @@ export class CliAssetsImporter extends CliImporter {
 
       const parameterEnumList: Array<string> = epAsyncApiChannelParameterDocument.getParameterEnumValueList();
 
-      const rctxt: ICliAsyncApiRunContext_Channel_Parameter = {
+      const rctxt: ICliApiRunContext_Channel_Parameter = {
         parameter: parameterName,
         parameterEnumList: parameterEnumList.length > 0 ? parameterEnumList : undefined
       };
-      CliRunContext.updateContext({ runContext: rctxt });
+      CliRunContext.push(rctxt);
       CliLogger.debug(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_API_CHANNEL_PARAMETER, details: {
       }}));
       CliLogger.trace(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_API_CHANNEL_PARAMETER, details: {
@@ -407,12 +415,12 @@ export class CliAssetsImporter extends CliImporter {
           checkmode: checkmode
         });
       }
+      CliRunContext.pop();
     }
   }
 
-  private run_present_channel = async({ applicationDomainId, channelTopic, epAsyncApiChannelDocument, specVersion, checkmode }:{
+  private run_present_channel = async({ applicationDomainId, epAsyncApiChannelDocument, specVersion, checkmode }:{
     applicationDomainId: string;
-    channelTopic: string;
     epAsyncApiChannelDocument: EpAsyncApiChannelDocument;
     specVersion: string;
     checkmode: boolean;
@@ -420,10 +428,14 @@ export class CliAssetsImporter extends CliImporter {
     const funcName = 'run_present_channel';
     const logName = `${CliAssetsImporter.name}.${funcName}()`;
 
-    const rctxt: ICliAsyncApiRunContext_Channel = {
-      channelTopic: channelTopic
+    const channelTopic: string = epAsyncApiChannelDocument.getAsyncApiChannelKey();
+    const epEventName: string = epAsyncApiChannelDocument.getEpEventName();
+
+    const rctxt: ICliApiRunContext_Channel = {
+      channelTopic: channelTopic,
+      epEventName: epEventName
     };
-    CliRunContext.updateContext({ runContext: rctxt });
+    CliRunContext.push(rctxt);
     CliRunSummary.processingApiChannel({ cliRunSummary_ApiChannel: {
       type: ECliRunSummary_Type.ApiChannel,
       channelTopic: channelTopic,
@@ -441,14 +453,14 @@ export class CliAssetsImporter extends CliImporter {
       specVersion: specVersion,
       checkmode: checkmode,
     });
-    
-    const epAsynApiChannelPublishOperation: EpAsynApiChannelPublishOperation | undefined = epAsyncApiChannelDocument.getEpAsynApiChannelPublishOperation();
+    // publish operations
+    const epAsynApiChannelPublishOperation: EpAsynApiChannelPublishOperation | undefined = epAsyncApiChannelDocument.getEpAsyncApiChannelPublishOperation();
     if(epAsynApiChannelPublishOperation !== undefined) {
 
-      const rctxt: ICliAsyncApiRunContext_Channel_Operation = {
+      const rctxt: ICliApiRunContext_Channel_Operation = {
         type: ECliChannelOperation.Publish,
       };
-      CliRunContext.updateContext({ runContext: rctxt });  
+      CliRunContext.push(rctxt);  
       CliRunSummary.processingApiChannelOperation({ cliRunSummary_ApiChannel_Operation: {
         type: ECliRunSummary_Type.ApiChannelOperation,
         operationType: ECliChannelOperationType.PUBLISH
@@ -471,21 +483,22 @@ export class CliAssetsImporter extends CliImporter {
       // present event
       xvoid = await this.run_present_channel_event({
         applicationDomainId: applicationDomainId,
+        epAsyncApiChannelDocument: epAsyncApiChannelDocument,
         epAsyncApiMessageDocument: epAsyncApiMessageDocument,
         specVersion: specVersion,
-        channelTopic: channelTopic,
         schemaVersionId: schemaVersionObject.id,
         checkmode: checkmode
       });
+      CliRunContext.pop();  
     }
 
     const epAsyncApiChannelSubscribeOperation: EpAsyncApiChannelSubscribeOperation | undefined = epAsyncApiChannelDocument.getEpAsyncApiChannelSubscribeOperation();
     if(epAsyncApiChannelSubscribeOperation !== undefined) {
 
-      const rctxt: ICliAsyncApiRunContext_Channel_Operation = {
+      const rctxt: ICliApiRunContext_Channel_Operation = {
         type: ECliChannelOperation.Subscribe
       };
-      CliRunContext.updateContext({ runContext: rctxt });  
+      CliRunContext.push(rctxt);  
       CliRunSummary.processingApiChannelOperation({ cliRunSummary_ApiChannel_Operation: {
         type: ECliRunSummary_Type.ApiChannelOperation,
         operationType: ECliChannelOperationType.SUBSCRIBE
@@ -508,13 +521,15 @@ export class CliAssetsImporter extends CliImporter {
       // present event
       xvoid = await this.run_present_channel_event({
         applicationDomainId: applicationDomainId,
+        epAsyncApiChannelDocument: epAsyncApiChannelDocument,
         epAsyncApiMessageDocument: epAsyncApiMessageDocument,
         specVersion: specVersion,
-        channelTopic: channelTopic,
         schemaVersionId: schemaVersionObject.id,
         checkmode: checkmode
       });
+      CliRunContext.pop();
     }
+    CliRunContext.pop();
   }
 
   protected generate_asset_ouput = ({ cliImporterGenerateAssetsOptions }:{
@@ -551,7 +566,7 @@ export class CliAssetsImporter extends CliImporter {
     // save all channel message schemas to files
     const epAsyncApiChannelDocumentMap: T_EpAsyncApiChannelDocumentMap = epAsyncApiDocument.getEpAsyncApiChannelDocumentMap();
     for(let [topic, epAsyncApiChannelDocument] of epAsyncApiChannelDocumentMap) {
-      const epAsynApiChannelPublishOperation: EpAsynApiChannelPublishOperation | undefined = epAsyncApiChannelDocument.getEpAsynApiChannelPublishOperation();
+      const epAsynApiChannelPublishOperation: EpAsynApiChannelPublishOperation | undefined = epAsyncApiChannelDocument.getEpAsyncApiChannelPublishOperation();
       if(epAsynApiChannelPublishOperation !== undefined) {
         const epAsyncApiMessageDocument: EpAsyncApiMessageDocument = epAsynApiChannelPublishOperation.getEpAsyncApiMessageDocument();
         if(epAsyncApiMessageDocument.getContentType() !== E_EpAsyncApiContentTypes.APPLICATION_JSON) throw new CliAsyncApiSpecFeatureNotSupportedError(logName, "unsupported message schema content type", {
@@ -591,22 +606,6 @@ export class CliAssetsImporter extends CliImporter {
     const funcName = 'run_present';
     const logName = `${CliAssetsImporter.name}.${funcName}()`;
 
-    const apiTitle: string = cliImporterRunPresentOptions.epAsyncApiDocument.getTitle();
-    const apiVersion: string = cliImporterRunPresentOptions.epAsyncApiDocument.getVersion();
-    const epApplicationDomainName: string = cliImporterRunPresentOptions.epAsyncApiDocument.getApplicationDomainName();
-
-    const rctxt: ICliAsyncApiRunContext_State = {
-      apiTitle: apiTitle,
-      apiVersion: apiVersion,
-      epApplicationDomainName: epApplicationDomainName
-    };
-    CliRunContext.updateContext({ runContext: rctxt });
-    CliRunSummary.processingApi({ cliRunSummary_Api: {
-      type: ECliRunSummary_Type.Api,
-      apiName: apiTitle,
-      apiVersion: apiVersion,
-      applicationDomainName: epApplicationDomainName,
-    }});
     CliLogger.debug(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_START_API_ASSETS, details: {
       cliImporterRunPresentOptions: cliImporterRunPresentOptions
     }}));
@@ -617,7 +616,7 @@ export class CliAssetsImporter extends CliImporter {
     // application domain present
     const applicationDomainsTask = new EpSdkApplicationDomainTask({
       epSdkTask_TargetState: EEpSdkTask_TargetState.PRESENT,
-      applicationDomainName: epApplicationDomainName,
+      applicationDomainName: cliImporterRunPresentOptions.epAsyncApiDocument.getApplicationDomainName(),
       applicationDomainSettings: {
         // description: "a new description x"
       },
@@ -652,20 +651,13 @@ export class CliAssetsImporter extends CliImporter {
       // }}));
       xvoid = await this.run_present_channel({
         applicationDomainId: cliAssetsImporterRunPresentReturn.applicationDomainId,
-        channelTopic: topic,
         epAsyncApiChannelDocument: epAsyncApiChannelDocument,
         specVersion: cliImporterRunPresentOptions.epAsyncApiDocument.getVersion(),
         checkmode: cliImporterRunPresentOptions.checkmode
       });
     }
-
-    CliLogger.debug(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_DONE_API_ASSEETS, details: {
-      context: CliRunContext.getContext(),
-    }}));
-
     // throw new Error(`${logName}: test error handling in test_mode`);
     return cliAssetsImporterRunPresentReturn;
-
   }
 
   protected async run({ cliImporterRunOptions }:{
@@ -674,14 +666,6 @@ export class CliAssetsImporter extends CliImporter {
     const funcName = 'run';
     const logName = `${CliAssetsImporter.name}.${funcName}()`;
 
-    const rctxt: ICliAsyncApiRunContext = {
-      apiFile: cliImporterRunOptions.apiFile
-    };
-    CliRunContext.updateContext({ runContext: rctxt });
-    CliRunSummary.processingApiFile({ cliRunSummary_ApiFile: { 
-      type: ECliRunSummary_Type.ApiFile, 
-      apiFile: cliImporterRunOptions.apiFile,
-    }});
     CliLogger.debug(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_START_API_ASSETS, details: {
       cliImporterRunOptions: cliImporterRunOptions
     }}));

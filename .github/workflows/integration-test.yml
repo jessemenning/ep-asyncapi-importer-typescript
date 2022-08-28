@@ -21,8 +21,8 @@ env:
   # DEBUG_FLAG: ${{ true }}
   DEBUG_FLAG: ${{ false }}
   IMPORTER_CLI_DIR: "importer-cli"
-  IMPORTER_CLI_TEST_LOGS_DIR: "importer-cli/test/logs"
-  IMPORTER_CLI_TEST_LOGS_OUTPUT_NAME: "importer-cli-test-logs"
+  IMPORTER_CLI_TEST_LOGS_DIR: "importer-cli/test/tmp/logs"
+  IMPORTER_CLI_TEST_LOGS_OUTPUT_NAME: "ep-asyncapi-importer-test-logs"
 jobs:
   integration_test:
     runs-on: ubuntu-18.04
@@ -88,11 +88,25 @@ jobs:
           cd "${IMPORTER_CLI_DIR}"
           npm run build
 
-      - name: "importer-cli:test"
+      - name: "test"
         run: |
           cd "${IMPORTER_CLI_DIR}"
           export CLI_SOLACE_CLOUD_TOKEN="${{ secrets.CLI_SOLACE_CLOUD_TOKEN }}"
           test/run.sh
+
+      - name: cat lcov info
+        if: env.DEBUG_FLAG == 'true'
+        run: |
+          cat "${{ github.workspace }}/${{ env.IMPORTER_CLI_TEST_LOGS_DIR }}/coverage/lcov.info"
+
+      - name: Coveralls Parallel
+        uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.github_token }}
+          flag-name: run-${{ matrix.node }}
+          parallel: true
+          path-to-lcov: ${{ github.workspace }}/${{ env.IMPORTER_CLI_TEST_LOGS_DIR }}/coverage/lcov.info
+          base-path: ${{ env.IMPORTER_CLI_DIR }}
 
       - name: Archive Importer Cli Test Logs
         if: ${{ (failure() && !cancelled()) || (always() && (github.event_name=='workflow_dispatch' || env.DEBUG_FLAG=='true') ) }}
@@ -101,6 +115,16 @@ jobs:
           name: ${{ env.IMPORTER_CLI_TEST_LOGS_OUTPUT_NAME }}
           path: ${{ github.workspace }}/${{ env.IMPORTER_CLI_TEST_LOGS_DIR }}
           if-no-files-found: error
+
+  finish:
+    needs: integration_test
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Coveralls Finished
+        uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.github_token }}
+          parallel-finished: true
 
 ###
 # The End.

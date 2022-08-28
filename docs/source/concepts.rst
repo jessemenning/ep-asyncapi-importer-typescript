@@ -4,7 +4,7 @@ Concepts
 ========
 
 .. toctree::
-  :maxdepth: 1
+  :maxdepth: 2
 
   concepts-content/overview
   concepts-content/runs

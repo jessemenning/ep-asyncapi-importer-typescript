@@ -4,6 +4,7 @@ import {
 } from '@solace-labs/ep-openapi-node';
 import { 
   EEpSdkTask_Action,
+  EEpSdkTask_EpObjectType,
   IEpSdkApplicationDomainTask_ExecuteReturn,
   IEpSdkApplicationVersionTask_ExecuteReturn,
   IEpSdkEnumTask_ExecuteReturn,
@@ -13,9 +14,11 @@ import {
   IEpSdkSchemaVersionTask_ExecuteReturn, 
   IEpSdkTask_ExecuteReturn 
 } from "@solace-labs/ep-sdk";
-import { CliError } from "./CliError";
-import { CliLogger, ECliSummaryStatusCodes } from "./CliLogger";
+import { CliError, CliUsageError } from "./CliError";
+import { ECliImporterManagerMode, ICliImporterManagerOptions } from './CliImporterManager';
+import { CliLogger, ECliStatusCodes, ECliSummaryStatusCodes } from "./CliLogger";
 import { ECliRunContext_RunMode } from "./CliRunContext";
+import { CliUtils } from './CliUtils';
 
 export enum ECliChannelOperationType {
   PUBLISH = "publish",
@@ -46,6 +49,10 @@ export interface ICliRunError {
 export interface ICliRunSummary_Base {
   type: ECliRunSummary_Type;
   runMode?: ECliRunContext_RunMode;
+  // timestamp: number; // would have to create new set of interfaces: xxx_Create which omit timestamp
+}
+export interface ICliRunSummary_LogBase extends ICliRunSummary_Base {
+  timestamp: number;
 }
 interface ICliRunSummary_ValidatingApi extends ICliRunSummary_Base {
   type: ECliRunSummary_Type.ValidatingApi;
@@ -78,7 +85,7 @@ interface ICliRunSummary_ApiChannel_Operation extends ICliRunSummary_Base {
 }
 interface ICliRunSummary_Task extends ICliRunSummary_Base {
   applicationDomainName?: string;
-  action: string;
+  action: EEpSdkTask_Action;
 }
 interface ICliRunSummary_Task_ApplicationDomain extends ICliRunSummary_Task {
   type: ECliRunSummary_Type.ApplicationDomain;
@@ -92,7 +99,7 @@ interface ICliRunSummary_Task_VersionObject extends ICliRunSummary_Task {
   displayName?: string;
   version?: string;
   state?: string;
-  epObjectType: string;
+  epObjectType: EEpSdkTask_EpObjectType;
 }
 interface ICliRunSummary_Task_VersionObject_Check extends ICliRunSummary_Task, Omit<ICliRunSummary_Task_VersionObject, "type"> {
   type: ECliRunSummary_Type.VersionObjectCheck;
@@ -107,21 +114,37 @@ interface ICliRunSummary_Task_VersionObject_Warning extends ICliRunSummary_Task,
   createdVersion: string;
   createdVersionState: string;
 }
+export interface ICliImportSummary {
+  processedApplicationDomains: number;
+  createdApplicationDomains: number;
+  processedApis: number;
+  createdEventApiVersions: number;
+  processedChannels: number;
+  createdEventVersions: number;
+  createdSchemaVersions: number;
+  createdEnumVersions: number;
+  warnings: Array<ICliRunSummary_Task_VersionObject_Warning>;
+}
 
 export class CliRunSummary {
 
-  private summaryLogList: Array<ICliRunSummary_Base> = [];
+  private summaryLogList: Array<ICliRunSummary_LogBase> = [];
   private applicationDomainName: string;
   private runMode: ECliRunContext_RunMode;
 
-  public getSummaryLogList(): Array<ICliRunSummary_Base> { return this.summaryLogList; }
+  public getSummaryLogList(): Array<ICliRunSummary_LogBase> { return this.summaryLogList; }
   
-  private log = (code: ECliSummaryStatusCodes, cliRunSummary_Base: ICliRunSummary_Base, consoleOutput: string) => {
-    this.summaryLogList.push(cliRunSummary_Base);
+  private log = (code: ECliSummaryStatusCodes, cliRunSummary_Base: ICliRunSummary_Base, consoleOutput: string, consoleOutputOnly: boolean = false) => {
+    const cliRunSummary_LogBase: ICliRunSummary_LogBase = {
+      ...cliRunSummary_Base,
+      timestamp: Date.now()
+    }
+    this.summaryLogList.push(cliRunSummary_LogBase);
     CliLogger.summary({
-      cliRunSummary_Base: cliRunSummary_Base,
+      cliRunSummary_LogBase: cliRunSummary_LogBase,
       consoleOutput: consoleOutput,
       code: code,
+      useCliLogger: !consoleOutputOnly
     })
   }
 
@@ -143,13 +166,24 @@ export class CliRunSummary {
   public runError = ({ cliRunError }:{
     cliRunError: ICliRunError;
   }): void => {
-    const consoleOutput = `
-Run Error: ------------------------
-  See log file for more details.
+    if(cliRunError.cliError instanceof CliUsageError) {
+      const consoleOutput = `
 
-${cliRunError.cliError}
-    `;
-    this.log(ECliSummaryStatusCodes.RUN_ERROR, cliRunError, consoleOutput);
+  Usage Error: ------------------------  
+
+  ${cliRunError.cliError.message}
+  ${JSON.stringify(cliRunError.cliError.details, null, 2)}
+      `;
+      this.log(ECliSummaryStatusCodes.USAGE_ERROR, cliRunError, consoleOutput, true);  
+    } else {
+      const consoleOutput = `
+  Run Error: ------------------------
+    See log file for more details.
+  
+  ${cliRunError.cliError}
+      `;
+      this.log(ECliSummaryStatusCodes.RUN_ERROR, cliRunError, consoleOutput);  
+    }
   }
 
   public startRun = ({ cliRunSummary_StartRun }:{
@@ -454,6 +488,129 @@ Start Run: ${cliRunSummary_StartRun.runMode} ------------------------
     epSdkApplicationVersionTask_ExecuteReturn: IEpSdkApplicationVersionTask_ExecuteReturn;
   }): void => {
     this.processedVersionObject(ECliSummaryStatusCodes.PROCESSED_APPLICATION_VERSION, epSdkApplicationVersionTask_ExecuteReturn);
+  }
+
+  public createImportSummary = (cliImporterManagerMode: ECliImporterManagerMode): ICliImportSummary => {
+    const funcName = 'createImportSummary';
+    const logName = `${CliRunSummary.name}.${funcName}()`;
+
+    const cliRunSummary_LogBase_List: Array<ICliRunSummary_LogBase> = this.getSummaryLogList();
+    let cliRunSummary_LogBase_Filtered_List: Array<ICliRunSummary_LogBase> = [];
+
+    switch(cliImporterManagerMode) {
+      case ECliImporterManagerMode.TEST_MODE:
+      case ECliImporterManagerMode.TEST_MODE_KEEP:
+        cliRunSummary_LogBase_Filtered_List = cliRunSummary_LogBase_List.filter( (cliRunSummary_LogBase: ICliRunSummary_LogBase) => {
+          return cliRunSummary_LogBase.runMode === ECliRunContext_RunMode.TEST_PASS_1;
+        });
+        break;
+      case ECliImporterManagerMode.RELEASE_MODE:
+        cliRunSummary_LogBase_Filtered_List = cliRunSummary_LogBase_List.filter( (cliRunSummary_LogBase: ICliRunSummary_LogBase) => {
+          return cliRunSummary_LogBase.runMode === ECliRunContext_RunMode.RELEASE;
+        });
+        break;
+      default: 
+        CliUtils.assertNever(logName, cliImporterManagerMode);
+    }
+
+    // // DEBUG
+    // console.log(`${JSON.stringify(cliRunSummary_LogBase_Filtered_List, null, 2)}`);
+    // // END DEBUG
+
+    // const processedApiFiles = cliRunSummary_LogBase_Filtered_List.reduce( (count, item) => count + Number(item.type === ECliRunSummary_Type.ApiFile), 0);
+    const processedApis = cliRunSummary_LogBase_Filtered_List.reduce( (count, item) => count + Number(item.type === ECliRunSummary_Type.Api), 0);
+    const processedChannels = cliRunSummary_LogBase_Filtered_List.reduce( (count, item) => count + Number(item.type === ECliRunSummary_Type.ApiChannel), 0);
+
+    const cliRunSummary_ApplicationDomain_List: Array<ICliRunSummary_Task_ApplicationDomain> = cliRunSummary_LogBase_Filtered_List.filter( (cliRunSummary_LogBase: ICliRunSummary_LogBase) => {
+      return cliRunSummary_LogBase.type === ECliRunSummary_Type.ApplicationDomain;
+    }) as unknown as Array<ICliRunSummary_Task_ApplicationDomain>;
+    const processedApplicationDomains = cliRunSummary_ApplicationDomain_List.length;
+    const createdApplicationDomains = cliRunSummary_ApplicationDomain_List.reduce( (count, item) => count + Number(item.type === ECliRunSummary_Type.ApplicationDomain && item.action !== EEpSdkTask_Action.NO_ACTION), 0);
+
+
+    const cliRunSummary_CreatedVersionObject_List: Array<ICliRunSummary_Task_VersionObject> = cliRunSummary_LogBase_Filtered_List.filter( (cliRunSummary_LogBase: ICliRunSummary_LogBase) => {
+      if(cliRunSummary_LogBase.type === ECliRunSummary_Type.VersionObject) {
+        const cliRunSummary_Task_VersionObject: ICliRunSummary_Task_VersionObject = cliRunSummary_LogBase as unknown as ICliRunSummary_Task_VersionObject;
+        if(cliRunSummary_Task_VersionObject.action === EEpSdkTask_Action.CREATE_FIRST_VERSION || cliRunSummary_Task_VersionObject.action === EEpSdkTask_Action.CREATE_NEW_VERSION) return true;
+        return false;
+      }
+      return false;
+    }) as unknown as Array<ICliRunSummary_Task_VersionObject>;
+
+    // // DEBUG
+    // console.log(`${JSON.stringify(cliRunSummary_CreatedVersionObject_List, null, 2)}`);
+    // CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_DONE_API, details: {
+    //   runMode: this.runMode,
+    //   cliRunSummary_CreatedVersionObject_List: cliRunSummary_CreatedVersionObject_List
+    // }}));
+    // // END DEBUG
+
+    const cliRunSummary_CreatedVersionObjectWarning_List: Array<ICliRunSummary_Task_VersionObject_Warning> = cliRunSummary_LogBase_Filtered_List.filter( (cliRunSummary_LogBase: ICliRunSummary_LogBase) => {
+       return cliRunSummary_LogBase.type === ECliRunSummary_Type.VersionObjectWarning;
+    }) as unknown as Array<ICliRunSummary_Task_VersionObject_Warning>;
+
+    // // DEBUG
+    // console.log(`${JSON.stringify(cliRunSummary_CreatedVersionObject_List, null, 2)}`);
+    // CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_DONE_API, details: {
+    //   runMode: this.runMode,
+    //   cliRunSummary_CreatedVersionObjectWarning_List: cliRunSummary_CreatedVersionObjectWarning_List
+    // }}));
+    // // END DEBUG
+
+    const createdEventApiVersions = cliRunSummary_CreatedVersionObject_List.reduce( (count, item) => count + Number(item.epObjectType === EEpSdkTask_EpObjectType.EVENT_API_VERSION), 0);
+    const createdEventVersions = cliRunSummary_CreatedVersionObject_List.reduce( (count, item) => count + Number(item.epObjectType === EEpSdkTask_EpObjectType.EVENT_VERSION), 0);
+    const createdSchemaVersions = cliRunSummary_CreatedVersionObject_List.reduce( (count, item) => count + Number(item.epObjectType === EEpSdkTask_EpObjectType.SCHEMA_VERSION), 0);
+    const createdEnumVersions = cliRunSummary_CreatedVersionObject_List.reduce( (count, item) => count + Number(item.epObjectType === EEpSdkTask_EpObjectType.ENUM_VERSION), 0);
+
+    return {
+      processedApplicationDomains: processedApplicationDomains,
+      createdApplicationDomains: createdApplicationDomains,
+      processedApis: processedApis,
+      createdEventApiVersions: createdEventApiVersions,
+      processedChannels: processedChannels,
+      createdEventVersions: createdEventVersions,
+      createdSchemaVersions: createdSchemaVersions,
+      createdEnumVersions: createdEnumVersions,
+      warnings: cliRunSummary_CreatedVersionObjectWarning_List,
+    };
+  }
+
+  public processedImport = (logName: string, cliImporterManagerOptions: ICliImporterManagerOptions) => {
+
+    CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_DONE_API, details: {
+      cliImporterManagerMode: cliImporterManagerOptions.cliImporterManagerMode,
+      runMode: this.runMode,
+      summaryLogList: this.getSummaryLogList()
+    }}));
+
+    const cliImportSummary: ICliImportSummary = this.createImportSummary(cliImporterManagerOptions.cliImporterManagerMode);
+
+    CliLogger.info(CliLogger.createLogEntry(logName, { code: ECliStatusCodes.IMPORTING_DONE_API, details: {
+      cliImporterManagerMode: cliImporterManagerOptions.cliImporterManagerMode,
+      runMode: this.runMode,
+      cliImportSummary: cliImportSummary
+    }}));
+
+    const consoleOutput = `
+------------------------------------------------------------------------------------------------    
+Import Summary for mode: ${cliImporterManagerOptions.cliImporterManagerMode}
+
+  Processed Application Domains: ${cliImportSummary.processedApplicationDomains}
+    Created Application Domains:  ${cliImportSummary.createdApplicationDomains}
+  Processed Apis: ${cliImportSummary.processedApis}
+    Created Event Apis Versions:  ${cliImportSummary.createdEventApiVersions}
+  Processed Channels: ${cliImportSummary.processedChannels}
+    Created Event Versions:       ${cliImportSummary.createdEventVersions}
+    Created Schema Versions:      ${cliImportSummary.createdSchemaVersions}
+    Created Enum Versions:        ${cliImportSummary.createdEnumVersions}
+  
+  Warnings: ${cliImportSummary.warnings.length}
+    
+${cliImportSummary.warnings.length > 0 ? JSON.stringify(cliImportSummary.warnings, null, 2) : ''}
+
+------------------------------------------------------------------------------------------------    
+    `;
+    console.log(consoleOutput);
   }
 
 }

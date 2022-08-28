@@ -2,8 +2,7 @@ import CliConfig from "./CliConfig";
 import { CliLogger, ECliStatusCodes } from "./CliLogger";
 import { ApiError } from "@solace-labs/ep-openapi-node";
 import { EpSdkError } from "@solace-labs/ep-sdk";
-import { EpAsyncApiError } from "@solace-labs/ep-asyncapi";
-import { ParserError } from "@asyncapi/parser";
+import { EpAsyncApiError, EpAsyncApiParserError } from "@solace-labs/ep-asyncapi";
 
 export class CliErrorFactory {
   public static createCliError = ({ logName, e}: {
@@ -11,26 +10,66 @@ export class CliErrorFactory {
     e: Error;
   }): CliError => {
     let cliError: CliError;
-    if(e instanceof CliError) {
+
+    if(e instanceof CliConfigError) {
+      // console.log('\n\n\nINSTANCE OF CliConfigMissingEnvVarError\n\n\n\n')
+      cliError = CliErrorFactory.createCliUsageErrorFromCliConfigError({ logName: logName, cliConfigError: e});
+    } else if(e instanceof CliError) {
+      // console.log(`\n\n\nINSTANCE OF CliError: ${e.constructor.name}\n\n\n\n`)
       return e;
     } else if(e instanceof EpAsyncApiError) {
       cliError = new CliErrorFromEpAsyncApiError(logName, e);
+    } else if(e instanceof EpAsyncApiParserError) {
+      cliError = new CliAsyncApiParserError(logName, e);
     } else if(e instanceof EpSdkError) {
       cliError = new CliErrorFromEpSdkError(logName, e);
     } else if(e instanceof ApiError) {
       cliError = new CliErrorFromEPApiError(logName, e);
-    } else if(e instanceof ParserError) {
-      cliError = new CliAsyncApiParserError(logName, e);
     } else {
+      // console.log(`\n\n\nINSTANCE OF: ${e.constructor.name}\n\n\n\n`)
       cliError = new CliErrorFromError(logName, e);
     }
     return cliError;
   }
+
+  public static createCliUsageErrorFromCliConfigError = ({ logName, cliConfigError}: {
+    logName: string;
+    cliConfigError: CliConfigError;
+  }): CliUsageError => {
+    if(cliConfigError instanceof CliConfigMissingEnvVarError) {
+      return new CliUsageError(logName, cliConfigError.message, {
+        "Environment Variable": cliConfigError.envVarName
+      })
+    }
+    if(cliConfigError instanceof CliConfigInvalidDirEnvVarError) {
+      return new CliUsageError(logName, cliConfigError.message, {
+        "Environment Variable": cliConfigError.envVar,
+        "Directory": cliConfigError.dir,
+        "Details": cliConfigError.cause
+      });
+    }
+    if(cliConfigError instanceof CliConfigInvalidUrlEnvVarError) {
+      return new CliUsageError(logName, cliConfigError.message, {
+        "Environment Variable": cliConfigError.envVar,
+        "Url": cliConfigError.url,
+        "Details": cliConfigError.error
+      });
+    }
+    if(cliConfigError instanceof CliConfigInvalidEnvVarValueOptionError) {
+      return new CliUsageError(logName, cliConfigError.message, {
+        "Environment Variable": cliConfigError.envVarName,
+        "Value": cliConfigError.envVarValue,
+        "Options": cliConfigError.options
+      });
+    }
+    // any missing mappings will throw again
+    throw cliConfigError;
+  }
 }
 export class CliError extends Error {
   private internalStack: Array<string>;
-  private internalLogName: string;
-  private internalMessage: string;
+  public internalLogName: string;
+  public internalMessage: string;
   protected appName: string;
   private readonly baseName: string = CliError.name;
 
@@ -38,10 +77,11 @@ export class CliError extends Error {
     return stack.split('\n');
   }
 
-  constructor(internalLogName: string, internalMessage?: string) {
+  constructor(internalLogName: string, internalMessage: string) {
     super(internalMessage?internalMessage:internalLogName);
     this.name = this.constructor.name;
     this.internalLogName = internalLogName;
+    this.internalMessage = internalMessage;
     this.internalStack = this.createArrayFromStack(this.stack);
     this.appName = CliConfig.getAppName();
   }
@@ -101,27 +141,32 @@ export class CliErrorFromEPApiError extends CliError {
   }
 }
 
-export class CliConfigNotInitializedError extends CliError {
+export class CliConfigError extends CliError {
+  constructor(internalLogName: string, description: string) {
+    super(internalLogName, description);
+  }
+}
+export class CliConfigNotInitializedError extends CliConfigError {
   private static DefaultDescription = 'CliConfig not Initialized Error';
   constructor(internalLogName: string) {
     super(internalLogName, CliConfigNotInitializedError.DefaultDescription);
   }
 }
 
-export class CliConfigMissingEnvVarError extends CliError {
-  private static DefaultDescription = 'Missing Environment Variable Error';
-  private envVarName: string;
+export class CliConfigMissingEnvVarError extends CliConfigError {
+  private static DefaultDescription = 'Missing Environment Variable';
+  public envVarName: string;
   constructor(internalLogName: string, envVarName: string) {
     super(internalLogName, CliConfigMissingEnvVarError.DefaultDescription);
     this.envVarName = envVarName;
   }
 }
 
-export class CliConfigInvalidDirEnvVarError extends CliError {
-  private static DefaultDescription = 'Invalid Directory Error';
-  private dir: string;
-  private envVar: string;
-  private cause: string;
+export class CliConfigInvalidDirEnvVarError extends CliConfigError {
+  private static DefaultDescription = 'Invalid Directory';
+  public dir: string;
+  public envVar: string;
+  public cause: string;
   constructor(internalLogName: string, envVar: string, dir: string, cause: string) {
     super(internalLogName, CliConfigInvalidDirEnvVarError.DefaultDescription);
     this.dir = dir;
@@ -130,11 +175,11 @@ export class CliConfigInvalidDirEnvVarError extends CliError {
   }
 }
 
-export class CliConfigInvalidUrlEnvVarError extends CliError {
+export class CliConfigInvalidUrlEnvVarError extends CliConfigError {
   private static DefaultDescription = 'Invalid URL format';
-  private url: string;
-  private envVar: string;
-  private error: any;
+  public url: string;
+  public envVar: string;
+  public error: any;
   constructor(internalLogName: string, envVar: string, url: string, error: Error) {
     super(internalLogName, CliConfigInvalidUrlEnvVarError.DefaultDescription);
     this.error = error;
@@ -143,11 +188,11 @@ export class CliConfigInvalidUrlEnvVarError extends CliError {
   }
 }
 
-export class CliConfigInvalidEnvVarValueOptionError extends CliError {
-  private static DefaultDescription = 'Invalid Environment Variable Option Error';
-  private envVarName: string;
-  private envVarValue: string;
-  private options: string;
+export class CliConfigInvalidEnvVarValueOptionError extends CliConfigError {
+  private static DefaultDescription = 'Invalid Environment Variable Option';
+  public envVarName: string;
+  public envVarValue: string;
+  public options: string;
   constructor(internalLogName: string, envVarName: string, envVarValue: string, options: Array<string>) {
     super(internalLogName, CliConfigInvalidEnvVarValueOptionError.DefaultDescription);
     this.envVarName = envVarName;
@@ -243,9 +288,11 @@ export class CliImporterTestRunAssetsInconsistencyError extends CliError {
 
 export class CliUsageError extends CliError {
   protected static DefaultDescription = 'CLI Usage Error';
-  private details: any;
+  public message: string;
+  public details: any;
   constructor(internalLogName: string, message: string, details: any) {
     super(internalLogName, `${CliUsageError.DefaultDescription}: ${message}`);
     this.details = details;
+    this.message = message;
   }
 }
