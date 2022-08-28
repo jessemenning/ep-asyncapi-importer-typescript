@@ -6,7 +6,7 @@
 name: integration-test
 on:
   # for testing
-  workflow_dispatch:
+  # workflow_dispatch:
   # push:
   #   branches:
   #     - main
