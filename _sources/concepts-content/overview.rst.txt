@@ -43,10 +43,13 @@ Application Domain
 * the application domain is specified in the Api itself using extension: `$.x-ep-application-domain-name`
 * specifying an application domain on the command line overrides all Api application domains
 
+.. _importer-content-overview-asset-mapping:
+
 Asset Mapping & Naming
 ----------------------
 
 Assets are identified by their name and mapped as follows:
+
 
 .. list-table:: Asset Mapping & Naming
    :widths: 25 25 50
@@ -55,6 +58,11 @@ Assets are identified by their name and mapped as follows:
    * - Async Api Element
      - Event Portal Asset
      - Naming
+   * - Extension:
+
+       $.x-ep-application-domain-name
+     - Application Domain
+     - Ep application domain = $.x-ep-application-domain-name
    * - Title
      - - Event Api / Event Api Version
        - Application / Application Version
@@ -65,15 +73,27 @@ Assets are identified by their name and mapped as follows:
        - Application Version
      - - event api version = $.info.version
        - application version = $.info.version
-   * - Channel
-     - Event / Event Version
-     - Event topic = $.channels[n]
+   * - Channel:
+
+       - Channel topic
+       - Extension: $.channel.{topic}.x-ep-event-name
+       -
+     - Event:
+
+       - Event Name
+       - Event Topic
+       - Event Version Name
+     -
+
+       - Event Name = $.channels.{topic}.x-ep-event-name | $.channels.{topic}
+       - Event Topic = $.channels.{topic}
+       - Event Version Name = $.channels.{topic}.x-ep-event-name | EMPTY
    * - Channel Parameter
      - Enum / Enum Version
-     - Enum name = $.channels[n].parameters[m]
+     - Enum name = $.channels.{topic}.parameters.{param}
    * - Channel Message
      - Schema / Schema Version
-     - Schema name = $.channels[n].[publish | subscribe].message
+     - Schema name = $.channels.{topic}.[publish | subscribe].message
 
 
 Asset Versioning Strategy

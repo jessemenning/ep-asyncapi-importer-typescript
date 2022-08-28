@@ -64,7 +64,7 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="runs.html">Importer Modes</a></li>
-<li class="toctree-l2"><a class="reference internal" href="notes.html">Notes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="notes.html">Known Limitations</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../apis.html">Async Apis</a></li>
@@ -134,7 +134,7 @@ do a release run overriding the application domains defined in the Api.</p>
 </ul>
 </section>
 <section id="asset-mapping-naming">
-<h2>Asset Mapping &amp; Naming<a class="headerlink" href="#asset-mapping-naming" title="Permalink to this heading"></a></h2>
+<span id="importer-content-overview-asset-mapping"></span><h2>Asset Mapping &amp; Naming<a class="headerlink" href="#asset-mapping-naming" title="Permalink to this heading"></a></h2>
 <p>Assets are identified by their name and mapped as follows:</p>
 <table class="colwidths-given docutils align-default" id="id1">
 <caption><span class="caption-text">Asset Mapping &amp; Naming</span><a class="headerlink" href="#id1" title="Permalink to this table"></a></caption>
@@ -150,7 +150,13 @@ do a release run overriding the application domains defined in the Api.</p>
 </tr>
 </thead>
 <tbody>
-<tr class="row-even"><td><p>Title</p></td>
+<tr class="row-even"><td><p>Extension:</p>
+<p>$.x-ep-application-domain-name</p>
+</td>
+<td><p>Application Domain</p></td>
+<td><p>Ep application domain = $.x-ep-application-domain-name</p></td>
+</tr>
+<tr class="row-odd"><td><p>Title</p></td>
 <td><ul class="simple">
 <li><p>Event Api / Event Api Version</p></li>
 <li><p>Application / Application Version</p></li>
@@ -162,7 +168,7 @@ do a release run overriding the application domains defined in the Api.</p>
 </ul>
 </td>
 </tr>
-<tr class="row-odd"><td><p>Version</p></td>
+<tr class="row-even"><td><p>Version</p></td>
 <td><ul class="simple">
 <li><p>Event Api Version</p></li>
 <li><p>Application Version</p></li>
@@ -174,17 +180,34 @@ do a release run overriding the application domains defined in the Api.</p>
 </ul>
 </td>
 </tr>
-<tr class="row-even"><td><p>Channel</p></td>
-<td><p>Event / Event Version</p></td>
-<td><p>Event topic = $.channels[n]</p></td>
+<tr class="row-odd"><td><p>Channel:</p>
+<ul class="simple">
+<li><p>Channel topic</p></li>
+<li><p>Extension: $.channel.{topic}.x-ep-event-name</p></li>
+<li></li>
+</ul>
+</td>
+<td><p>Event:</p>
+<ul class="simple">
+<li><p>Event Name</p></li>
+<li><p>Event Topic</p></li>
+<li><p>Event Version Name</p></li>
+</ul>
+</td>
+<td><ul class="simple">
+<li><p>Event Name = $.channels.{topic}.x-ep-event-name | $.channels.{topic}</p></li>
+<li><p>Event Topic = $.channels.{topic}</p></li>
+<li><p>Event Version Name = $.channels.{topic}.x-ep-event-name | EMPTY</p></li>
+</ul>
+</td>
 </tr>
-<tr class="row-odd"><td><p>Channel Parameter</p></td>
+<tr class="row-even"><td><p>Channel Parameter</p></td>
 <td><p>Enum / Enum Version</p></td>
-<td><p>Enum name = $.channels[n].parameters[m]</p></td>
+<td><p>Enum name = $.channels.{topic}.parameters.{param}</p></td>
 </tr>
-<tr class="row-even"><td><p>Channel Message</p></td>
+<tr class="row-odd"><td><p>Channel Message</p></td>
 <td><p>Schema / Schema Version</p></td>
-<td><p>Schema name = $.channels[n].[publish | subscribe].message</p></td>
+<td><p>Schema name = $.channels.{topic}.[publish | subscribe].message</p></td>
 </tr>
 </tbody>
 </table>
@@ -235,7 +258,7 @@ The asset state is controlled using the environment variable:</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright 2022, Solace Corporation, Ricardo Gomez-Ulmke, &lt;ricardo.gomez-ulmke@solace.com&gt;.
-      <span class="lastupdated">Last updated on 25 Aug 2022 at 13:23.
+      <span class="lastupdated">Last updated on 28 Aug 2022 at 11:29.
       </span></p>
   </div>
 
