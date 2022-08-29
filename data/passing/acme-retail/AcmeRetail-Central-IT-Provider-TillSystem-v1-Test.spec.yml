@@ -19,6 +19,7 @@ channels:
 
   catalyst-labs/acme-retail/till-system/v1/{regionId_v1}/{storeId_v1}/receipt:
     description: The topic to receive till receipts from stores on.
+    x-ep-event-name: till-system-receipt
     parameters:
       storeId_v1:
         $ref: '#/components/parameters/storeId-v1'
@@ -33,6 +34,7 @@ channels:
 
   catalyst-labs/acme-retail/till-system/v1/{regionId_v1}/{storeId_v1}/error:
     description: The topic to send errors as response to a transaction on.
+    x-ep-event-name: till-system-error
     parameters:
       storeId_v1:
         $ref: '#/components/parameters/storeId-v1'
